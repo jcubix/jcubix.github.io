@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0A0C0F">
+  <meta name="description" content="Per usare davvero l'AI oggi non puoi ignorare il prompt engineering — Giacomo Cubicciotti">
+  <title>Prompt engineering — Giacomo Cubicciotti</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;1,300&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/style.css">
+  <style>html, body { background-color: #0A0C0F !important; }</style>
+</head>
+<body style="background-color:#0A0C0F;">
+
+<nav>
+  <a href="../../" class="nav-logo"><span>~/ </span>giacomocubicciotti</a>
+  <ul class="nav-links">
+    <li><a href="../../#skills">skills</a></li>
+    <li><a href="../../#now">now</a></li>
+    <li><a href="../../#projects">projects</a></li>
+    <li><a href="../../#experience">experience</a></li>
+    <li><a href="../../blog/" style="color:var(--green)">blog</a></li>
+    <li><a href="../../#contact">contact</a></li>
+  </ul>
+  <div class="nav-status">
+    <span class="blink"></span>
+    <span class="nav-status-label">AVAILABLE</span>
+  </div>
+</nav>
+
+<article class="post-wrapper">
+
+  <a href="../" class="post-back">&larr; tutti gli articoli</a>
+
+  <div class="post-meta">
+    <span class="post-tag" style="color:var(--blue); border-color:rgba(56,189,248,0.2); background:rgba(56,189,248,0.07);">AI &amp; tools</span>
+    <span class="post-date">4 maggio 2026 &middot; ~6 min di lettura</span>
+  </div>
+
+  <h1 class="post-title">
+    Per usare davvero l'AI oggi non puoi ignorare il prompt engineering
+  </h1>
+
+  <p class="post-intro">
+    Tutti usano ChatGPT, Claude, Copilot. Pochissimi li usano bene.
+    La differenza non sta nello strumento — sta nel modo in cui ci si parla.
+    Il prompt engineering non è una skill per data scientist o ricercatori:
+    è qualcosa che chiunque lavori con l'AI dovrebbe capire, almeno nelle basi.
+  </p>
+
+  <div class="post-body">
+
+    <h2>Prima di tutto: cos'è un prompt</h2>
+
+    <p>
+      Un prompt è semplicemente quello che scrivi a un modello di linguaggio per
+      ottenere una risposta. Può essere una domanda, un'istruzione, un contesto,
+      un esempio — o una combinazione di tutto questo.
+    </p>
+
+    <p>
+      Il prompt engineering è la pratica di <strong>costruire questi input in modo
+      consapevole</strong>, per ottenere output migliori, più precisi e più utili.
+      Non è magia — è comunicazione. E come tutta la comunicazione, si può fare
+      bene o male.
+    </p>
+
+    <h2>Il problema che vedo ogni giorno</h2>
+
+    <p>
+      Ho visto colleghi e utenti usare strumenti AI con la stessa logica con cui
+      si usa un motore di ricerca: una frase breve, vaga, senza contesto.
+      Poi si lamentano che la risposta è generica o inutile.
+    </p>
+
+    <p>
+      "Spiegami come funziona un firewall" è un prompt. Ottiene una risposta.
+      Ma questa risposta sarà necessariamente generica, perché la domanda è generica.
+      Un firewall in che contesto? Per un utente finale? Per un tecnico?
+      In relazione a quale problema specifico? <strong>L'AI non è un oracolo —
+      è uno strumento che risponde in base a quello che riceve.</strong>
+      Garbage in, garbage out. Vale anche qui.
+    </p>
+
+    <h2>Le quattro cose che cambiano tutto</h2>
+
+    <p>
+      Non esiste una formula universale per il prompt perfetto, ma ci sono
+      quattro elementi che, quando li includi, migliorano quasi sempre la qualità
+      della risposta:
+    </p>
+
+    <ol>
+      <li>
+        <strong>Il ruolo.</strong> Dì al modello da quale prospettiva vuoi
+        che risponda. <em>"Rispondimi come se fossi un sysadmin esperto"</em>
+        oppure <em>"Spiegami come se non avessi mai sentito parlare di reti"</em>
+        produce risultati molto diversi dalla stessa domanda senza contesto.
+      </li>
+      <li>
+        <strong>Il contesto.</strong> Dai informazioni sul tuo caso specifico.
+        Non "come configuro un firewall" ma "ho un pfSense con tre interfacce —
+        LAN, WAN e DMZ — e voglio isolare il server web dal resto della rete interna".
+        Più contesto dai, più la risposta sarà applicabile alla tua situazione reale.
+      </li>
+      <li>
+        <strong>Il formato.</strong> Specifica come vuoi che sia strutturata la risposta.
+        "Dammi un elenco puntato", "spiegamelo in tre paragrafi",
+        "scrivimi il codice commentato riga per riga". Il modello si adatterà —
+        ma solo se lo chiedi.
+      </li>
+      <li>
+        <strong>I vincoli.</strong> Cosa non vuoi. "Senza usare librerie esterne",
+        "in meno di 200 parole", "senza dare per scontato che io sappia cosa sia X".
+        I vincoli sono spesso la parte più utile di un prompt, perché eliminano
+        la risposta generica di default.
+      </li>
+    </ol>
+
+    <h2>Un esempio concreto — prima e dopo</h2>
+
+    <p>
+      Immagina di voler usare l'AI per aiutarti a scrivere uno script Bash
+      che monitori l'utilizzo del disco su un server Linux e invii un alert
+      se supera una certa soglia.
+    </p>
+
+    <p><strong>Prompt debole:</strong></p>
+
+    <pre><code>Scrivimi uno script per monitorare il disco in bash.</code></pre>
+
+    <p>
+      Otterrai qualcosa che funziona, ma probabilmente generico:
+      hard-coded con <code>/</code> come unico path, senza gestione degli errori,
+      senza un sistema di notifica configurabile.
+    </p>
+
+    <p><strong>Prompt migliore:</strong></p>
+
+    <pre><code>Sei un sysadmin Linux esperto. Scrivimi uno script Bash che:
+- controlli l'utilizzo del disco su tutti i mount point attivi
+- invii un'email di alert tramite sendmail se uno supera una soglia configurabile
+- loggi ogni controllo con timestamp in /var/log/disk-monitor.log
+- sia leggibile e commentato, pronto per essere messo in cron ogni ora
+
+Non usare dipendenze esterne oltre a df, sendmail e logger.
+Il sistema è Ubuntu 22.04.</code></pre>
+
+    <p>
+      La risposta sarà concreta, applicabile, pronta all'uso o quasi.
+      Non perché il modello sia diventato più intelligente —
+      ma perché gli hai dato abbastanza informazioni per lavorare bene.
+    </p>
+
+    <h2>Iterare è parte del processo</h2>
+
+    <p>
+      Una cosa che cambia la prospettiva è smettere di pensare al prompt come
+      a una domanda singola e iniziare a pensarlo come a una conversazione.
+      <strong>Il primo prompt raramente produce il risultato finale.</strong>
+      Puoi correggere, affinare, chiedere di riscrivere una parte,
+      aggiungere un vincolo che avevi dimenticato.
+    </p>
+
+    <p>
+      "Bene, ora aggiungi la gestione degli errori se sendmail non è disponibile"
+      è un prompt valido tanto quanto il primo. L'AI ricorda il contesto della
+      conversazione — usalo.
+    </p>
+
+    <h2>Perché questo conta di più ora</h2>
+
+    <p>
+      Gli strumenti AI stanno diventando parte del flusso di lavoro tecnico
+      in modo sempre più concreto: Copilot nei repository, AI assistant nei SIEM,
+      generazione automatica di documentazione, analisi di log in linguaggio naturale.
+    </p>
+
+    <p>
+      Chi sa costruire prompt efficaci ottiene da questi strumenti un moltiplicatore
+      reale sulla propria produttività. Chi li usa come un motore di ricerca avanzato
+      ottiene risultati mediocri e spesso si convince che "l'AI non funziona".
+    </p>
+
+    <p>
+      Non è che non funziona. È che comunicare bene — anche con una macchina —
+      richiede precisione, contesto e intenzione.
+      <strong>Il prompt engineering non è una skill del futuro.
+      È una skill del presente — e vale la pena impararla adesso.</strong>
+    </p>
+
+  </div>
+
+  <div class="post-footer">
+    <span class="post-author">Scritto da <span>Giacomo Cubicciotti</span></span>
+    <a href="../" class="btn btn-ghost" style="font-size:0.7rem; padding:0.5rem 1rem;">&larr; altri articoli</a>
+  </div>
+
+</article>
+
+<footer>
+  <span>&copy; 2026 Giacomo Cubicciotti</span>
+  <span>Eboli, Salerno &middot; giacomocubicciotti.com</span>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0A0C0F">
+  <meta name="description" content="L'errore umano è ancora il problema più difficile da combattere nella sicurezza informatica — Giacomo Cubicciotti">
+  <title>L'errore umano — Giacomo Cubicciotti</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;1,300&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/style.css">
+  <style>html, body { background-color: #0A0C0F !important; }</style>
+</head>
+<body style="background-color:#0A0C0F;">
+
+<nav>
+  <a href="../../" class="nav-logo"><span>~/ </span>giacomocubicciotti</a>
+  <ul class="nav-links">
+    <li><a href="../../#skills">skills</a></li>
+    <li><a href="../../#now">now</a></li>
+    <li><a href="../../#projects">projects</a></li>
+    <li><a href="../../#experience">experience</a></li>
+    <li><a href="../../blog/" style="color:var(--green)">blog</a></li>
+    <li><a href="../../#contact">contact</a></li>
+  </ul>
+  <div class="nav-status">
+    <span class="blink"></span>
+    <span class="nav-status-label">AVAILABLE</span>
+  </div>
+</nav>
+
+<article class="post-wrapper">
+
+  <a href="../" class="post-back">&larr; tutti gli articoli</a>
+
+  <div class="post-meta">
+    <span class="post-tag" style="color:var(--orange); border-color:rgba(251,146,60,0.2); background:rgba(251,146,60,0.07);">sicurezza</span>
+    <span class="post-date">4 maggio 2026 &middot; ~7 min di lettura</span>
+  </div>
+
+  <h1 class="post-title">
+    L'errore umano è ancora il problema più difficile da combattere
+  </h1>
+
+  <p class="post-intro">
+    Puoi avere il firewall più aggiornato del mondo, il SIEM configurato alla perfezione,
+    patch applicate entro 24 ore. Poi qualcuno clicca su un link sbagliato, o dimentica
+    di revocare un accesso, o riutilizza una password. E ricomincia tutto da capo.
+    L'errore umano non è un problema tecnico — ed è per questo che è così difficile da risolvere.
+  </p>
+
+  <div class="post-body">
+
+    <h2>Non è solo colpa degli utenti</h2>
+
+    <p>
+      Il racconto classico è questo: gli utenti sono il problema. Cliccano link di phishing,
+      usano <code>Password1!</code>, portano chiavette USB trovate nel parcheggio.
+      È vero — succede, e succede spesso. Ma ridurre l'errore umano agli utenti finali
+      è comodo e sbagliato.
+    </p>
+
+    <p>
+      Nel mio lavoro ho visto errori tecnici altrettanto pericolosi, e spesso più sottili:
+      un sysadmin che apre una porta sul firewall "temporaneamente" e se ne dimentica,
+      un account di servizio con privilegi di Domain Admin perché "era più semplice così",
+      una regola di backup non testata da mesi che si scopre essere rotta nel momento del bisogno.
+      <strong>L'errore umano è trasversale — attraversa tutti i livelli, dal reparto HR
+      al team IT.</strong>
+    </p>
+
+    <h2>Perché è così difficile da eliminare</h2>
+
+    <p>
+      La risposta breve è che non puoi. Non completamente. Gli esseri umani fanno errori —
+      per stanchezza, distrazione, pressione, fretta. È una costante con cui devi
+      lavorare, non un problema da eliminare.
+    </p>
+
+    <p>
+      Ma c'è qualcosa di più specifico che rende l'errore umano particolarmente insidioso
+      nella sicurezza informatica: <strong>il contesto in cui le decisioni vengono prese
+      è quasi sempre ambiguo</strong>. L'email di phishing ben fatta assomiglia
+      a una comunicazione legittima. La richiesta urgente del CEO arriva in un momento
+      di pressione. La notifica di sicurezza è l'ennesima di una serie che nessuno
+      ha mai trovato rilevante.
+    </p>
+
+    <p>
+      Gli attaccanti lo sanno. Il social engineering funziona perché sfrutta
+      meccanismi cognitivi reali — urgenza, autorità, paura, curiosità.
+      Non si combatte con un firewall.
+    </p>
+
+    <h2>Il privilegio minimo non è solo una policy</h2>
+
+    <p>
+      Una delle cose più concrete che si possono fare per limitare il danno
+      degli errori umani è applicare seriamente il principio del
+      <strong>privilegio minimo</strong>: ogni utente, ogni account di servizio,
+      ogni sistema dovrebbe avere esattamente i permessi che gli servono —
+      né uno di più.
+    </p>
+
+    <p>
+      In pratica questo significa resistere alla tentazione della scorciatoia.
+      Dare a un account Domain Admin perché "risolve il problema subito" è esattamente
+      il tipo di errore tecnico che si nasconde bene finché non diventa un disastro.
+      Un ransomware che gira con privilegi di amministratore locale fa danni limitati.
+      Lo stesso ransomware con accesso Domain Admin può cifrare tutto il dominio
+      in pochi minuti.
+    </p>
+
+    <h2>La formazione da sola non basta</h2>
+
+    <p>
+      La risposta standard all'errore umano è la formazione. Corsi di security awareness,
+      simulazioni di phishing, campagne di comunicazione interna. Sono utili —
+      ma hanno un limite preciso: <strong>funzionano finché la persona è attenta.
+      Non funzionano sotto pressione, stanchezza o distrazione.</strong>
+    </p>
+
+    <p>
+      L'approccio più efficace che ho visto non punta a eliminare l'errore,
+      ma a contenerne le conseguenze. Si chiama difesa in profondità:
+    </p>
+
+    <ul>
+      <li>Segmentazione della rete — se un endpoint viene compromesso, non può raggiungere tutto</li>
+      <li>MFA ovunque — anche se le credenziali vengono rubate, non bastano</li>
+      <li>Monitoring continuo — gli errori lasciano tracce, e le tracce si possono rilevare</li>
+      <li>Procedure di risposta testate — sapere già cosa fare quando succede, non improvvisare</li>
+    </ul>
+
+    <h2>La cosa più onesta da dire</h2>
+
+    <p>
+      Lavorando ogni giorno in un contesto in cui la sicurezza dipende anche da
+      decisioni prese da persone sotto pressione, ho imparato una cosa:
+      <strong>giudicare l'errore umano non porta da nessuna parte</strong>.
+      L'utente che ha cliccato sul link non è stupido — era distratto, o era una
+      email molto convincente, o era le 17:50 di un giovedì.
+    </p>
+
+    <p>
+      Il nostro lavoro come tecnici non è costruire sistemi che assumono
+      che le persone si comportino sempre in modo perfetto.
+      È costruire sistemi che reggano anche quando non lo fanno.
+      Perché non lo faranno — e anche noi, prima o poi, faremo lo stesso.
+    </p>
+
+  </div>
+
+  <div class="post-footer">
+    <span class="post-author">Scritto da <span>Giacomo Cubicciotti</span></span>
+    <a href="../" class="btn btn-ghost" style="font-size:0.7rem; padding:0.5rem 1rem;">&larr; altri articoli</a>
+  </div>
+
+</article>
+
+<footer>
+  <span>&copy; 2026 Giacomo Cubicciotti</span>
+  <span>Eboli, Salerno &middot; giacomocubicciotti.com</span>
+</footer>
+
+</body>
+</html>
