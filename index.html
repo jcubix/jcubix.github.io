@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0A0C0F">
+  <meta name="description" content="Giacomo Cubicciotti — Sysadmin, HelpDesk I-II e Jr. Cybersecurity Analyst. Eboli, Salerno.">
+  <title>Giacomo Cubicciotti — SysAdmin &amp; Security</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;1,300&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Forzo sfondo nero su Safari iOS anche prima del CSS -->
+  <style>
+    html, body { background-color: #0A0C0F !important; }
+  </style>
+</head>
+<body style="background-color:#0A0C0F;">
+
+<!-- ── NAVIGATION ── -->
+<nav>
+  <a href="/" class="nav-logo"><span>~/ </span>giacomocubicciotti</a>
+  <ul class="nav-links">
+    <li><a href="#skills">skills</a></li>
+    <li><a href="#now">now</a></li>
+    <li><a href="#projects">projects</a></li>
+    <li><a href="#experience">experience</a></li>
+    <li><a href="blog/">blog</a></li>
+    <li><a href="#contact">contact</a></li>
+  </ul>
+  <div class="nav-status">
+    <span class="blink"></span>
+    <span class="nav-status-label">AVAILABLE</span>
+  </div>
+</nav>
+
+<!-- ── HERO ── -->
+<div class="hero">
+  <div class="terminal-prompt">
+    <span class="user">giacomo</span>
+    <span style="color:var(--muted)">@</span>
+    <span class="path">giacomocubicciotti.com</span>
+    <span class="sym">:~$</span>
+    <span style="color:var(--text)">whoami</span>
+  </div>
+
+  <h1 class="hero-name">Giacomo Cubicciotti<span class="cursor"></span></h1>
+
+  <p class="hero-role">
+    SysAdmin<span class="sep">|</span>HelpDesk L1&ndash;L2<span class="sep">|</span>Jr. Cybersecurity Analyst
+  </p>
+
+  <p class="hero-bio">
+    Mi occupo di sistemi, reti e sicurezza informatica da cinque anni. Ho iniziato dall'helpdesk
+    e mi sono spostato progressivamente verso la sistemistica e la cybersecurity. Formatomi
+    all'Università degli Studi di Salerno, lavoro oggi in AF Technology SRL.
+    Sono il tipo che legge i log per curiosità, non solo per dovere.
+  </p>
+
+  <div class="hero-badges">
+    <span class="badge">Linux / Windows Server</span>
+    <span class="badge">Active Directory</span>
+    <span class="badge blue">Networking</span>
+    <span class="badge blue">Firewall &amp; VPN</span>
+    <span class="badge orange">SIEM / Log Analysis</span>
+    <span class="badge orange">Incident Response</span>
+    <span class="badge">Virtualization</span>
+    <span class="badge blue">TCP/IP</span>
+  </div>
+
+  <div class="hero-ctas">
+    <a href="#contact" class="btn btn-primary">$ contact --me</a>
+    <a href="blog/" class="btn btn-ghost">leggi il blog &rarr;</a>
+  </div>
+</div>
+
+<!-- ── SKILLS ── -->
+<section id="skills">
+  <p class="section-header">// skills &amp; tools</p>
+  <div class="skills-grid">
+
+    <div class="skill-card">
+      <div class="skill-card-header">
+        <div class="skill-icon">⚙</div>
+        <span class="skill-title">Systems</span>
+      </div>
+      <ul class="skill-list">
+        <li class="active">Linux (Debian, Ubuntu, CentOS)</li>
+        <li class="active">Windows Server 2019/2022</li>
+        <li class="active">Active Directory &amp; GPO</li>
+        <li class="active">VMware / Proxmox</li>
+        <li>Docker &amp; containerizzazione</li>
+      </ul>
+    </div>
+
+    <div class="skill-card">
+      <div class="skill-card-header">
+        <div class="skill-icon blue">⬡</div>
+        <span class="skill-title">Networking</span>
+      </div>
+      <ul class="skill-list">
+        <li class="active">TCP/IP, DNS, DHCP, VLANs</li>
+        <li class="active">Firewall (pfSense, Fortinet)</li>
+        <li class="active">VPN (OpenVPN, WireGuard)</li>
+        <li class="active">Cisco IOS (base)</li>
+        <li>Wireshark / packet analysis</li>
+      </ul>
+    </div>
+
+    <div class="skill-card">
+      <div class="skill-card-header">
+        <div class="skill-icon orange">◈</div>
+        <span class="skill-title">Security</span>
+      </div>
+      <ul class="skill-list">
+        <li class="active">SIEM (Splunk, Wazuh)</li>
+        <li class="active">Vulnerability assessment</li>
+        <li class="active">Incident response</li>
+        <li class="active">Nmap, Nessus, Burp Suite</li>
+        <li>OWASP Top 10</li>
+      </ul>
+    </div>
+
+    <div class="skill-card">
+      <div class="skill-card-header">
+        <div class="skill-icon">{ }</div>
+        <span class="skill-title">Scripting &amp; Tools</span>
+      </div>
+      <ul class="skill-list">
+        <li class="active">Bash scripting</li>
+        <li class="active">PowerShell</li>
+        <li class="active">Python (automazione)</li>
+        <li>Ansible</li>
+        <li>Git</li>
+      </ul>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── NOW ── -->
+<section id="now">
+  <p class="section-header">// now &mdash; cosa sto facendo</p>
+  <div class="now-grid">
+
+    <div class="now-card">
+      <div class="now-card-top">
+        <div class="now-icon">🎯</div>
+        <span class="now-label">studiando</span>
+      </div>
+      <p class="now-text">
+        Mi sto preparando per la certificazione <strong>eJPT</strong> di eLearnSecurity —
+        primo passo concreto verso il penetration testing.
+      </p>
+      <p class="now-sub">&rarr; in corso, 2026</p>
+    </div>
+
+    <div class="now-card blue-card">
+      <div class="now-card-top">
+        <div class="now-icon blue">🔬</div>
+        <span class="now-label blue">esplorando</span>
+      </div>
+      <p class="now-text">
+        Sto costruendo un <strong>homelab</strong> su Proxmox per sperimentare
+        ambienti di attacco/difesa in modo sicuro e controllato.
+      </p>
+      <p class="now-sub">&rarr; ongoing</p>
+    </div>
+
+    <div class="now-card orange-card">
+      <div class="now-card-top">
+        <div class="now-icon orange">📖</div>
+        <span class="now-label orange">leggendo</span>
+      </div>
+      <p class="now-text">
+        <em>The Web Application Hacker's Handbook</em> — per approfondire le vulnerabilità
+        web e capire meglio il lato offensivo della sicurezza.
+      </p>
+      <p class="now-sub">&rarr; in lettura</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── PROJECTS ── -->
+<section id="projects">
+  <p class="section-header">// projects</p>
+  <div class="projects-list">
+
+    <div class="project-item">
+      <div class="project-left">
+        <p class="project-name">Homelab Proxmox</p>
+        <p class="project-desc">Ambiente di lab virtuale con Proxmox VE per simulare reti aziendali, testare configurazioni di sicurezza e praticare scenari di attacco/difesa.</p>
+        <div class="project-tags">
+          <span class="project-tag">Proxmox</span>
+          <span class="project-tag">Linux</span>
+          <span class="project-tag blue">Networking</span>
+          <span class="project-tag orange">Security</span>
+        </div>
+      </div>
+      <a href="https://github.com/jcubix" target="_blank" rel="noopener" class="project-link">github &rarr;</a>
+    </div>
+
+    <div class="project-item">
+      <div class="project-left">
+        <p class="project-name">Script di monitoring Bash</p>
+        <p class="project-desc">Collezione di script Bash per il monitoraggio di sistemi Linux: check CPU/RAM/disco, alert via email e log automatizzati.</p>
+        <div class="project-tags">
+          <span class="project-tag">Bash</span>
+          <span class="project-tag">Linux</span>
+          <span class="project-tag orange">Monitoring</span>
+        </div>
+      </div>
+      <a href="https://github.com/jcubix" target="_blank" rel="noopener" class="project-link">github &rarr;</a>
+    </div>
+
+    <div class="project-item">
+      <div class="project-left">
+        <p class="project-name">Active Directory Lab</p>
+        <p class="project-desc">Ambiente AD su Windows Server 2022 con GPO, gestione utenti e gruppi, simulazione di attacchi comuni come pass-the-hash e kerberoasting.</p>
+        <div class="project-tags">
+          <span class="project-tag">Windows Server</span>
+          <span class="project-tag blue">Active Directory</span>
+          <span class="project-tag orange">Red Team</span>
+        </div>
+      </div>
+      <a href="https://github.com/jcubix" target="_blank" rel="noopener" class="project-link">github &rarr;</a>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── EXPERIENCE ── -->
+<section id="experience">
+  <p class="section-header">// experience</p>
+  <div class="exp-list">
+
+    <div class="exp-item current">
+      <div class="exp-date">
+        2022 &rarr; oggi
+        <span class="exp-current">&#9679; CURRENT</span>
+      </div>
+      <div class="exp-content">
+        <p class="exp-title">HelpDesk I&ndash;II &middot; Jr. Sysadmin &middot; Jr. Cybersecurity Analyst</p>
+        <p class="exp-company">// AF Technology SRL</p>
+        <p class="exp-desc">Gestione e manutenzione infrastruttura Windows Server e Linux, Active Directory e GPO. Supporto tecnico avanzato L1&ndash;L2. Monitoraggio sicurezza tramite SIEM, analisi log e supporto alle attività di incident response e vulnerability assessment.</p>
+      </div>
+    </div>
+
+    <div class="exp-item">
+      <div class="exp-date">2020 &rarr; 2022</div>
+      <div class="exp-content">
+        <p class="exp-title">HelpDesk I Level</p>
+        <p class="exp-company">// AF Technology SRL</p>
+        <p class="exp-desc">Primo punto di contatto per il supporto tecnico agli utenti. Troubleshooting hardware e software, gestione ticket su piattaforma ITSM, installazione e configurazione workstation.</p>
+      </div>
+    </div>
+
+    <div class="exp-item">
+      <div class="exp-date">2018 &rarr; 2023</div>
+      <div class="exp-content">
+        <p class="exp-title">Laurea in Informatica</p>
+        <p class="exp-company">// Università degli Studi di Salerno</p>
+        <p class="exp-desc">Formazione accademica in informatica con focus su reti, sistemi operativi e sicurezza informatica.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── CONTACT ── -->
+<section id="contact" style="border-bottom: 1px solid rgba(255,255,255,0.06);">
+  <p class="section-header">// contact</p>
+  <div class="contact-block">
+    <div>
+      <h2 class="contact-heading">
+        Parliamo di<br>
+        <span>infrastrutture</span><br>
+        e sicurezza.
+      </h2>
+      <p class="contact-sub">Aperto a nuove opportunità, collaborazioni e progetti nel mondo IT. Rispondo entro 24h.</p>
+    </div>
+    <div class="contact-info">
+      <a class="contact-line" href="mailto:giacomocubicciotti@gmail.com">
+        <span class="contact-line-label">EMAIL</span>
+        <span class="contact-line-val">giacomocubicciotti@gmail.com</span>
+      </a>
+      <a class="contact-line" href="https://linkedin.com/in/giacomocubicciotti" target="_blank" rel="noopener">
+        <span class="contact-line-label">LINKEDIN</span>
+        <span class="contact-line-val">/in/giacomocubicciotti</span>
+      </a>
+      <a class="contact-line" href="https://github.com/jcubix" target="_blank" rel="noopener">
+        <span class="contact-line-label">GITHUB</span>
+        <span class="contact-line-val">github.com/jcubix</span>
+      </a>
+      <div class="contact-line" style="cursor:default;">
+        <span class="contact-line-label">SEDE</span>
+        <span class="contact-line-val">Eboli, Salerno &middot; Remote OK</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── */
+<footer>
+  <span>&copy; 2026 Giacomo Cubicciotti</span>
+  <span>Eboli, Salerno &middot; giacomocubicciotti.com</span>
+</footer>
+
+</body>
+</html>

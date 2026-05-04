@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0A0C0F">
+  <meta name="description" content="Active Directory è ancora il cuore di quasi tutto — Giacomo Cubicciotti">
+  <title>Active Directory è ancora vivo — Giacomo Cubicciotti</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;1,300&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/style.css">
+  <style>html, body { background-color: #0A0C0F !important; }</style>
+</head>
+<body style="background-color:#0A0C0F;">
+
+<nav>
+  <a href="../../" class="nav-logo"><span>~/ </span>giacomocubicciotti</a>
+  <ul class="nav-links">
+    <li><a href="../../#skills">skills</a></li>
+    <li><a href="../../#now">now</a></li>
+    <li><a href="../../#projects">projects</a></li>
+    <li><a href="../../#experience">experience</a></li>
+    <li><a href="../../blog/" style="color:var(--green)">blog</a></li>
+    <li><a href="../../#contact">contact</a></li>
+  </ul>
+  <div class="nav-status">
+    <span class="blink"></span>
+    <span class="nav-status-label">AVAILABLE</span>
+  </div>
+</nav>
+
+<article class="post-wrapper">
+
+  <a href="../" class="post-back">&larr; tutti gli articoli</a>
+
+  <div class="post-meta">
+    <span class="post-tag" style="color:var(--blue); border-color:rgba(56,189,248,0.2); background:rgba(56,189,248,0.07);">infrastruttura</span>
+    <span class="post-date">15 aprile 2026 &middot; ~4 min di lettura</span>
+  </div>
+
+  <h1 class="post-title">
+    Active Directory è ancora il cuore di quasi tutto
+  </h1>
+
+  <p class="post-intro">
+    Dopo anni di spinta verso il cloud, zero-trust e identity moderni, la realtà
+    nelle PMI italiane è che la maggior parte delle reti gira ancora su Active Directory.
+    Conoscerlo bene non è opzionale — è fondamentale.
+  </p>
+
+  <div class="post-body">
+
+    <h2>Il cloud non ha sostituito AD, lo ha affiancato</h2>
+
+    <p>
+      Quando si parla di modernizzazione IT, si sente spesso dire "stiamo migrando su cloud"
+      o "stiamo adottando Azure AD". Quello che succede in pratica, almeno nelle realtà
+      con cui ho lavorato, è che <strong>AD rimane in produzione e Azure AD (ora Entra ID)
+      viene aggiunto sopra</strong>, in un setup ibrido.
+    </p>
+
+    <p>
+      Questo significa che un sysadmin che non conosce AD si trova in difficoltà
+      anche in ambienti che si definiscono "cloud-first". Le GPO, la gestione degli OU,
+      le trust relationship, la delega dei permessi — tutto questo esiste ancora,
+      e spesso è il punto critico dell'infrastruttura.
+    </p>
+
+    <h2>Le cose che devi saper fare davvero</h2>
+
+    <p>
+      Non parlo di sapere come si installa un domain controller (quello lo trovi su
+      qualsiasi tutorial). Parlo di capire come funziona AD sotto il cofano:
+    </p>
+
+    <ul>
+      <li>Come funzionano le GPO — applicazione, precedenza, filtri WMI</li>
+      <li>Kerberos e NTLM: perché esistono entrambi e quando viene usato quale</li>
+      <li>Come funziona la replicazione tra domain controller</li>
+      <li>Il significato dei SID e come vengono usati per i permessi</li>
+      <li>Come strutturare gli OU in modo che le GPO siano gestibili</li>
+    </ul>
+
+    <h2>AD dal punto di vista della sicurezza</h2>
+
+    <p>
+      Una delle cose che mi ha cambiato la prospettiva è stato studiare AD
+      <strong>dal punto di vista di chi lo attacca</strong>. Non per fare red team,
+      ma per capire cosa devo proteggere e perché.
+    </p>
+
+    <p>
+      Attacchi come <strong>Kerberoasting</strong>, <strong>Pass-the-Hash</strong>,
+      <strong>DCSync</strong> — sono tutti possibili perché sfruttano funzionalità
+      legittime di AD configurate in modo non ottimale. Sapere come funzionano
+      ti aiuta a configurare correttamente l'ambiente: account di servizio con
+      password forti e rotazione, Protected Users security group,
+      Credential Guard attivo sulle workstation.
+    </p>
+
+    <h2>Un consiglio pratico</h2>
+
+    <p>
+      Se vuoi migliorare rapidamente la tua conoscenza di AD, monta un lab
+      con due VM (un domain controller + una workstation) e inizia a giocare
+      con le GPO. Poi installa <strong>BloodHound</strong> e analizza il tuo
+      stesso dominio — ti mostrerà i path di attacco presenti nella tua configurazione,
+      e da lì puoi imparare cosa correggere.
+    </p>
+
+    <p>
+      È il modo più efficace che conosco per capire sia il funzionamento normale
+      che le implicazioni di sicurezza — tutto insieme.
+    </p>
+
+  </div>
+
+  <div class="post-footer">
+    <span class="post-author">Scritto da <span>Giacomo Cubicciotti</span></span>
+    <a href="../" class="btn btn-ghost" style="font-size:0.7rem; padding:0.5rem 1rem;">&larr; altri articoli</a>
+  </div>
+
+</article>
+
+<footer>
+  <span>&copy; 2026 Giacomo Cubicciotti</span>
+  <span>Eboli, Salerno &middot; giacomocubicciotti.com</span>
+</footer>
+
+</body>
+</html>

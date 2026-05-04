@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0A0C0F">
+  <meta name="description" content="Perché ogni sysadmin dovrebbe capire le basi del threat hunting — Giacomo Cubicciotti">
+  <title>Threat hunting per sysadmin — Giacomo Cubicciotti</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;1,300&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/style.css">
+  <style>html, body { background-color: #0A0C0F !important; }</style>
+</head>
+<body style="background-color:#0A0C0F;">
+
+<nav>
+  <a href="../../" class="nav-logo"><span>~/ </span>giacomocubicciotti</a>
+  <ul class="nav-links">
+    <li><a href="../../#skills">skills</a></li>
+    <li><a href="../../#now">now</a></li>
+    <li><a href="../../#projects">projects</a></li>
+    <li><a href="../../#experience">experience</a></li>
+    <li><a href="../../blog/" style="color:var(--green)">blog</a></li>
+    <li><a href="../../#contact">contact</a></li>
+  </ul>
+  <div class="nav-status">
+    <span class="blink"></span>
+    <span class="nav-status-label">AVAILABLE</span>
+  </div>
+</nav>
+
+<article class="post-wrapper">
+
+  <a href="../" class="post-back">&larr; tutti gli articoli</a>
+
+  <div class="post-meta">
+    <span class="post-tag" style="color:var(--orange); border-color:rgba(251,146,60,0.2); background:rgba(251,146,60,0.07);">sicurezza</span>
+    <span class="post-date">29 aprile 2026 &middot; ~6 min di lettura</span>
+  </div>
+
+  <h1 class="post-title">
+    Perché ogni sysadmin dovrebbe capire le basi del threat hunting
+  </h1>
+
+  <p class="post-intro">
+    Non devi diventare un analista SOC. Ma sapere cosa cercare nei log cambia completamente
+    il modo in cui amministri i sistemi — e spesso ti permette di accorgerti di qualcosa
+    prima che diventi un problema vero.
+  </p>
+
+  <div class="post-body">
+
+    <h2>Il problema: i log esistono, ma nessuno li guarda</h2>
+
+    <p>
+      In quasi ogni azienda in cui ho lavorato o con cui ho avuto a che fare, i log ci sono.
+      Windows Event Log, syslog sui Linux, log del firewall. Tutto registrato, tutto archiviato.
+      E quasi mai guardato — finché non succede qualcosa.
+    </p>
+
+    <p>
+      Il problema è che <strong>aspettare che succeda qualcosa è già troppo tardi</strong>.
+      Un attaccante che si muove lateralmente in una rete lo fa in silenzio, spesso usando
+      strumenti legittimi. Se non hai l'abitudine di guardare i log periodicamente,
+      ti accorgi del problema quando il danno è già fatto.
+    </p>
+
+    <h2>Threat hunting non significa fare il red teamer</h2>
+
+    <p>
+      Quando si parla di threat hunting, molti sysadmin pensano subito a roba da SOC enterprise,
+      SIEM costosi, team dedicati. In realtà le basi sono molto più accessibili.
+    </p>
+
+    <p>
+      Threat hunting nella sua forma più semplice significa: <strong>cercare proattivamente
+      segnali di attività anomale</strong>, senza aspettare che un alert si attivi da solo.
+      Puoi farlo anche con strumenti che già hai.
+    </p>
+
+    <h2>Da dove iniziare: tre cose da monitorare</h2>
+
+    <p>Se non sai da dove partire, questi tre punti coprono la maggior parte dei casi comuni:</p>
+
+    <ol>
+      <li>
+        <strong>Login falliti e poi riusciti.</strong> Un pattern di molti login falliti
+        seguiti da un successo è un segnale classico di brute force. In Windows Event Log
+        cerca l'evento 4625 (failed logon) seguito da 4624 (successful logon) dallo stesso IP.
+      </li>
+      <li>
+        <strong>Esecuzione di PowerShell con parametri codificati.</strong> I malware usano
+        spesso PowerShell con <code>-EncodedCommand</code> per nascondere il payload.
+        Loggare l'esecuzione di PowerShell (Event ID 4104) ti permette di intercettare
+        questo pattern.
+      </li>
+      <li>
+        <strong>Connessioni verso IP esterni insoliti.</strong> Se una workstation che
+        normalmente non si connette all'esterno inizia a fare chiamate verso IP stranieri,
+        è un segnale da investigare. Il firewall log è il tuo migliore amico qui.
+      </li>
+    </ol>
+
+    <h2>Uno strumento pratico: Sysmon</h2>
+
+    <p>
+      Se sei su Windows, installa <strong>Sysmon</strong> (System Monitor di Sysinternals).
+      È gratuito, leggero, e aggiunge un livello di visibilità che il Windows Event Log
+      standard non ha. In particolare traccia:
+    </p>
+
+    <ul>
+      <li>Creazione di processi con command line completa</li>
+      <li>Connessioni di rete per processo</li>
+      <li>Modifiche al registry</li>
+      <li>Caricamento di driver e DLL</li>
+    </ul>
+
+    <p>
+      Con una buona configurazione (cerca il <strong>SwiftOnSecurity Sysmon config</strong>
+      su GitHub — è uno dei più usati e ben documentati), hai già una base solida per
+      fare analisi.
+    </p>
+
+    <h2>La mentalità conta più degli strumenti</h2>
+
+    <p>
+      La cosa che ho imparato in questi anni non è tanto quale tool usare, ma come guardare
+      i dati. <strong>Ogni sistema ha una baseline di comportamento normale.</strong>
+      Il tuo lavoro, come sysadmin, è conoscere quella baseline così bene da accorgerti
+      quando qualcosa se ne discosta.
+    </p>
+
+    <p>
+      Non serve essere esperti di sicurezza. Serve curiosità e l'abitudine di guardarsi
+      intorno periodicamente — anche solo 15 minuti a settimana dedicati a controllare
+      cosa sta succedendo sui tuoi sistemi fanno una differenza enorme.
+    </p>
+
+    <hr class="post-divider">
+
+    <p>
+      Se vuoi approfondire, il punto di partenza migliore che conosco è il
+      <strong>MITRE ATT&amp;CK framework</strong> — non come lista di cose da implementare,
+      ma come mappa mentale per capire come si muovono gli attaccanti e cosa lasciare come
+      traccia. Da lì, sapere cosa cercare viene da sé.
+    </p>
+
+  </div>
+
+  <div class="post-footer">
+    <span class="post-author">Scritto da <span>Giacomo Cubicciotti</span></span>
+    <a href="../" class="btn btn-ghost" style="font-size:0.7rem; padding:0.5rem 1rem;">&larr; altri articoli</a>
+  </div>
+
+</article>
+
+<footer>
+  <span>&copy; 2026 Giacomo Cubicciotti</span>
+  <span>Eboli, Salerno &middot; giacomocubicciotti.com</span>
+</footer>
+
+</body>
+</html>
