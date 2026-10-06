@@ -1,4 +1,29 @@
-function registerPage(){const pm=Object.fromEntries(state.players.map(p=>[p.id,`${p.surname} ${p.name}`])),sm=Object.fromEntries(state.sessions.map(s=>[s.id,s]));const rows=[...state.attendance].sort((a,b)=>(sm[b.session_id]?.session_date||'').localeCompare(sm[a.session_id]?.session_date||'')).slice(0,300).map(a=>{const s=sm[a.session_id]||{};return `<div class="row"><div><div class="row-title">${esc(pm[a.player_id]||'Giocatore')}</div><div class="row-sub">${fmt(s.session_date)} · ${esc(s.session_type||'')}${a.delay_minutes?` · ritardo ${a.delay_minutes}'`:''}</div></div><span class="badge ${badge(a.status)}">${a.status}</span></div>`}).join('');return `<div class="section-title"><h2>Registro</h2><span class="muted">ultime 300 registrazioni</span></div><div class="list">${rows||'<div class="empty card">Nessuna registrazione.</div>'}</div>`}
+function registerPage(){
+ const dates=[...new Set(state.sessions.map(s=>s.session_date))].sort().reverse(),latest=dates[0]||today();
+ return '<div class="section-title"><div><h2>Registro</h2><div class="muted">Consulta presenze e assenze per data</div></div><span class="badge b-blue">'+state.sessions.length+' sessioni</span></div><section class="register-layout"><div class="card calendar-card"><div class="calendar-head"><button class="ghost" id="calPrev">‹</button><div><div class="row-title" id="calTitle"></div><div class="row-sub">I giorni evidenziati contengono attività</div></div><button class="ghost" id="calNext">›</button></div><div class="calendar-week"><span>Lun</span><span>Mar</span><span>Mer</span><span>Gio</span><span>Ven</span><span>Sab</span><span>Dom</span></div><div class="calendar-grid" id="calendarGrid"></div></div><div id="registerDetail" data-selected="'+latest+'"></div></section>';
+}
+function bindRegister(){
+ const dates=[...new Set(state.sessions.map(s=>s.session_date))].sort().reverse(),activity=new Set(dates),detail=document.querySelector('#registerDetail'),grid=document.querySelector('#calendarGrid'),title=document.querySelector('#calTitle'),pm=Object.fromEntries(state.players.map(p=>[p.id,p]));
+ let selected=detail.dataset.selected||today(),d0=new Date(selected+'T12:00:00'),year=d0.getFullYear(),month=d0.getMonth();
+ function group(label,arr,cls){
+  return '<div class="register-group"><div class="register-group-head"><span>'+label+'</span><span class="badge '+cls+'">'+arr.length+'</span></div>'+(arr.length?'<div class="register-people">'+arr.map(a=>{const p=pm[a.player_id],name=p?p.surname+' '+p.name:'Giocatore';return '<div class="person-chip"><b>'+esc(name)+'</b>'+(a.delay_minutes?'<small>Ritardo '+a.delay_minutes+' min</small>':'')+(a.note?'<small>'+esc(a.note)+'</small>':'')+'</div>'}).join('')+'</div>':'<div class="row-sub">Nessuno</div>')+'</div>';
+ }
+ function drawDetail(){
+  const sessions=state.sessions.filter(s=>s.session_date===selected);
+  if(!sessions.length){detail.innerHTML='<div class="card empty">Nessuna attività registrata il '+fmt(selected)+'.</div>';return}
+  detail.innerHTML=sessions.map(s=>{const A=state.attendance.filter(a=>a.session_id===s.id),P=A.filter(a=>a.status==='Presente'),X=A.filter(a=>a.status==='Assente'),I=A.filter(a=>a.status==='Infortunato'),R=A.filter(a=>a.delay_minutes>0);return '<div class="card session-detail"><div class="session-detail-head"><div><div class="row-title">'+esc(s.session_type)+'</div><div class="row-sub">'+fmt(s.session_date)+(s.note?' · '+esc(s.note):'')+'</div></div><div class="session-summary"><span class="badge b-green">'+P.length+' P</span><span class="badge b-red">'+X.length+' A</span><span class="badge b-blue">'+I.length+' I</span>'+(R.length?'<span class="badge b-yellow">'+R.length+' R</span>':'')+'</div></div><div class="register-groups">'+group('Presenti',P,'b-green')+group('Assenti',X,'b-red')+group('Infortunati',I,'b-blue')+'</div></div>'}).join('');
+ }
+ function drawCalendar(){
+  const first=new Date(year,month,1),last=new Date(year,month+1,0),start=(first.getDay()+6)%7;
+  title.textContent=new Intl.DateTimeFormat('it-IT',{month:'long',year:'numeric'}).format(first);
+  let html='';for(let i=0;i<start;i++)html+='<span class="calendar-day blank"></span>';
+  for(let day=1;day<=last.getDate();day++){const key=year+'-'+String(month+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');html+='<button class="calendar-day '+(activity.has(key)?'has-activity ':'')+(selected===key?'selected':'')+'" data-date="'+key+'"><span>'+day+'</span>'+(activity.has(key)?'<i></i>':'')+'</button>'}
+  grid.innerHTML=html;grid.querySelectorAll('[data-date]').forEach(b=>b.onclick=()=>{selected=b.dataset.date;drawCalendar();drawDetail()});
+ }
+ document.querySelector('#calPrev').onclick=()=>{month--;if(month<0){month=11;year--}drawCalendar()};
+ document.querySelector('#calNext').onclick=()=>{month++;if(month>11){month=0;year++}drawCalendar()};
+ drawCalendar();drawDetail();
+}
 
 function matchesPage(){return `<div class="section-title"><h2>Partite</h2><button class="primary" id="addMatch">+ Partita</button></div><div class="list">${state.matches.map(m=>`<div class="row"><div><div class="row-title">Eburum – ${esc(m.opponent)}</div><div class="row-sub">${fmt(m.match_date)} · ${m.venue}${m.goals_for!=null&&m.goals_against!=null?` · ${m.goals_for}-${m.goals_against}`:''}</div></div><button data-match="${m.id}">Apri</button></div>`).join('')||'<div class="empty card">Nessuna partita.</div>'}</div>`}
 function bindMatches(){document.querySelector('#addMatch').onclick=()=>matchModal();document.querySelectorAll('[data-match]').forEach(b=>b.onclick=()=>matchModal(state.matches.find(x=>x.id===b.dataset.match)))}
