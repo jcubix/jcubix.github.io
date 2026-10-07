@@ -1,0 +1,53 @@
+begin;
+do $$declare owner uuid; manager uuid:=gen_random_uuid();coach uuid:=gen_random_uuid();outside uuid:=gen_random_uuid();begin
+ select claimed_by into owner from private_import.bootstrap_state where singleton;
+ insert into auth.users(id,raw_app_meta_data) values(manager,'{"managed_account":true}'),(coach,'{"managed_account":true}'),(outside,'{"managed_account":true}');
+ insert into public.team_members(user_id,owner_id,role) values(manager,owner,'manager'),(coach,owner,'coach'),(outside,outside,'manager') on conflict(user_id) do update set owner_id=excluded.owner_id,role=excluded.role;
+ perform set_config('test.owner',owner::text,true);perform set_config('test.manager',manager::text,true);perform set_config('test.coach',coach::text,true);perform set_config('test.outside',outside::text,true);
+ perform set_config('request.jwt.claim.sub',manager::text,true);
+end $$;
+set local role authenticated;
+do $$declare a jsonb;aid uuid;pid uuid;rows jsonb;rev integer;blocked boolean;session_payload jsonb;result jsonb;many_rows jsonb;begin
+ if private_access.team_owner()::text<>current_setting('test.owner') then raise exception 'Wrong shared owner';end if;
+ select id into pid from public.players where user_id=private_access.team_owner() limit 1;
+ rows:=jsonb_build_array(jsonb_build_object('player_id',pid,'called',true,'availability','Disponibile','response_note',null,'lineup','Titolare','position','DC','minutes_played',90));
+ a:=jsonb_build_object('activity_date','2300-03-01','activity_type','Partita','title','Synthetic fixture','status','Programmato','start_time','15:00','end_time','17:00','meeting_time','14:00','request_id',gen_random_uuid());
+ result:=public.save_team_activity(a,rows);aid:=(result->>'id')::uuid;rev:=(result->>'revision')::integer;
+ if not exists(select 1 from public.activities where id=aid and match_id is not null) then raise exception 'Missing linked match';end if;
+ if (select count(*) from public.activities where match_id=(result->>'match_id')::uuid)<>1 then raise exception 'Duplicate calendar match';end if;
+ if not exists(select 1 from public.activity_roster where activity_id=aid and updated_by=auth.uid() and minutes_played=90) then raise exception 'Roster or actor missing';end if;
+ blocked:=false;begin perform public.save_team_activity(a,rows);exception when serialization_failure then blocked:=true;end;if not blocked then raise exception 'Duplicate network retry';end if;
+ blocked:=false;begin perform public.save_team_activity(jsonb_set(a,'{title}','"Forbidden technical save"'),rows,aid,rev,'{"note":"Forbidden"}');exception when insufficient_privilege then blocked:=true;end;if not blocked or (select title from public.activities where id=aid)<>'Synthetic fixture' then raise exception 'Technical save not atomic';end if;
+ blocked:=false;begin perform public.save_team_activity(a,rows,aid,rev-1);exception when serialization_failure then blocked:=true;end;if not blocked then raise exception 'Stale activity overwritten';end if;
+ blocked:=false;begin perform public.save_team_activity(a,jsonb_set(rows,'{0,minutes_played}','-1'),aid,rev);exception when check_violation then blocked:=true;end;if not blocked then raise exception 'Invalid minutes accepted';end if;
+ if (select revision from public.activities where id=aid)<>rev then raise exception 'Partial failed save';end if;
+ select jsonb_agg(jsonb_build_object('player_id',id,'called',true,'availability','Disponibile','lineup','Titolare','minutes_played',90)) into many_rows from (select id from public.players where user_id=private_access.team_owner() and active limit 12) p;
+ blocked:=false;begin perform public.save_team_activity(a,many_rows,aid,rev);exception when invalid_parameter_value then blocked:=true;end;if not blocked then raise exception 'More than eleven starters accepted';end if;
+ insert into public.player_administration(user_id,player_id,registration_status) values(private_access.team_owner(),pid,'In regola');
+ blocked:=false;begin insert into public.activity_technical(user_id,activity_id,note) values(private_access.team_owner(),aid,'Forbidden');exception when insufficient_privilege then blocked:=true;end;if not blocked then raise exception 'Manager accessed technical notes';end if;
+ perform set_config('test.activity',aid::text,true);perform set_config('test.player',pid::text,true);
+ -- A scheduled training becomes the same calendar item when attendance is recorded.
+ a:='{"activity_date":"2300-03-02","activity_type":"Allenamento","title":"Synthetic training","status":"Programmato"}';result:=public.save_team_activity(a,'[]');
+ select jsonb_agg(jsonb_build_object('player_id',id,'status','Presente','delay_minutes',0,'notified',null,'note',null)) into session_payload from public.players where user_id=private_access.team_owner() and active;
+ perform public.save_attendance_session('{"session_date":"2300-03-02","session_type":"Allenamento"}',session_payload,null,null,gen_random_uuid());
+ if (select count(*) from public.activities where activity_date='2300-03-02' and user_id=private_access.team_owner())<>1 then raise exception 'Duplicated planned attendance';end if;
+ if not exists(select 1 from public.activities where id=(result->>'id')::uuid and session_id is not null and status='Concluso') then raise exception 'Training not completed';end if;
+ if not exists(select 1 from public.attendance_history where actor_id=auth.uid()) then raise exception 'Staff audit actor missing';end if;
+ perform set_config('request.jwt.claim.sub',current_setting('test.coach'),true);
+ if exists(select 1 from public.player_administration) then raise exception 'Coach saw administrative data';end if;
+ select to_jsonb(x) into a from public.activities x where id=current_setting('test.activity')::uuid;
+ result:=public.save_team_activity(a,rows,current_setting('test.activity')::uuid,(a->>'revision')::integer,'{"formation":"4-3-3","note":"Synthetic technical note"}');
+ if not exists(select 1 from public.activity_technical where activity_id=current_setting('test.activity')::uuid and formation='4-3-3' and updated_by=auth.uid()) then raise exception 'Coach technical save failed';end if;
+ blocked:=false;begin insert into public.players(user_id,surname,name) values(private_access.team_owner(),'Synthetic','Forbidden');exception when insufficient_privilege then blocked:=true;end;if not blocked then raise exception 'Coach edited roster';end if;
+ perform set_config('request.jwt.claim.sub',current_setting('test.outside'),true);
+ if exists(select 1 from public.activities where id=current_setting('test.activity')::uuid) or exists(select 1 from public.activity_roster where activity_id=current_setting('test.activity')::uuid) then raise exception 'Cross-team leak';end if;
+ blocked:=false;begin perform public.save_team_activity(a,'[]',current_setting('test.activity')::uuid,0);exception when insufficient_privilege then blocked:=true;end;if not blocked then raise exception 'Cross-team save';end if;
+end $$;
+set local role anon;
+do $$declare blocked boolean:=false;begin
+ begin perform * from public.activities;exception when insufficient_privilege then blocked:=true;end;
+ if not blocked then raise exception 'Anonymous agenda access';end if;
+ blocked:=false;begin perform public.team_context();exception when insufficient_privilege then blocked:=true;end;
+ if not blocked then raise exception 'Anonymous team context';end if;
+end $$;
+rollback;
