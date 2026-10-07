@@ -18,4 +18,3 @@ function bindReports(){
  document.querySelector('#rf').onchange=paint;document.querySelector('#rt').onchange=paint;document.querySelector('#rp').onchange=paint;paint();
  document.querySelector('#copyReport').onclick=async()=>{await navigator.clipboard.writeText(paint());toast('Report copiato')};
 }
-boot();

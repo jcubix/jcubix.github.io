@@ -1,0 +1,4 @@
+[functions.manage-users]
+# getUser(token) validates the session; app_metadata is checked against Auth.
+# Compatible with the project's publishable key and asymmetric signing keys.
+verify_jwt = false
