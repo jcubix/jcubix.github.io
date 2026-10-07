@@ -1,5 +1,5 @@
 function registerPage(){
- const dates=[...new Set(state.sessions.map(s=>s.session_date))].sort().reverse(),latest=dates[0]||today();
+ const dates=[...new Set(state.sessions.map(s=>s.session_date))].sort().reverse(),latest=state.registerDate||dates[0]||today();
  return '<div class="section-title"><div><h2>Registro</h2><div class="muted">Consulta presenze e assenze per data</div></div><span class="badge b-blue">'+state.sessions.length+' sessioni</span></div><section class="register-layout"><div class="card calendar-card"><div class="calendar-head"><button class="ghost" id="calPrev">‹</button><div><div class="row-title" id="calTitle"></div><div class="row-sub">I giorni evidenziati contengono attività</div></div><button class="ghost" id="calNext">›</button></div><div class="calendar-week"><span>Lun</span><span>Mar</span><span>Mer</span><span>Gio</span><span>Ven</span><span>Sab</span><span>Dom</span></div><div class="calendar-grid" id="calendarGrid"></div></div><div id="registerDetail" data-selected="'+latest+'"></div></section>';
 }
 function bindRegister(){
@@ -11,18 +11,19 @@ function bindRegister(){
  function drawDetail(){
   const sessions=state.sessions.filter(s=>s.session_date===selected);
   if(!sessions.length){detail.innerHTML='<div class="card empty">Nessuna attività registrata il '+fmt(selected)+'.</div>';return}
-  detail.innerHTML=sessions.map(s=>{const A=state.attendance.filter(a=>a.session_id===s.id),P=A.filter(a=>a.status==='Presente'),X=A.filter(a=>a.status==='Assente'),I=A.filter(a=>a.status==='Infortunato'),R=A.filter(a=>a.delay_minutes>0);return '<div class="card session-detail"><div class="session-detail-head"><div><div class="row-title">'+esc(s.session_type)+'</div><div class="row-sub">'+fmt(s.session_date)+(s.note?' · '+esc(s.note):'')+'</div></div><div class="session-summary"><span class="badge b-green">'+P.length+' P</span><span class="badge b-red">'+X.length+' A</span><span class="badge b-blue">'+I.length+' I</span>'+(R.length?'<span class="badge b-yellow">'+R.length+' R</span>':'')+'</div></div><div class="register-groups">'+group('Presenti',P,'b-green')+group('Assenti',X,'b-red')+group('Infortunati',I,'b-blue')+'</div></div>'}).join('');
+  detail.innerHTML=sessions.map(s=>{const A=state.attendance.filter(a=>a.session_id===s.id),P=A.filter(a=>a.status==='Presente'),X=A.filter(a=>a.status==='Assente'),I=A.filter(a=>a.status==='Infortunato'),R=A.filter(a=>a.delay_minutes>0);return '<div class="card session-detail"><div class="session-detail-head"><div><div class="row-title">'+esc(s.session_type)+'</div><div class="row-sub">'+fmt(s.session_date)+(s.note?' · '+esc(s.note):'')+'</div></div><div class="session-summary"><span class="badge b-green">'+P.length+' P</span><span class="badge b-red">'+X.length+' A</span><span class="badge b-blue">'+I.length+' I</span>'+(R.length?'<span class="badge b-yellow">'+R.length+' R</span>':'')+'</div></div><div class="register-groups">'+group('Presenti',P,'b-green')+group('Assenti',X,'b-red')+group('Infortunati',I,'b-blue')+'</div><div class="session-tools"><button class="primary" data-edit-session="'+s.id+'">Correggi presenze</button><button class="ghost" data-session-history="'+s.id+'">Storico modifiche</button></div><div class="row-sub session-updated">'+(s.updated_at?'Ultimo salvataggio: '+esc(new Intl.DateTimeFormat('it-IT',{dateStyle:'short',timeStyle:'short'}).format(new Date(s.updated_at))):'Storico importato · nessuna modifica tracciata')+'</div></div>'}).join('');
  }
  function drawCalendar(){
   const first=new Date(year,month,1),last=new Date(year,month+1,0),start=(first.getDay()+6)%7;
   title.textContent=new Intl.DateTimeFormat('it-IT',{month:'long',year:'numeric'}).format(first);
   let html='';for(let i=0;i<start;i++)html+='<span class="calendar-day blank"></span>';
   for(let day=1;day<=last.getDate();day++){const key=year+'-'+String(month+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');html+='<button class="calendar-day '+(activity.has(key)?'has-activity ':'')+(selected===key?'selected':'')+'" data-date="'+key+'"><span>'+day+'</span>'+(activity.has(key)?'<i></i>':'')+'</button>'}
-  grid.innerHTML=html;grid.querySelectorAll('[data-date]').forEach(b=>b.onclick=()=>{selected=b.dataset.date;drawCalendar();drawDetail()});
+  grid.innerHTML=html;grid.querySelectorAll('[data-date]').forEach(b=>b.onclick=()=>{selected=b.dataset.date;state.registerDate=selected;drawCalendar();drawDetail()});
  }
  document.querySelector('#calPrev').onclick=()=>{month--;if(month<0){month=11;year--}drawCalendar()};
  document.querySelector('#calNext').onclick=()=>{month++;if(month>11){month=0;year++}drawCalendar()};
  drawCalendar();drawDetail();
+ detail.onclick=e=>{const edit=e.target.closest('[data-edit-session]'),history=e.target.closest('[data-session-history]');if(edit)editAttendanceSession(edit.dataset.editSession,edit);if(history)sessionHistoryModal(history.dataset.sessionHistory)};
 }
 
 const EVENT_TYPES=['Gol','Ammonizione','Espulsione','Sostituzione','Nota'];
