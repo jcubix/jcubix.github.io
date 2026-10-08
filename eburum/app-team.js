@@ -67,7 +67,7 @@ dashboard = function () {
         !a.session_id,
     ),
     expiring = expiringPlayers();
-  return `<div class="section-title"><div><div class="eyebrow">LA TUA SQUADRA · ${roleLabels[teamRole()]}</div><h2>Oggi, sul campo</h2><p class="muted">Appuntamenti e cose da completare.</p></div></div><section class="next-activity"><div class="eyebrow">PROSSIMO APPUNTAMENTO</div>${next ? `<h2>${esc(activityLabel(next))}</h2><p>${fmt(next.activity_date)} · ${clock(next.start_time)}</p><p class="muted">${esc(next.location || "Luogo da definire")}</p>${next.meeting_time || next.meeting_place ? `<div class="meeting-strip">Ritrovo ${clock(next.meeting_time)} · ${esc(next.meeting_place || "Luogo da definire")}</div>` : ""}<button class="primary wide" data-open-activity="${next.id}">Apri attività e convocazioni</button>` : '<h2>Prepara il prossimo impegno</h2><p class="muted">Organizza allenamenti, partite e riunioni nell’Agenda.</p><button class="primary wide" data-new-activity>+ Programma attività</button>'}</section><div class="action-grid"><button data-page="agenda"><b>${waiting}</b><span>Risposte da registrare</span></button><button data-page="agenda"><b>${pending.length}</b><span>Attività da completare</span></button>${canManage() ? `<button data-expiries><b>${expiring.length}</b><span>Scadenze e tesseramenti</span></button>` : ""}<button data-page="training"><b>+</b><span>Registra presenze</span></button></div><div class="section-title"><h3>In programma</h3><button class="ghost" data-page="agenda">Tutta l’Agenda</button></div><div class="list">${upcoming.slice(0, 3).map(activityCard).join("") || '<div class="card empty">Nessuna attività programmata.</div>'}</div><details class="team-overview"><summary>Riepilogo della squadra</summary>${originalDashboard()}</details>`;
+  return `<div class="section-title"><div><div class="eyebrow">LA TUA SQUADRA · ${roleLabels[teamRole()]}</div><h2>Oggi, sul campo</h2><p class="muted">Appuntamenti e cose da completare.</p></div></div><section class="next-activity"><div class="eyebrow">PROSSIMO APPUNTAMENTO</div>${next ? `<h2>${esc(activityLabel(next))}</h2><p>${fmt(next.activity_date)} · ${clock(next.start_time)}</p><p class="muted">${esc(next.location || "Luogo da definire")}</p>${next.meeting_time || next.meeting_place ? `<div class="meeting-strip">Ritrovo ${clock(next.meeting_time)} · ${esc(next.meeting_place || "Luogo da definire")}</div>` : ""}<button class="primary wide" data-open-activity="${next.id}">Apri attività e convocazioni</button>` : '<h2>Prepara il prossimo impegno</h2><p class="muted">Organizza allenamenti, partite e riunioni nell’Agenda.</p><button class="primary wide" data-new-activity>+ Programma attività</button>'}</section><div class="action-grid"><button data-page="agenda"><b>${waiting}</b><span>Disponibilità da registrare</span></button><button data-page="agenda"><b>${pending.length}</b><span>Attività da completare</span></button>${canManage() ? `<button data-expiries><b>${expiring.length}</b><span>Scadenze e tesseramenti</span></button>` : ""}<button data-page="training"><b>+</b><span>Registra presenze</span></button></div><div class="section-title"><h3>In programma</h3><button class="ghost" data-page="agenda">Tutta l’Agenda</button></div><div class="list">${upcoming.slice(0, 3).map(activityCard).join("") || '<div class="card empty">Nessuna attività programmata.</div>'}</div><details class="team-overview"><summary>Riepilogo della squadra</summary>${originalDashboard()}</details>`;
 };
 const originalShell = shell;
 shell = function (content) {
@@ -85,7 +85,7 @@ navBtn = function (page, icon, label) {
     page === "agenda"
       ? '<path d="M4 5h16v16H4zM8 3v4m8-4v4M4 11h16m-11 4h2m3 0h2m-7 3h2"/>'
       : '<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>';
-  return `<button data-page="${page}" class="${state.page === page ? "active" : ""}" ${state.page === page ? 'aria-current="page"' : ""}><b aria-hidden="true"><svg viewBox="0 0 24 24">${paths}</svg></b><span>${label}</span></button>`;
+  return `<button data-page="${page}" class="${(state.page === page || page === "more" && ["training","register","reports"].includes(state.page)) ? "active" : ""}" ${(state.page === page || page === "more" && ["training","register","reports"].includes(state.page)) ? 'aria-current="page"' : ""}><b aria-hidden="true"><svg viewBox="0 0 24 24">${paths}</svg></b><span>${label}</span></button>`;
 };
 function morePage() {
   return `<div class="section-title"><div><h2>Strumenti squadra</h2><p class="muted">${roleLabels[teamRole()]} · ${esc(state.user.email || "")}</p></div></div><div class="list tool-list"><button data-page="training"><b>Registra presenze</b><span>Allenamenti e attività svolte</span></button><button data-page="register"><b>Registro</b><span>Consulta e correggi le presenze</span></button><button data-page="reports"><b>Report e statistiche</b><span>Presenze, convocazioni e minuti giocati</span></button>${canManage() ? "<button data-expiries><b>Scadenze e tesseramenti</b><span>Certificati e documenti da verificare</span></button>" : ""}${isAdmin() ? '<button id="teamUsers"><b>Gestione staff</b><span>Utenze e ruoli della squadra condivisa</span></button>' : ""}</div>`;
@@ -151,7 +151,7 @@ function bindTeamLinks() {
     .querySelectorAll("[data-expiries]")
     .forEach((b) => (b.onclick = expiryModal));
 }
-async function openActivity(id) {
+async function openActivity(id, preferredTab = "details") {
   try {
     const uid = teamOwner(),
       actor = state.user.id;
@@ -181,12 +181,12 @@ async function openActivity(id) {
     ]);
     if (a.error || r.error || t.error) throw a.error || r.error || t.error;
     if (state.user?.id !== actor) return;
-    activityModal(a.data, r.data, t.data[0]);
+    activityModal(a.data, r.data, t.data[0], preferredTab);
   } catch (e) {
     fail(e);
   }
 }
-function activityModal(a = {}, savedRows = [], technical = {}) {
+function activityModal(a = {}, savedRows = [], technical = {}, preferredTab = "details") {
   teamArrays();
   const root = document.createElement("div");
   root.className = "modal-back";
@@ -214,16 +214,17 @@ function activityModal(a = {}, savedRows = [], technical = {}) {
   );
   const field = (id, label, type, value = "") =>
     `<div class="field"><label for="${id}">${label}</label><input id="${id}" type="${type}" value="${esc(value || "")}"></div>`;
-  root.innerHTML = `<section class="modal activity-modal" role="dialog" aria-modal="true" aria-labelledby="activityTitle"><div class="modal-head"><div><div class="eyebrow">AGENDA · SQUADRA</div><h2 id="activityTitle">${a.id ? esc(activityLabel(a)) : "Nuova attività"}</h2></div><button id="closeActivity" aria-label="Chiudi attività">✕</button></div><div class="activity-tabs" role="tablist" aria-label="Scheda attività"><button type="button" data-activity-tab="details" role="tab" aria-selected="true">Dettagli</button><button type="button" data-activity-tab="roster" role="tab" aria-selected="false">Convocazioni</button>${canTechnical() ? '<button type="button" data-activity-tab="technical" role="tab" aria-selected="false">Tecnica</button>' : ""}</div><form id="activityForm" novalidate><section data-activity-panel="details"><div class="form-grid"><div class="field"><label for="activityType">Tipo</label><select id="activityType" ${a.id ? "disabled" : ""}>${["Allenamento", "Partita", "Riunione"].map((t) => `<option ${a.activity_type === t ? "selected" : ""}>${t}</option>`).join("")}</select></div><div class="field"><label for="activityName">Titolo / avversario</label><input id="activityName" maxlength="160" required value="${esc(a.title || "")}"></div>${field("activityDate", "Data", "date", a.activity_date || today())}${field("activityStart", "Inizio", "time", a.start_time)}${field("activityEnd", "Fine", "time", a.end_time)}<div class="field"><label for="activityState">Stato</label><select id="activityState">${["Programmato", "Concluso", "Annullato"].map((t) => `<option ${a.status === t ? "selected" : ""}>${t}</option>`).join("")}</select></div></div><div class="field field-space"><label for="activityLocation">Campo / luogo</label><input id="activityLocation" maxlength="500" value="${esc(a.location || "")}"></div><h3 class="sheet-heading">Ritrovo e organizzazione</h3><div class="form-grid">${field("activityMeetingTime", "Ora ritrovo", "time", a.meeting_time)}${field("activityMeetingPlace", "Luogo ritrovo", "text", a.meeting_place)}</div><div class="field field-space"><label for="activityNote">Indicazioni per lo staff</label><textarea id="activityNote" rows="3" maxlength="10000" placeholder="Trasporto, divise, documenti, materiale…">${esc(a.organization_note || "")}</textarea></div>${a.id ? `<div class="session-tools">${a.match_id ? '<button type="button" id="activityMatch">Risultato ed eventi</button>' : ""}<button type="button" id="activityAttendance">${a.session_id ? "Apri presenze" : "Registra presenze"}</button></div>` : ""}</section><section data-activity-panel="roster" hidden><div class="notice">Lo staff registra le risposte ricevute. La convocazione è distinta dalla presenza effettiva.</div><input type="search" id="rosterSearch" aria-label="Cerca convocato" placeholder="Cerca giocatore"><div id="rosterCounts" class="attendance-counts field-space"></div><div class="list field-space" id="activityRoster"></div></section>${canTechnical() ? `<section data-activity-panel="technical" hidden><div class="notice">Note tecniche visibili soltanto ad amministratori e allenatori.</div><div id="formationPreview" class="formation-preview" aria-label="Titolari raggruppati per ruolo"></div><div class="field field-space"><label for="formation">Modulo</label><input id="formation" maxlength="30" value="${esc(technical?.formation || "")}" placeholder="Es. 4-3-3"></div><div class="field field-space"><label for="technicalNote">Osservazioni tecniche</label><textarea id="technicalNote" rows="4" maxlength="10000">${esc(technical?.note || "")}</textarea></div><p class="muted">Titolari, panchina, posizione e minuti giocati si compilano dalla scheda di ogni convocato. I minuti sono registrati dallo staff.</p></section>` : ""}<div class="modal-actions"><button class="ghost" id="cancelActivity" type="button">Annulla</button><button class="primary" type="submit">${a.id ? "Salva attività" : "Crea attività"}</button></div><p id="activityFeedback" role="status" aria-live="polite"></p></form></section>`;
+  root.innerHTML = `<section class="modal activity-modal" role="dialog" aria-modal="true" aria-labelledby="activityTitle"><div class="modal-head"><div><div class="eyebrow">AGENDA · SQUADRA</div><h2 id="activityTitle">${a.id ? esc(activityLabel(a)) : "Nuova attività"}</h2></div><button id="closeActivity" aria-label="Chiudi attività">✕</button></div><div class="activity-tabs" role="tablist" aria-label="Scheda attività"><button type="button" data-activity-tab="details" role="tab" aria-selected="true">Organizzazione</button><button type="button" data-activity-tab="roster" role="tab" aria-selected="false">Convocazioni</button>${canTechnical() ? '<button type="button" data-activity-tab="technical" role="tab" aria-selected="false">Formazione</button>' : ""}${a.match_id ? '<button type="button" data-activity-tab="results" role="tab" aria-selected="false">Risultato ed eventi</button>' : ""}</div><div id="matchReadiness" class="notice field-space" role="status"></div><form id="activityForm" novalidate><section data-activity-panel="details"><div class="form-grid"><div class="field"><label for="activityType">Tipo</label><select id="activityType" ${a.id ? "disabled" : ""}>${["Allenamento", "Partita", "Riunione"].map((t) => `<option ${a.activity_type === t ? "selected" : ""}>${t}</option>`).join("")}</select></div><div class="field"><label for="activityName">Titolo / avversario</label><input id="activityName" maxlength="160" required value="${esc(a.title || "")}"></div>${field("activityDate", "Data", "date", a.activity_date || today())}${field("activityStart", "Inizio", "time", a.start_time)}${field("activityEnd", "Fine", "time", a.end_time)}<div class="field"><label for="activityState">Stato</label><select id="activityState">${["Programmato", "Concluso", "Annullato"].map((t) => `<option ${a.status === t ? "selected" : ""}>${t}</option>`).join("")}</select></div></div><div class="field field-space"><label for="activityLocation">Campo / luogo</label><input id="activityLocation" maxlength="500" value="${esc(a.location || "")}"></div><h3 class="sheet-heading">Ritrovo e organizzazione</h3><div class="form-grid">${field("activityMeetingTime", "Ora ritrovo", "time", a.meeting_time)}${field("activityMeetingPlace", "Luogo ritrovo", "text", a.meeting_place)}</div><div class="field field-space"><label for="activityNote">Indicazioni per lo staff</label><textarea id="activityNote" rows="3" maxlength="10000" placeholder="Trasporto, divise, documenti, materiale…">${esc(a.organization_note || "")}</textarea></div>${a.id ? `<div class="session-tools">${a.match_id ? '<button type="button" id="activityMatch">Risultato ed eventi</button>' : ""}<button type="button" id="activityAttendance">${a.session_id ? "Apri presenze" : "Registra presenze"}</button></div>` : ""}</section><section data-activity-panel="roster" hidden><div class="notice">Lo staff registra le risposte ricevute. La convocazione è distinta dalla presenza effettiva.</div><input type="search" id="rosterSearch" aria-label="Cerca convocato" placeholder="Cerca giocatore"><div id="rosterCounts" class="attendance-counts field-space"></div><div class="list field-space" id="activityRoster"></div></section>${canTechnical() ? `<section data-activity-panel="technical" hidden><div class="notice">Note tecniche visibili soltanto ad amministratori e allenatori.</div><div id="formationPreview" class="formation-preview" aria-label="Titolari raggruppati per ruolo"></div><div class="field field-space"><label for="formation">Modulo</label><input id="formation" maxlength="30" value="${esc(technical?.formation || "")}" placeholder="Es. 4-3-3"></div><div class="field field-space"><label for="technicalNote">Osservazioni tecniche</label><textarea id="technicalNote" rows="4" maxlength="10000">${esc(technical?.note || "")}</textarea></div><p class="muted">Titolari, panchina, posizione e minuti giocati si compilano dalla scheda di ogni convocato. I minuti sono registrati dallo staff.</p></section>` : ""}<div class="modal-actions"><button class="ghost" id="cancelActivity" type="button">Annulla</button><button class="primary" type="submit">${a.id ? "Salva attività" : "Crea attività"}</button></div><p id="activityFeedback" role="status" aria-live="polite"></p></form></section>`;
   document.body.appendChild(root);
   const $ = (s) => root.querySelector(s);
-  let dirty = false;
-  root.addEventListener("input", (event) => {if(event.target.id!=="rosterSearch")dirty=true});
-  root.addEventListener("change", () => (dirty = true));
+  let dirty = false, resultPanel = null;
+  root.addEventListener("input", (event) => {if(!["rosterSearch","callupText"].includes(event.target.id)&&!event.target.closest('[data-activity-panel="results"]'))dirty=true});
+  root.addEventListener("change", (event) => {if(!["rosterSearch","callupText"].includes(event.target.id)&&!event.target.closest('[data-activity-panel="results"]'))dirty=true});
   const close = () => {
-    if (busy) return;
-    if (dirty && !confirm("Scartare le modifiche non salvate?")) return;
+    if (busy || resultPanel?.isBusy()) return;
+    if ((dirty || resultPanel?.isDirty()) && !confirm("Scartare le modifiche non salvate?")) return;
     root.remove();
+    if(state.page==="matches")render();
   };
   $("#closeActivity").onclick = close;
   $("#cancelActivity").onclick = close;
@@ -231,6 +232,10 @@ function activityModal(a = {}, savedRows = [], technical = {}) {
   root.querySelectorAll("[data-activity-tab]").forEach(
     (b) =>
       (b.onclick = () => {
+        if(busy||resultPanel?.isBusy())return;
+        if(b.dataset.activityTab==="results"&&dirty)return toast("Salva organizzazione e convocazioni prima di aprire risultato ed eventi");
+        if(b.dataset.activityTab!=="results"&&resultPanel?.isDirty())return toast("Salva risultato e note prima di cambiare sezione");
+        $("#activityForm > .modal-actions").hidden=b.dataset.activityTab==="results";
         root
           .querySelectorAll("[data-activity-tab]")
           .forEach((x) => x.setAttribute("aria-selected", String(x === b)));
@@ -244,6 +249,8 @@ function activityModal(a = {}, savedRows = [], technical = {}) {
   );
   const paint = () => {
     const pitch = $("#formationPreview");
+    const rowsForWarnings=[...entries.values()].filter(r=>r.called),unavailable=rowsForWarnings.filter(r=>r.availability==="Indisponibile"),startersCount=rowsForWarnings.filter(r=>r.lineup==="Titolare").length;
+    $("#matchReadiness").textContent=$("#activityType").value==="Partita"?`${rowsForWarnings.length} convocati · ${startersCount}/11 titolari${unavailable.length?` · Attenzione: ${unavailable.length} convocati indisponibili`:""}${startersCount!==11?" · Formazione da completare":""}`:"";
     if (pitch) {
       const starters = players.filter((p) => {
         const r = entries.get(p.id);
@@ -309,12 +316,14 @@ function activityModal(a = {}, savedRows = [], technical = {}) {
   };
   $("#rosterSearch").oninput = paint;
   paint();
+  mountCallupCopy(root,a,entries,players,()=>dirty);
+  if(a.match_id&&state.matches.some(m=>m.id===a.match_id))resultPanel=mountMatchResults(root,a,()=>!busy&&!dirty,()=>state.matches.find(m=>m.id===a.match_id));
+  if(preferredTab!=="details")root.querySelector(`[data-activity-tab="${preferredTab}"]`)?.click();
   if (a.id) {
     $("#activityMatch")?.addEventListener("click", () => {
       if (dirty)
         return toast("Salva o annulla le modifiche prima di aprire la partita");
-      root.remove();
-      matchModal(state.matches.find((m) => m.id === a.match_id));
+      root.querySelector('[data-activity-tab="results"]')?.click();
     });
     $("#activityAttendance").onclick = () => {
       if (dirty)
@@ -351,7 +360,9 @@ function activityModal(a = {}, savedRows = [], technical = {}) {
   }
   $("#activityForm").onsubmit = async (e) => {
     e.preventDefault();
-    if (busy) return;
+    if(root.querySelector('[data-activity-tab="results"][aria-selected="true"]'))return root.querySelector("#saveMatchResult")?.click();
+    if (busy || resultPanel?.isBusy()) return;
+    if(resultPanel?.isDirty())return toast("Salva risultato e note prima di salvare l’organizzazione");
     const button = e.target.querySelector("[type=submit]");
     busy = true;
     button.disabled = true;
@@ -555,37 +566,12 @@ function expiryModal() {
   );
 }
 const originalMatchModal = matchModal;
-matchModal = function (m = {}) {
-  originalMatchModal(m);
-  if (m.id) {
-    const a = (state.activities || []).find((a) => a.match_id === m.id),
-      modal = document.querySelector(".match-modal");
-    if (a && modal) {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "ghost wide field-space";
-      b.textContent = "Convocazioni, ritrovo e formazione";
-      modal.querySelector("#eventSection").prepend(b);
-      b.onclick = () => {
-        const form = modal.querySelector("#matchForm");
-        if (
-          [...form.elements].some(
-            (e) =>
-              e.value !== e.defaultValue &&
-              e.tagName !== "BUTTON" &&
-              e.tagName !== "SELECT",
-          ) &&
-          !confirm(
-            "Aprire l’attività senza salvare le modifiche della partita?",
-          )
-        )
-          return;
-        modal.parentElement.remove();
-        openActivity(a.id);
-      };
-    }
-    if (!isAdmin()) document.querySelector("#deleteMatch")?.remove();
-  }
+matchModal = function(m={}) {
+ if(!m.id)return activityModal({activity_type:"Partita"});
+ const a=(state.activities||[]).find(x=>x.match_id===m.id);
+ if(a)return openActivity(a.id);
+ originalMatchModal(m);
+ if(!isAdmin())document.querySelector('#deleteMatch')?.remove();
 };
 const originalBindReports = bindReports;
 bindReports = function () {
@@ -679,7 +665,7 @@ bindReports = function () {
         .join("") ||
       '<p class="muted">Nessuna presenza nel periodo selezionato.</p>';
     document.querySelector("#availabilityStats").textContent =
-      `Assenze comunicate: ${A.filter((a) => a.status === "Assente" && a.notified === true).length} · Senza preavviso: ${A.filter((a) => a.status === "Assente" && a.notified === false).length} · Preavviso non indicato: ${A.filter((a) => a.status === "Assente" && a.notified == null).length} · Infortuni: ${A.filter((a) => a.status === "Infortunato").length}`;
+      `Assenti con sondaggio risposto: ${A.filter((a) => a.status === "Assente" && a.notified === true).length} · Assenti con sondaggio non risposto: ${A.filter((a) => a.status === "Assente" && a.notified === false).length} · Sondaggio da verificare: ${A.filter((a) => a.status === "Assente" && a.notified == null).length} · Infortuni: ${A.filter((a) => a.status === "Infortunato").length}`;
   };
   for (const id of ["rf", "rt", "rp"])
     document.querySelector("#" + id).addEventListener("change", paint);
