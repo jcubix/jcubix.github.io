@@ -7,7 +7,8 @@ const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMon
 const teamOwner=()=>state.team?.owner_id||state.user.id;
 const teamRole=()=>state.team?.role||(state.user?.app_metadata?.role==='admin'?'admin':'manager');
 const isAdmin=()=>teamRole()==='admin';
-const canManage=()=>['admin','manager'].includes(teamRole());
+const canManage=()=>['admin','manager','secretary'].includes(teamRole());
+const canOperate=()=>['admin','manager','coach'].includes(teamRole());
 const canTechnical=()=>['admin','coach'].includes(teamRole());
 const fmt=d=>d?new Intl.DateTimeFormat('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(d+'T12:00:00')):'';
 const roleRank=r=>{const i=ROLE_ORDER.indexOf(r);return i<0?99:i};

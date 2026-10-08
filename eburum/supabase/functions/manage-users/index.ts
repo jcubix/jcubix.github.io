@@ -70,7 +70,7 @@ Deno.serve(async (req: Request) => {
     }
     if (body.action === "role") {
       if (
-        !["admin", "manager", "coach"].includes(body.role) ||
+        !["admin", "manager", "coach", "secretary"].includes(body.role) ||
         typeof body.userId !== "string"
       )
         return reply(400, { error: "Ruolo non valido" });
@@ -119,7 +119,7 @@ Deno.serve(async (req: Request) => {
     if (password.length < 12 || password.length > 128)
       return reply(400, { error: "Password da 12 a 128 caratteri" });
     const role = body.role ?? "manager";
-    if (!["admin", "manager", "coach"].includes(role))
+    if (!["admin", "manager", "coach", "secretary"].includes(role))
       return reply(400, { error: "Ruolo non valido" });
     const { data, error } = await admin.auth.admin.createUser({
       email,

@@ -7,3 +7,5 @@ Da questa cartella: `npm ci` e `npm test`. I test JavaScript usano account e dat
 I test SQL `attendance_review.sql`, `team_operations.sql` e `survey_to_attendance.sql` sono eseguibili sul progetto inizializzato con un collegamento amministrativo. Ogni file apre una transazione e termina con `ROLLBACK`: i dati sintetici non vengono conservati. Verificano anche conflitti, atomicità, autore delle modifiche e isolamento delle squadre.
 
 I test `report-pdf.cjs` verificano report esclusivamente individuali, grafici, inclusione del giocatore uscito nelle sostituzioni e PDF su piu pagine. Impostando `REPORT_PDF_OUTPUT` si salvano due PDF dimostrativi per il controllo visivo.
+
+`secretary-ui.cjs` verifica scadenze, schede amministrative e consultazione dei dati sportivi. `supabase/tests/secretary_role.sql` verifica il trigger di assegnazione e le policy RLS, con dati sintetici annullati tramite rollback.

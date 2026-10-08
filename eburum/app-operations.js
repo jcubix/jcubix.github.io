@@ -28,7 +28,7 @@ const operationalDashboard=dashboard;
 dashboard=function(){
  teamArrays();if(!state.players.length)return operationalDashboard();
  const upcoming=state.activities.filter(a=>a.activity_date>=today()&&a.status==='Programmato').sort((a,b)=>(a.activity_date+(a.start_time||'')).localeCompare(b.activity_date+(b.start_time||''))),next=upcoming[0];
- const waiting=upcoming.reduce((n,a)=>n+activityPollPending(a),0),pending=state.activities.filter(activityHasEnded).length,expiries=canManage()?expiringPlayers().length:0;
+ const waiting=canOperate()?upcoming.reduce((n,a)=>n+activityPollPending(a),0):0,pending=canOperate()?state.activities.filter(activityHasEnded).length:0,expiries=canManage()?expiringPlayers().length:0;
  const todays=upcoming.filter(a=>a.activity_date===today()),attention=waiting+pending+expiries;
  const latest=[...state.sessions].sort((a,b)=>b.session_date.localeCompare(a.session_date))[0],rows=latest?state.attendance.filter(a=>a.session_id===latest.id):[],answered=rows.filter(a=>a.notified===true).length;
  const recentIds=new Set(state.sessions.filter(s=>s.session_date>=recentFrom(30)&&s.session_date<=today()).map(s=>s.id)),attendance=state.attendance.filter(r=>recentIds.has(r.session_id)),rate=attendance.length?Math.round(attendance.filter(a=>a.status==='Presente').length/attendance.length*100):null;

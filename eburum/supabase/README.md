@@ -39,3 +39,16 @@ Le fasi Prima, Durante e Dopo della partita sono suggerite in base a data, orari
 La Dashboard mostra risposte da registrare, attività trascorse da completare e scadenze entro 30 giorni. I dettagli si aprono sulla lista pertinente. Le percentuali della squadra si riferiscono agli ultimi 30 giorni e alle registrazioni effettive.
 
 I report distinguono presenze effettive, disponibilità previste e impiego. Ogni indicatore apre le registrazioni del periodo; i dettagli dei giocatori mantengono lo stesso intervallo. Le percentuali usano come denominatore le registrazioni di presenza, non il numero attuale di giocatori. Gol e cartellini dei giocatori richiedono un giocatore associato; le attività annullate sono escluse dai dati sportivi e dalle disponibilità previste.
+
+## Ruoli dello staff
+
+| Funzione | Amministratore | Team manager | Allenatore | Segretario |
+| --- | --- | --- | --- | --- |
+| Consultare agenda, presenze, partite e report | Si | Si | Si | Si |
+| Registrare presenze, convocati, risultati ed eventi | Si | Si | Si | No |
+| Creare e aggiornare rosa, tesseramenti e scadenze | Si | Si | No | Si |
+| Leggere e aggiornare note tecniche riservate | Si | No | Si | No |
+| Creare utenze, assegnare ruoli, cambiare password altrui | Si | No | No | No |
+| Eliminare definitivamente dati sportivi | Si | No | No | No |
+
+Le autorizzazioni usano la membership nel database, non i metadati modificabili dall'utente. Il ruolo Segretario e selezionabile da Gestione utenti sia in creazione sia sulle utenze esistenti. Nessuna utenza esistente viene riassegnata automaticamente. Le scadenze compaiono nella Dashboard e in Altro > Scadenze e tesseramenti. I dati amministrativi sono modificabili dalla scheda del giocatore. Le modifiche sportive sono bloccate dalle policy RLS anche per chiamate API dirette.

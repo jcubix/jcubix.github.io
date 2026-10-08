@@ -1,6 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),{JSDOM}=require('jsdom');
 const dom=new JSDOM('<div id="app"></div>',{runScripts:'outside-only',url:'https://eburum.vercel.app'}),w=dom.window,run=code=>vm.runInContext(code,dom.getInternalVMContext());w.CONFIG={supabaseUrl:'demo',supabaseAnonKey:'demo',season:'2026/27'};w.scrollTo=()=>{};
-run(fs.readFileSync(__dirname+'/fixtures/team-ui.js','utf8'));for(const file of ['app-dialogs.js','app-part1.js','app-part2.js','app-part3.js','app-part4.js','app-report-export.js','app-part5.js','app-team.js','app-operations.js','app-workflows.js','app-admin.js'])run(fs.readFileSync(__dirname+'/../'+file,'utf8').replace(/boot\(\);\s*$/,''));
+run(fs.readFileSync(__dirname+'/fixtures/team-ui.js','utf8'));for(const file of ['app-dialogs.js','app-part1.js','app-part2.js','app-part3.js','app-part4.js','app-report-export.js','app-part5.js','app-team.js','app-operations.js','app-workflows.js','app-access.js','app-admin.js'])run(fs.readFileSync(__dirname+'/../'+file,'utf8').replace(/boot\(\);\s*$/,''));
 const $=s=>w.document.querySelector(s),all=s=>[...w.document.querySelectorAll(s)],tick=()=>new Promise(r=>setTimeout(r,30)),input=(s,v)=>{$(s).value=v;$(s).dispatchEvent(new w.Event('input',{bubbles:true}))},submit=s=>$(s).dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
 (async()=>{
 run('state.user=fixtureUser');await run('refresh()');let copied='';Object.defineProperty(w.navigator,'clipboard',{value:{writeText:async text=>copied=text}});

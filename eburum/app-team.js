@@ -2,6 +2,7 @@ const roleLabels = {
   admin: "Amministratore",
   manager: "Team manager",
   coach: "Allenatore",
+  secretary: "Segretario",
 };
 const teamArrays = () => {
   for (const k of ["activities", "roster", "administration", "technical"])
