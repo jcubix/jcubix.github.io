@@ -24,6 +24,8 @@ do $$declare a jsonb;aid uuid;pid uuid;rows jsonb;rev integer;blocked boolean;se
  select jsonb_agg(jsonb_build_object('player_id',id,'called',true,'availability','Disponibile','lineup','Titolare','minutes_played',90)) into many_rows from (select id from public.players where user_id=private_access.team_owner() and active limit 12) p;
  blocked:=false;begin perform public.save_team_activity(a,many_rows,aid,rev);exception when invalid_parameter_value then blocked:=true;end;if not blocked then raise exception 'More than eleven starters accepted';end if;
  insert into public.player_administration(user_id,player_id,registration_status) values(private_access.team_owner(),pid,'In regola');
+ update public.player_administration set registration_status='Da completare' where player_id=pid;
+ if not exists(select 1 from public.player_administration where player_id=pid and registration_status='Da completare' and updated_by=auth.uid()) then raise exception 'Administrative update failed';end if;
  blocked:=false;begin insert into public.activity_technical(user_id,activity_id,note) values(private_access.team_owner(),aid,'Forbidden');exception when insufficient_privilege then blocked:=true;end;if not blocked then raise exception 'Manager accessed technical notes';end if;
  perform set_config('test.activity',aid::text,true);perform set_config('test.player',pid::text,true);
  -- A scheduled training becomes the same calendar item when attendance is recorded.
@@ -38,6 +40,10 @@ do $$declare a jsonb;aid uuid;pid uuid;rows jsonb;rev integer;blocked boolean;se
  select to_jsonb(x) into a from public.activities x where id=current_setting('test.activity')::uuid;
  result:=public.save_team_activity(a,rows,current_setting('test.activity')::uuid,(a->>'revision')::integer,'{"formation":"4-3-3","note":"Synthetic technical note"}');
  if not exists(select 1 from public.activity_technical where activity_id=current_setting('test.activity')::uuid and formation='4-3-3' and updated_by=auth.uid()) then raise exception 'Coach technical save failed';end if;
+ select to_jsonb(x) into a from public.activities x where id=current_setting('test.activity')::uuid;
+ result:=public.save_team_activity(a,rows,current_setting('test.activity')::uuid,(a->>'revision')::integer,'{"formation":"4-4-2","note":"Second technical save"}');
+ if not exists(select 1 from public.activity_technical where activity_id=current_setting('test.activity')::uuid and formation='4-4-2' and note='Second technical save' and updated_by=auth.uid()) then raise exception 'Repeated technical update failed';end if;
+ blocked:=false;begin update public.activity_technical set activity_id=gen_random_uuid() where activity_id=current_setting('test.activity')::uuid;exception when insufficient_privilege then blocked:=true;end;if not blocked then raise exception 'Technical linkage changed';end if;
  blocked:=false;begin insert into public.players(user_id,surname,name) values(private_access.team_owner(),'Synthetic','Forbidden');exception when insufficient_privilege then blocked:=true;end;if not blocked then raise exception 'Coach edited roster';end if;
  perform set_config('request.jwt.claim.sub',current_setting('test.outside'),true);
  if exists(select 1 from public.activities where id=current_setting('test.activity')::uuid) or exists(select 1 from public.activity_roster where activity_id=current_setting('test.activity')::uuid) then raise exception 'Cross-team leak';end if;
