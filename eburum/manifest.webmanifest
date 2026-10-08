@@ -1,10 +1,17 @@
 {
-  "name":"Eburum Team Manager",
-  "short_name":"Eburum",
-  "start_url":"./",
-  "display":"standalone",
-  "background_color":"#79B1DC",
-  "theme_color":"#1E183F",
-  "description":"Gestione rosa, allenamenti, presenze, partite e report squadra.",
-  "icons":[{"src":"./icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+  "name": "Eburum Team Manager",
+  "short_name": "Eburum",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f4f7fa",
+  "theme_color": "#ffffff",
+  "description": "Gestione rosa, allenamenti, presenze, partite e report squadra.",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
 }
