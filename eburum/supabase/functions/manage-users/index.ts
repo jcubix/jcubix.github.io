@@ -94,6 +94,21 @@ Deno.serve(async (req: Request) => {
       if (error) return reply(400, { error: "Ruolo non aggiornato" });
       return reply(200, { updated: true });
     }
+    if (body.action === "password") {
+      const password = typeof body.password === "string" ? body.password : "";
+      if (typeof body.userId !== "string" || body.userId === user.id)
+        return reply(400, { error: "Seleziona un altro utente della squadra" });
+      if (password.length < 12 || password.length > 128)
+        return reply(400, { error: "Password da 12 a 128 caratteri" });
+      const { data: target } = await admin.from("team_members")
+        .select("user_id").eq("user_id", body.userId)
+        .eq("owner_id", member.owner_id).single();
+      if (!target)
+        return reply(404, { error: "Utente della squadra non trovato" });
+      const { error } = await admin.auth.admin.updateUserById(target.user_id, { password });
+      if (error) return reply(400, { error: "Password non aggiornata. Controlla la nuova password e riprova." });
+      return reply(200, { updated: true });
+    }
     if (body.action !== "create")
       return reply(400, { error: "Azione non valida" });
     const email =
@@ -103,9 +118,9 @@ Deno.serve(async (req: Request) => {
       return reply(400, { error: "Inserisci una email valida" });
     if (password.length < 12 || password.length > 128)
       return reply(400, { error: "Password da 12 a 128 caratteri" });
-    const role = ["admin", "manager", "coach"].includes(body.role)
-      ? body.role
-      : "manager";
+    const role = body.role ?? "manager";
+    if (!["admin", "manager", "coach"].includes(role))
+      return reply(400, { error: "Ruolo non valido" });
     const { data, error } = await admin.auth.admin.createUser({
       email,
       password,

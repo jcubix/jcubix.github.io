@@ -1,6 +1,6 @@
 # Gestione accessi
 
-La funzione `manage-users` verifica la sessione con Auth e la membership corrente sul server. Solo gli amministratori della squadra possono elencare e creare utenti o assegnare ruoli. Le nuove utenze sono associate alla stessa squadra dell'amministratore. I dati delle altre squadre restano isolati tramite RLS.
+La funzione `manage-users` verifica la sessione con Auth e la membership corrente sul server. Solo gli amministratori della squadra possono elencare e creare utenti, assegnare ruoli o cambiare le password degli altri utenti della stessa squadra. Le nuove utenze sono associate alla stessa squadra dell'amministratore. I dati delle altre squadre restano isolati tramite RLS.
 
 Il trigger `eburum_require_managed_account` blocca la creazione di utenti senza `app_metadata.managed_account = true`. I metadati applicativi sono assegnabili soltanto dal backend privilegiato: passare `user_metadata`, anche con nomi identici, non consente la registrazione. Le nuove utenze vanno create dalla schermata Utenti; la creazione diretta dal dashboard richiede il medesimo metadato applicativo.
 
@@ -27,3 +27,5 @@ Il test SQL `tests/attendance_review.sql` verifica atomicità, ripetizione del s
 Amministratori e team manager gestiscono rosa e `player_administration` (scadenze, tesseramento, recapito di emergenza). Amministratori e allenatori accedono a `activity_technical` (modulo e note tecniche). Lo staff legge attività, risultati e presenze; le eliminazioni definitive delle tabelle storiche sono riservate agli amministratori. I controlli sono sul database, oltre che nell'interfaccia.
 
 `tests/team_operations.sql` verifica con `ROLLBACK` condivisione dello staff, isolamento tra squadre, blocco degli accessi anonimi, scadenze protette, note tecniche protette, salvataggio atomico, conflitti, ripetizione delle richieste e collegamento tra allenamento programmato e presenze.
+
+Il cambio password usa `auth.admin.updateUserById` sul server e accetta soltanto il campo password (12–128 caratteri). Il client richiede conferma, non legge password esistenti e cancella i campi dopo il successo. Le richieste per utenti di altre squadre o per lo stesso amministratore sono respinte.
