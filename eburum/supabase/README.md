@@ -29,3 +29,13 @@ Amministratori e team manager gestiscono rosa e `player_administration` (scadenz
 `tests/team_operations.sql` verifica con `ROLLBACK` condivisione dello staff, isolamento tra squadre, blocco degli accessi anonimi, scadenze protette, note tecniche protette, salvataggio atomico, conflitti, ripetizione delle richieste e collegamento tra allenamento programmato e presenze.
 
 Il cambio password usa `auth.admin.updateUserById` sul server e accetta soltanto il campo password (12–128 caratteri). Il client richiede conferma, non legge password esistenti e cancella i campi dopo il successo. Le richieste per utenti di altre squadre o per lo stesso amministratore sono respinte.
+
+# Flusso operativo
+
+Allenamento rapido distingue Sondaggio (disponibilità pianificate in `activity_roster`) e Presenze (registrazioni effettive in `attendance`). Il sondaggio usa il salvataggio atomico dell’attività; non crea sessioni di presenza. L’apertura delle presenze importa solo le risposte ricevute, mantenendo separata la disponibilità prevista. Lo staff conferma l’intera sessione nel riepilogo e modifica solo le eccezioni reali. Il collegamento server già esistente conclude la stessa attività pianificata, conservandone le risposte.
+
+Le fasi Prima, Durante e Dopo della partita sono suggerite in base a data, orari e stato; non simulano cronometri o minuti. Gli eventi e il risultato mantengono salvataggi espliciti. Modifiche in bozza e conflitti restano visibili; i campi sono bloccati durante le richieste.
+
+La Dashboard mostra risposte da registrare, attività trascorse da completare e scadenze entro 30 giorni. I dettagli si aprono sulla lista pertinente. Le percentuali della squadra si riferiscono agli ultimi 30 giorni e alle registrazioni effettive.
+
+I report distinguono presenze effettive, disponibilità previste e impiego. Ogni indicatore apre le registrazioni del periodo; i dettagli dei giocatori mantengono lo stesso intervallo. Le percentuali usano come denominatore le registrazioni di presenza, non il numero attuale di giocatori. Gol e cartellini dei giocatori richiedono un giocatore associato; le attività annullate sono escluse dai dati sportivi e dalle disponibilità previste.
