@@ -1,1 +1,1 @@
-{"private":true,"scripts":{"test":"node --test staff-access.cjs workflows-ui.cjs report-pdf.cjs secretary-ui.cjs"},"devDependencies":{"jsdom":"26.1.0"}}
+{"private":true,"scripts":{"test":"node --test staff-access.cjs workflows-ui.cjs report-pdf.cjs secretary-ui.cjs discipline-ui.cjs"},"devDependencies":{"jsdom":"26.1.0"}}

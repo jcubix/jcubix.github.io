@@ -55,3 +55,10 @@ Le autorizzazioni usano la membership nel database, non i metadati modificabili 
 
 
 La creazione distingue email gi� registrata (409), dati non validi (400), limite di richieste (429) e servizio non disponibile (503). La funzione conferma la membership prima di comunicare il successo; i log diagnostici non includono credenziali. Il modulo conserva i dati dopo un errore e impedisce invii simultanei. Dopo un cambio password pu� essere necessario accedere nuovamente perch� Auth revoca le sessioni precedenti.
+
+
+## Cartellini e diffide
+
+Il pannello usa gli eventi Ammonizione ed Espulsione della stagione configurata (1 luglio–30 giugno), fino a oggi ed escludendo le partite annullate. La regola richiesta dallo staff è una gara da saltare ogni cinque gialli: 4, 9, 14… indicano la prossima soglia vicina. Tutte le partite registrate nel periodo concorrono al conteggio: il modello attuale non distingue competizioni o amichevoli. Le espulsioni restano separate e non producono una durata automatica.
+
+`disciplinary_clearances` registra la conferma manuale della gara saltata, legata al quinto, decimo… evento di ammonizione. Il database verifica giocatore, squadra, stagione, soglia, data già trascorsa, gara successiva e assenza di minuti giocati. Una gara non può coprire due soglie dello stesso giocatore. Solo amministratore, team manager e allenatore confermano o annullano; il segretario consulta. Autore e data sono assegnati dal server. Le correzioni che spostano la soglia o rendono inidonea la gara mostrano una conferma da rivedere. Una partita cancellata elimina le conferme collegate, quindi le soglie ancora valide tornano da scontare. L'assenza dai convocati non conferma automaticamente una squalifica.
