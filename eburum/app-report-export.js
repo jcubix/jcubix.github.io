@@ -22,7 +22,7 @@ function renderPlayerCharts(m){
 function playerReportFilename(d){const p=state.players.find(p=>p.id===d.player);return `Eburum-${(p?.surname+'-'+p?.name).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9-]/g,'-')}-${d.from}-${d.to}.pdf`}
 function createPlayerReportPdf(m){
  if(!globalThis.jspdf?.jsPDF)throw new Error('Modulo PDF non disponibile. Ricarica la pagina.');
- const pdf=new jspdf.jsPDF({unit:'mm',format:'a4',compress:true});let y=22;
+ const pdf=new globalThis.jspdf.jsPDF({unit:'mm',format:'a4',compress:true});let y=22;
  const clean=t=>String(t).replace(/[–—]/g,'-').replace(/′/g,"'").replace(/[^\x20-\x7e\xa0-\xff\n]/g,'');
  const page=()=>{pdf.addPage();y=20};const room=h=>{if(y+h>277)page()};
  const text=(t,size=10,bold=false)=>{pdf.setFont('helvetica',bold?'bold':'normal');pdf.setFontSize(size);pdf.setTextColor(32,42,57);const lines=pdf.splitTextToSize(clean(t),174);for(const line of lines){room(size*.45+2);pdf.text(line,18,y);y+=size*.45+2}};

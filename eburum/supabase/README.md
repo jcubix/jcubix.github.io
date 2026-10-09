@@ -2,7 +2,7 @@
 
 La funzione `manage-users` verifica la sessione con Auth e la membership corrente sul server. Solo gli amministratori della squadra possono elencare e creare utenti, assegnare ruoli o cambiare le password degli altri utenti della stessa squadra. Le nuove utenze sono associate alla stessa squadra dell'amministratore. I dati delle altre squadre restano isolati tramite RLS.
 
-Il constraint trigger `eburum_finalize_managed_account` verifica la creazione alla fine della transazione Auth, dopo che GoTrue ha aggiornato i metadati applicativi. Richiede `managed_account = true`, un `created_by` corrispondente a un amministratore corrente e un `team_role` valido; quindi associa atomicamente l�utente alla squadra. Non verifica i metadati troppo presto nell�inserimento iniziale di GoTrue. Passare `user_metadata`, anche con nomi identici, non consente la registrazione. Le nuove utenze vanno create dalla schermata Utenti. Il test `tests/managed_auth_creation.sql` riproduce l�ordine reale di inserimento e aggiornamento, verifica tutti i ruoli e i tentativi non autorizzati, e termina con rollback.
+Il constraint trigger `eburum_finalize_managed_account` verifica la creazione alla fine della transazione Auth, dopo che GoTrue ha aggiornato i metadati applicativi. Richiede `managed_account = true`, un `created_by` corrispondente a un amministratore corrente e un `team_role` valido; quindi associa atomicamente l’utente alla squadra. Non verifica i metadati troppo presto nell’inserimento iniziale di GoTrue. Passare `user_metadata`, anche con nomi identici, non consente la registrazione. Le nuove utenze vanno create dalla schermata Utenti. Il test `tests/managed_auth_creation.sql` riproduce l’ordine reale di inserimento e aggiornamento, verifica tutti i ruoli e i tentativi non autorizzati, e termina con rollback.
 
 Il primo amministratore viene individuato dal proprietario registrato in `private_import.bootstrap_state`, senza inserire identificativi o email nel repository. Gli utenti condividono i dati della squadra attraverso `team_members`: non vengono create copie della rosa o dello storico. Il proprietario resta amministratore; gli altri ruoli sono modificabili dalla schermata Utenti.
 
@@ -14,7 +14,7 @@ Le password iniziali sono scelte dall'amministratore (almeno 12 caratteri); la c
 
 `save_attendance_session` salva sessione e presenze in una sola transazione con i permessi dell'utente. Le nuove sessioni includono tutta la rosa attiva; le correzioni conservano i partecipanti originali, anche se oggi inattivi. La revisione impedisce di sovrascrivere correzioni concorrenti. Un identificativo di richiesta rende sicuro riprovare una nuova sessione dopo un errore di rete: il payload deve coincidere con quello già salvato.
 
-I trigger assegnano autore e orario sul server e scrivono le differenze in `attendance_history`, leggibile soltanto dal proprietario e non modificabile dal client. Le modifiche antecedenti alle migrazioni non vengono ricostruite. Lo storico appartiene alla sessione e viene rimosso se questa viene eliminata.
+I trigger assegnano autore e orario sul server e scrivono le differenze in `attendance_history`, leggibile dallo staff della stessa squadra e non modificabile dal client. Le modifiche antecedenti alle migrazioni non vengono ricostruite. Lo storico appartiene alla sessione e viene rimosso se questa viene eliminata.
 
 Il test SQL `tests/attendance_review.sql` verifica atomicità, ripetizione del salvataggio, conflitti, audit, giocatori inattivi e isolamento tra utenti; termina con `ROLLBACK`. Va eseguito con un collegamento amministrativo sul progetto inizializzato, preferibilmente in staging.
 
@@ -24,7 +24,7 @@ Il test SQL `tests/attendance_review.sql` verifica atomicità, ripetizione del s
 
 `save_team_activity` salva attività, convocazioni e note tecniche in una transazione, verifica la revisione e blocca la ripetizione di una richiesta di creazione già conclusa. Sono consentiti al massimo 11 titolari e l'impiego è riservato alle partite. I collegamenti tra giocatori e attività sono vincolati alla stessa squadra con chiavi esterne composite.
 
-Amministratori e team manager gestiscono rosa e `player_administration` (scadenze, tesseramento, recapito di emergenza). Amministratori e allenatori accedono a `activity_technical` (modulo e note tecniche). Lo staff legge attività, risultati e presenze; le eliminazioni definitive delle tabelle storiche sono riservate agli amministratori. I controlli sono sul database, oltre che nell'interfaccia.
+Amministratori, team manager e segretari gestiscono rosa e `player_administration` (scadenze, tesseramento, recapito di emergenza). Amministratori e allenatori accedono a `activity_technical` (modulo e note tecniche). Lo staff legge attività, risultati e presenze; le eliminazioni definitive delle tabelle storiche sono riservate agli amministratori. I controlli sono sul database, oltre che nell'interfaccia.
 
 `tests/team_operations.sql` verifica con `ROLLBACK` condivisione dello staff, isolamento tra squadre, blocco degli accessi anonimi, scadenze protette, note tecniche protette, salvataggio atomico, conflitti, ripetizione delle richieste e collegamento tra allenamento programmato e presenze.
 
@@ -36,7 +36,7 @@ Allenamento rapido distingue Sondaggio (disponibilità pianificate in `activity_
 
 Le fasi Prima, Durante e Dopo della partita sono suggerite in base a data, orari e stato; non simulano cronometri o minuti. Gli eventi e il risultato mantengono salvataggi espliciti. Modifiche in bozza e conflitti restano visibili; i campi sono bloccati durante le richieste.
 
-La Dashboard mostra risposte da registrare, attività trascorse da completare e scadenze entro 30 giorni. I dettagli si aprono sulla lista pertinente. Le percentuali della squadra si riferiscono agli ultimi 30 giorni e alle registrazioni effettive.
+La Dashboard mostra risposte da registrare, attività trascorse da completare e scadenze entro 30 giorni. I dettagli si aprono sulla lista pertinente. I report individuali usano le registrazioni effettive del periodo selezionato.
 
 I report distinguono presenze effettive, disponibilità previste e impiego. Ogni indicatore apre le registrazioni del periodo; i dettagli dei giocatori mantengono lo stesso intervallo. Le percentuali usano come denominatore le registrazioni di presenza, non il numero attuale di giocatori. Gol e cartellini dei giocatori richiedono un giocatore associato; le attività annullate sono escluse dai dati sportivi e dalle disponibilità previste.
 
@@ -54,7 +54,7 @@ I report distinguono presenze effettive, disponibilità previste e impiego. Ogni
 Le autorizzazioni usano la membership nel database, non i metadati modificabili dall'utente. Il ruolo Segretario e selezionabile da Gestione utenti sia in creazione sia sulle utenze esistenti. Nessuna utenza esistente viene riassegnata automaticamente. Le scadenze compaiono nella Dashboard e in Altro > Scadenze e tesseramenti. I dati amministrativi sono modificabili dalla scheda del giocatore. Le modifiche sportive sono bloccate dalle policy RLS anche per chiamate API dirette.
 
 
-La creazione distingue email gi� registrata (409), dati non validi (400), limite di richieste (429) e servizio non disponibile (503). La funzione conferma la membership prima di comunicare il successo; i log diagnostici non includono credenziali. Il modulo conserva i dati dopo un errore e impedisce invii simultanei. Dopo un cambio password pu� essere necessario accedere nuovamente perch� Auth revoca le sessioni precedenti.
+La creazione distingue email già registrata (409), dati non validi (400), limite di richieste (429) e servizio non disponibile (503). La funzione conferma la membership prima di comunicare il successo; i log diagnostici non includono credenziali. Il modulo conserva i dati dopo un errore e impedisce invii simultanei. Dopo un cambio password può essere necessario accedere nuovamente perché Auth revoca le sessioni precedenti.
 
 
 ## Cartellini e diffide

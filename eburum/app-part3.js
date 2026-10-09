@@ -14,7 +14,7 @@ function trainingPage(){
  const d=getTrainingDraft();
  return `<div class="section-title"><div><h2>${d.id?'Correggi sessione':'Allenamento rapido'}</h2><div class="muted">${d.id?'Modifica le presenze già registrate':'Tutti presenti: modifica solo le eccezioni'}</div></div>${d.id?'<button class="ghost" id="newTraining">Nuova</button>':`<span class="badge b-blue">${d.players.length} giocatori</span>`}</div><div class="card"><div class="form-grid training-session-fields"><div class="field"><label for="td">Data</label><input id="td" type="date" required value="${d.session.session_date}"></div><div class="field"><label for="tt">Tipo</label><select id="tt">${['Allenamento','Partita','Riunione'].map(t=>`<option ${d.session.session_type===t?'selected':''}>${t}</option>`).join('')}</select></div></div><details class="session-notes field-space" ${d.session.note?'open':''}><summary>Nota sessione${d.session.note?' · Presente':' · Facoltativa'}</summary><div class="field field-space"><label for="tn">Appunti</label><textarea id="tn" rows="2" maxlength="10000" placeholder="Appunti sull’allenamento…">${esc(d.session.note||'')}</textarea></div></details>${d.id?'<p class="row-sub">La rosa di questa sessione include anche i giocatori oggi inattivi.</p>':''}</div><div class="training-controls"><div class="field"><label for="trainingSearch">Cerca un giocatore</label><input id="trainingSearch" type="search" value="${esc(d.search)}" placeholder="Nome, cognome o ruolo" autocomplete="off"></div><div class="attendance-filters" role="group" aria-label="Filtra presenze"><button data-attendance-filter="all">Tutti</button><button data-attendance-filter="exceptions">Eccezioni</button></div><div id="trainingCounts" class="attendance-counts" aria-live="polite"></div><div class="row-sub" id="trainingVisible" aria-live="polite"></div></div><div class="list" id="trainList"></div><div class="training-save"><button class="primary wide" id="saveTraining" ${d.saving?'disabled':''}>${d.id?'Riepilogo correzioni':'Riepilogo e salva'}</button><span class="row-sub" id="trainingSaveStatus" role="status">${d.saving?'Salvataggio in corso…':'Bozza non ancora salvata'}</span></div>`;
 }
-function attendanceCounts(entries){const a=Array.from(entries);return {present:a.filter(x=>x.status==='Presente').length,absent:a.filter(x=>x.status==='Assente').length,injured:a.filter(x=>x.status==='Infortunato').length,delayed:a.filter(x=>x.delay_minutes>0).length}}
+function attendanceCounts(entries){const a=Array.from(entries);return {present:a.filter(x=>x.status==='Presente').length,absent:a.filter(x=>x.status==='Assente').length,injured:a.filter(x=>x.status==='Infortunato').length}}
 function countBadges(c){return `<span class="badge b-green">${c.present} presenti</span><span class="badge b-red">${c.absent} assenti</span><span class="badge b-blue">${c.injured} infortunati</span>`}
 function notifiedBadge(value){return `<span class="badge ${value===true?'b-green':value===false?'b-red':'b-yellow'}">${value===true?'Sondaggio: risposto':value===false?'Sondaggio: non risposto':'Sondaggio: da verificare'}</span>`}
 function pollReminder(d){
@@ -53,11 +53,11 @@ async function editAttendanceSession(id,button,discardConfirmed=false){
  if(!discardConfirmed&&trainingDraft&&draftChanged(trainingDraft)&&!confirm('Aprire questa sessione e scartare la bozza non salvata?'))return;
  if(button)button.disabled=true;
  try{
-  const actor=state.user.id,uid=teamOwner();
+  const current=teamRequestGuard(),uid=teamOwner();
   const [session,attendance]=await Promise.all([db.from('sessions').select('*').eq('id',id).eq('user_id',uid).single(),fetchAllRows(()=>db.from('attendance').select('*').eq('session_id',id).eq('user_id',uid).order('id'))]);
   if(session.error)throw session.error;if(attendance.error)throw attendance.error;
   if(!attendance.data.length)throw new Error('Questa sessione non contiene presenze da correggere');
-  if(state.user?.id!==actor)return;
+  if(!current())return;
   trainingDraft=makeTrainingDraft(session.data,attendance.data);state.trainingMode='actual';state.page='training';render();window.scrollTo(0,0);
  }catch(error){fail(error)}finally{if(button)button.disabled=false}
 }
@@ -71,21 +71,21 @@ function reviewTrainingDraft(d){
  const exceptions=payload.p_attendance.filter(a=>a.status!=='Presente'||a.note);
  const shown=d.id?changed:exceptions,c=attendanceCounts(payload.p_attendance),root=document.createElement('div');root.className='modal-back';
  root.innerHTML=`<section class="modal attendance-review" role="dialog" aria-modal="true" aria-labelledby="reviewTitle"><div class="modal-head"><h2 id="reviewTitle">${d.id?'Riepilogo correzioni':'Riepilogo sessione'}</h2><button id="closeReview" aria-label="Torna alla bozza">✕</button></div><p><b>${esc(d.session.session_type)}</b> · ${fmt(d.session.session_date)}</p><div class="attendance-counts">${countBadges(c)}</div><p class="notice">Confermi le presenze effettive di tutta la sessione. Risposte al sondaggio: ${payload.p_attendance.filter(a=>a.notified===true).length} risposto · ${payload.p_attendance.filter(a=>a.notified===false).length} non risposto · ${payload.p_attendance.filter(a=>a.notified===null).length} da verificare.</p>${d.session.note?`<p class="attendance-note">${esc(d.session.note)}</p>`:''}<h3>${d.id?`${changed.length} presenze modificate`:'Eccezioni da registrare'}</h3><div class="list">${shown.map(a=>{const p=d.players.find(p=>p.id===a.player_id),previous=old.rows.find(x=>x.player_id===a.player_id);return `<div class="review-person"><b>${esc(p.surname)} ${esc(p.name)}</b><div>${d.id&&previous?.status!==a.status?`${esc(previous.status)} → `:''}<span class="badge ${badge(a.status)}">${a.status}</span></div>${a.notified!==null?`<small>Sondaggio: ${a.notified?'risposto':'non risposto'}</small>`:''}${a.note?`<p>${esc(a.note)}</p>`:''}</div>`}).join('')||`<div class="notice">${d.id?'Nessuna presenza modificata. Verranno salvate le eventuali modifiche a data, tipo o nota.':'Tutti presenti, nessuna eccezione.'}</div>`}</div><p class="muted">${d.id?'Lo storico delle modifiche registrerà autore e orario.':`Verranno salvate le presenze di tutti i ${d.players.length} giocatori, anche quelli nascosti dalla ricerca.`}</p><div class="modal-actions"><button class="ghost" id="backToDraft">Torna alla bozza</button><button class="primary" id="confirmTraining">Conferma e salva</button></div><p id="reviewStatus" role="status" aria-live="polite"></p></section>`;
- document.body.appendChild(root);
+ document.body.appendChild(root);const current=teamRequestGuard();
  const close=()=>{if(!d.saving)root.remove()};root.querySelector('#closeReview').onclick=close;root.querySelector('#backToDraft').onclick=close;bindDialog(root,close);
  root.querySelector('#confirmTraining').onclick=async()=>{
   if(d.saving)return;d.saving=true;setBusyControls(document.querySelector('#app'),true);const saveStatus=document.querySelector('#trainingSaveStatus');if(saveStatus)saveStatus.textContent='Salvataggio in corso…';root.querySelectorAll('button').forEach(b=>b.disabled=true);root.querySelector('#reviewStatus').textContent='Salvataggio in corso…';const mainButton=document.querySelector('#saveTraining');if(mainButton)mainButton.disabled=true;
   try{
    const {data,error}=await db.rpc('save_attendance_session',payload);if(error)throw error;
    if(!data?.session?.id)throw new Error('Risposta del salvataggio non valida');
-   root.remove();if(state.user?.id!==d.userId)return;
+   root.remove();if(!current())return;
    if(trainingDraft===d)trainingDraft=null;
    state.registerDate=data.session.session_date;state.page='register';
    let refreshed=false;try{refreshed=await refresh()}catch(error){fail(error)}
-   if(state.user?.id!==d.userId)return;
+   if(!current())return;
    toast(refreshed?(d.id?'Correzioni salvate':'Sessione salvata'):'Salvataggio riuscito. Riprova il caricamento della squadra.');window.scrollTo(0,0);
   }catch(error){const message=error.code==='23505'?'Esiste già una sessione con questa data e tipo. Correggila dal Registro.':error.message||'Salvataggio non riuscito. La bozza è ancora disponibile.';root.querySelector('#reviewStatus').textContent=message;root.querySelectorAll('button').forEach(b=>b.disabled=false);root.querySelector('#confirmTraining').textContent=error.code==='40001'?'Riapri dal Registro':'Riprova salvataggio';if(error.code==='40001')root.querySelector('#confirmTraining').onclick=()=>{root.remove();state.registerDate=d.session.session_date;state.page='register';render();toast('Riapri la sessione aggiornata; la tua bozza resta disponibile')}}
-  finally{d.saving=false;setBusyControls(document.querySelector('#app'),false);if(mainButton)mainButton.disabled=false;const status=document.querySelector('#trainingSaveStatus');if(status)status.textContent=d.id?'Modifiche non salvate':'Bozza non ancora salvata'}
+  finally{d.saving=false;if(current())setBusyControls(document.querySelector('#app'),false);if(mainButton)mainButton.disabled=false;const status=document.querySelector('#trainingSaveStatus');if(status)status.textContent=d.id?'Modifiche non salvate':'Bozza non ancora salvata'}
  };
 }
 function attendanceModal(id,local,paint,players=state.players){

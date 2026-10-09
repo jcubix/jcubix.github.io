@@ -41,24 +41,6 @@ function activityCard(a) {
     waiting = called.filter((r) => r.availability === "In attesa").length;
   return `<button class="activity-card" data-open-activity="${a.id}"><span class="activity-date"><b>${new Date(a.activity_date + "T12:00:00").getDate()}</b><small>${new Intl.DateTimeFormat("it-IT", { month: "short" }).format(new Date(a.activity_date + "T12:00:00"))}</small></span><span class="activity-main"><span class="activity-type">${esc(a.activity_type)} · ${esc(a.status)}</span><strong>${esc(activityLabel(a))}</strong><span>${clock(a.start_time)}${a.location ? " · " + esc(a.location) : ""}</span><small>${called.length} convocati${waiting ? " · " + waiting + " risposte da registrare" : ""}</small></span><span aria-hidden="true">›</span></button>`;
 }
-const originalShell = shell;
-shell = function (content) {
-  const html = originalShell(content);
-  const nav = html.indexOf('<nav class="nav">');
-  return (
-    html.slice(0, nav) +
-    `<nav class="nav team-nav" aria-label="Navigazione principale"><div class="nav-brand" aria-hidden="true"><img src="./icon.svg" alt=""><span>EBVRVM<small>Team Manager</small></span></div>${navBtn("dashboard", "", "Home")}${navBtn("agenda", "", "Agenda")}${navBtn("players", "", "Rosa")}${navBtn("matches", "", "Partite")}${navBtn("more", "", "Altro")}</nav>`
-  );
-};
-const originalNav = navBtn;
-navBtn = function (page, icon, label) {
-  if (!["agenda", "more"].includes(page)) return originalNav(page, icon, label);
-  const paths =
-    page === "agenda"
-      ? '<path d="M4 5h16v16H4zM8 3v4m8-4v4M4 11h16m-11 4h2m3 0h2m-7 3h2"/>'
-      : '<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>';
-  return `<button data-page="${page}" class="${(state.page === page || page === "more" && ["training","register","reports"].includes(state.page)) ? "active" : ""}" ${(state.page === page || page === "more" && ["training","register","reports"].includes(state.page)) ? 'aria-current="page"' : ""}><b aria-hidden="true"><svg viewBox="0 0 24 24">${paths}</svg></b><span>${label}</span></button>`;
-};
 function morePage() {
   return `<div class="section-title"><div><h2>Strumenti squadra</h2><p class="muted">${roleLabels[teamRole()]} · ${esc(state.user.email || "")}</p></div></div><div class="list tool-list"><button data-page="training"><b>Registra presenze</b><span>Allenamenti e attività svolte</span></button><button data-page="register"><b>Registro</b><span>Consulta e correggi le presenze</span></button><button data-page="reports"><b>Report e statistiche</b><span>Presenze, convocazioni e minuti giocati</span></button>${canManage() ? "<button data-expiries><b>Scadenze e tesseramenti</b><span>Certificati e documenti da verificare</span></button>" : ""}${isAdmin() ? '<button id="teamUsers"><b>Gestione staff</b><span>Utenze e ruoli della squadra condivisa</span></button>' : ""}</div>`;
 }
@@ -126,8 +108,7 @@ function bindTeamLinks() {
 async function openActivity(id, preferredTab = "auto") {
   if(state.openingActivity)return;state.openingActivity=true;
   try {
-    const uid = teamOwner(),
-      actor = state.user.id;
+    const uid = teamOwner(),current=teamRequestGuard();
     const [a, r, t] = await Promise.all([
       db
         .from("activities")
@@ -153,7 +134,7 @@ async function openActivity(id, preferredTab = "auto") {
       ),
     ]);
     if (a.error || r.error || t.error) throw a.error || r.error || t.error;
-    if (state.user?.id !== actor) return;
+    if (!current()) return;
     activityModal(a.data, r.data, t.data[0], preferredTab === "auto" ? (a.data.match_id && ["during","after"].includes(matchPhase(a.data)) ? "results" : "details") : preferredTab);
   } catch (e) {
     fail(e);
@@ -163,7 +144,7 @@ function activityModal(a = {}, savedRows = [], technical = {}, preferredTab = "d
   teamArrays();
   const root = document.createElement("div");
   root.className = "modal-back";
-  let busy = false;
+  let busy = false;const current=teamRequestGuard();
   const requestId = crypto.randomUUID();
   const players = sortPlayers([
     ...state.players.filter(
@@ -387,7 +368,7 @@ function activityModal(a = {}, savedRows = [], technical = {}, preferredTab = "d
             }
           : null,
       });
-      if (error) throw error;
+      if (error) throw error;if(!current())return;
       a = data;
       dirty = false;
       root.remove();
@@ -433,48 +414,18 @@ function rosterModal(p, r, onSave, isMatch = true) {
     onSave();
   };
 }
-const originalPlayerRow = playerRow;
-playerRow = function (p) {
-  const html = originalPlayerRow(p);
-  if (!canManage())
-    return `<div class="row"><div><div class="row-title">${esc(p.surname)} ${esc(p.name)}</div><div class="row-sub">${esc(p.role || "")}</div></div><button data-player-sheet="${p.id}">Scheda</button></div>`;
-  return html.replace(
-    '<div class="toolbar">',
-    `<div class="toolbar"><button data-player-sheet="${p.id}">Scheda</button>`,
-  );
-};
-const originalPlayersPage = playersPage,
-  originalBindPlayers = bindPlayers;
-playersPage = function () {
-  let html = originalPlayersPage();
-  if (!canManage()) {
-    html = html.replace(
-      '<button class="primary" id="addPlayer">+ Giocatore</button>',
-      "",
-    );
-    html = html.replace(
-      /<div class="toolbar"><button data-edit="[^"]+">Modifica<\/button><button data-reactivate="[^"]+">Riattiva<\/button><\/div>/g,
-      "",
-    );
-  }
-  return html;
-};
-bindPlayers = function () {
-  if (canManage()) originalBindPlayers();
-  bindTeamLinks();
-};
 function playerSheet(id) {
   teamArrays();
   const p = state.players.find((p) => p.id === id);
   if (!p) return;
   const d = state.administration.find((d) => d.player_id === id) || {},
-    rows = state.roster.filter((r) => r.player_id === id),
-    minutes = rows.reduce((n, r) => n + r.minutes_played, 0);
+    rows = state.roster.filter((r) => r.player_id === id && state.activities.some(a=>a.id===r.activity_id&&a.activity_type==='Partita'&&a.status!=='Annullato')),
+    minutes = rows.reduce((n, r) => n + Number(r.minutes_played||0), 0);
   const root = document.createElement("div");
   root.className = "modal-back";
   root.innerHTML = `<section class="modal" role="dialog" aria-modal="true" aria-labelledby="playerSheetTitle"><div class="modal-head"><div><div class="eyebrow">SCHEDA GIOCATORE</div><h2 id="playerSheetTitle">${esc(p.surname)} ${esc(p.name)}</h2></div><button aria-label="Chiudi scheda">✕</button></div><p class="muted">${esc(p.role || "")} ${p.secondary_role ? "· " + esc(p.secondary_role) : ""}${p.shirt_number ? " · #" + p.shirt_number : ""}</p><div class="player-kpis"><div><b>${rows.filter((r) => r.called).length}</b><span>Convocazioni</span></div><div><b>${minutes}</b><span>Minuti registrati</span></div></div>${canManage() ? `<form id="playerAdminForm"><h3 class="sheet-heading">Tesseramento e scadenze</h3><div class="field"><label for="registrationState">Tesseramento</label><select id="registrationState">${["Da verificare", "In regola", "Da completare"].map((v) => `<option ${d.registration_status === v ? "selected" : ""}>${v}</option>`).join("")}</select></div><div class="form-grid field-space"><div class="field"><label for="certificateUntil">Certificato valido fino al</label><input id="certificateUntil" type="date" value="${d.certificate_until || ""}"></div><div class="field"><label for="documentUntil">Documento valido fino al</label><input id="documentUntil" type="date" value="${d.document_until || ""}"></div></div><div class="field field-space"><label for="emergencyContact">Contatto di emergenza</label><input id="emergencyContact" maxlength="300" value="${esc(d.emergency_contact || "")}"></div><p class="muted">Registra solo scadenze e recapiti necessari, senza diagnosi o documenti sanitari.</p><button class="primary wide" type="submit">Salva scheda</button><p role="status" id="playerAdminStatus"></p></form>` : ""}</section>`;
   document.body.appendChild(root);
-  let busy=false;const close = trackDialogDraft(root,()=>busy);
+  let busy=false;const current=teamRequestGuard(),close = trackDialogDraft(root,()=>busy);
   root.querySelector(".modal-head button").onclick = close;
   bindDialog(root, close);
   if (canManage())
@@ -497,7 +448,7 @@ function playerSheet(id) {
             },
             { onConflict: "player_id" },
           );
-        if (error) throw error;
+        if (error) throw error;if(!current())return;
         root.remove();
         await refresh();
         toast("Scheda aggiornata");
@@ -534,14 +485,6 @@ function expiryModal() {
       }),
   );
 }
-const originalMatchModal = matchModal;
-matchModal = function(m={}) {
- if(!m.id)return activityModal({activity_type:"Partita"});
- const a=(state.activities||[]).find(x=>x.match_id===m.id);
- if(a)return openActivity(a.id);
- originalMatchModal(m);
- if(!isAdmin())document.querySelector('#deleteMatch')?.remove();
-};
 const originalEventModal = eventModal;
 eventModal = function (...args) {
   originalEventModal(...args);
