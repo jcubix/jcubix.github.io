@@ -29,7 +29,7 @@ async function refresh(){
  if(context.error||!context.data){document.querySelectorAll('.modal-back').forEach(n=>n.remove());state.team=null;trainingDraft=null;state.trainingMode='actual';showTeamLoadError(context.error||new Error('Utenza non associata a una squadra'));return false}
  if(state.loadedActor!==actor||state.team?.owner_id!==context.data.owner_id||state.team?.role!==context.data.role){document.querySelectorAll('.modal-back').forEach(n=>n.remove());trainingDraft=null;app.innerHTML='<main class="shell"><div class="card" role="status">Caricamento squadra…</div></main>'}
  state.team=context.data;state.loadedActor=actor;const uid=teamOwner();
- const tables=['players','sessions','attendance','matches','match_events','activities','activity_roster','player_administration','activity_technical','disciplinary_clearances'];
+ const tables=['players','sessions','attendance','matches','match_events','activities','activity_roster','player_administration','activity_technical','disciplinary_clearances','staff_communications'];
  const results=await Promise.all(tables.map(table=>fetchAllRows(()=>db.from(table).select('*').eq('user_id',uid).order(table==='player_administration'?'player_id':table==='activity_technical'?'activity_id':'id'))));
  if(state.user?.id!==actor)return false;for(const r of results)if(r.error){showTeamLoadError(r.error);return false}
  for(let i=0;i<tables.length;i++)state[({match_events:'events',activity_roster:'roster',player_administration:'administration',activity_technical:'technical'})[tables[i]]||tables[i]]=results[i].data||[];

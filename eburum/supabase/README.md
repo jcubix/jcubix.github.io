@@ -62,3 +62,12 @@ La creazione distingue email gi� registrata (409), dati non validi (400), limi
 Il pannello usa gli eventi Ammonizione ed Espulsione della stagione configurata (1 luglio–30 giugno), fino a oggi ed escludendo le partite annullate. La regola richiesta dallo staff è una gara da saltare ogni cinque gialli: 4, 9, 14… indicano la prossima soglia vicina. Tutte le partite registrate nel periodo concorrono al conteggio: il modello attuale non distingue competizioni o amichevoli. Le espulsioni restano separate e non producono una durata automatica.
 
 `disciplinary_clearances` registra la conferma manuale della gara saltata, legata al quinto, decimo… evento di ammonizione. Il database verifica giocatore, squadra, stagione, soglia, data già trascorsa, gara successiva e assenza di minuti giocati. Una gara non può coprire due soglie dello stesso giocatore. Solo amministratore, team manager e allenatore confermano o annullano; il segretario consulta. Autore e data sono assegnati dal server. Le correzioni che spostano la soglia o rendono inidonea la gara mostrano una conferma da rivedere. Una partita cancellata elimina le conferme collegate, quindi le soglie ancora valide tornano da scontare. L'assenza dai convocati non conferma automaticamente una squalifica.
+
+
+## Comunicazioni staff
+
+`staff_communications` contiene titolo, testo, eventuale giocatore, autore e durata (1, 3 o 7 giorni). Tutti i ruoli della stessa squadra possono pubblicare e leggere. Solo l'autore o un amministratore possono eliminare in anticipo. Le comunicazioni si inseriscono manualmente dallo staff e sono raggiungibili dalla Dashboard e da Altro.
+
+Il trigger imposta autore, data e scadenza sul server: una durata di un giorno equivale a 24 ore dalla pubblicazione (3 = 72, 7 = 168), indipendentemente dal cambio dell'ora. Il client non può modificare la scadenza o conservare messaggi oltre il termine. La policy di lettura esclude i messaggi scaduti immediatamente; il job `eburum-expire-communications` esegue ogni minuto la rimozione fisica dal database, anche senza utenti collegati. La funzione di pulizia è privata e non è eseguibile dallo staff.
+
+Il pannello aggiorna la lista ogni 30 secondi, consente un aggiornamento manuale e programma la rimozione visiva alla scadenza. I testi vengono resi come testo semplice, senza eseguire HTML. I dati personali rimangono isolati per squadra e non vengono memorizzati nella cache del service worker.
