@@ -2624,3 +2624,5 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
     transition:none
   }
 }
+
+.season-picker{display:grid;grid-template-columns:auto minmax(130px,170px) 1fr;align-items:center;gap:12px;margin:0 0 20px;padding:12px 16px;background:var(--panel);border:1px solid var(--border);border-radius:14px}.season-picker label{margin:0}.season-picker select{min-height:44px;width:100%}.season-picker .row-sub{margin:0}@media(max-width:600px){.season-picker{grid-template-columns:1fr 1fr;padding:12px;gap:8px}.season-picker .row-sub{grid-column:1/-1;font-size:12px}}

@@ -1,4 +1,7 @@
-let trainingDraft=null;
+import { bindDialog } from './app-dialogs.js';
+import { activePlayers, badge, canOperate, db, esc, fail, fetchAllRows, fmt, refresh, render, sortPlayers, state, teamOwner, teamRequestGuard, toast, today } from './app-part1.js';
+import { setBusyControls, trainingModeTabs } from './app-workflows.js';
+
 const attendanceValues=a=>({status:a.status||'Presente',delay_minutes:a.delay_minutes||0,notified:a.notified??null,note:a.note||null});
 const sessionValues=s=>({session_date:s.session_date,session_type:s.session_type,note:s.note||null});
 const draftRows=d=>d.players.map(p=>({player_id:p.id,...d.entries.get(p.id)}));
@@ -9,10 +12,10 @@ function makeTrainingDraft(session=null,rows=[]){
  const draft={userId:state.user.id,id:session?.id||null,revision:session?.revision??0,session:session?sessionValues(session):{session_date:today(),session_type:'Allenamento',note:null},players,entries,search:'',filter:'all',requestId:crypto.randomUUID(),saving:false};
  draft.baseline=JSON.stringify({session:draft.session,rows:draftRows(draft)});return draft;
 }
-function getTrainingDraft(){if(!trainingDraft||trainingDraft.userId!==state.user.id)trainingDraft=makeTrainingDraft();return trainingDraft}
-function trainingPage(){
+function getTrainingDraft(){if(!state.trainingDraft||state.trainingDraft.userId!==state.user.id)state.trainingDraft=makeTrainingDraft();return state.trainingDraft}
+function actualTrainingPage(){
  const d=getTrainingDraft();
- return `<div class="section-title"><div><h2>${d.id?'Correggi sessione':'Allenamento rapido'}</h2><div class="muted">${d.id?'Modifica le presenze già registrate':'Tutti presenti: modifica solo le eccezioni'}</div></div>${d.id?'<button class="ghost" id="newTraining">Nuova</button>':`<span class="badge b-blue">${d.players.length} giocatori</span>`}</div><div class="card"><div class="form-grid training-session-fields"><div class="field"><label for="td">Data</label><input id="td" type="date" required value="${d.session.session_date}"></div><div class="field"><label for="tt">Tipo</label><select id="tt">${['Allenamento','Partita','Riunione'].map(t=>`<option ${d.session.session_type===t?'selected':''}>${t}</option>`).join('')}</select></div></div><details class="session-notes field-space" ${d.session.note?'open':''}><summary>Nota sessione${d.session.note?' · Presente':' · Facoltativa'}</summary><div class="field field-space"><label for="tn">Appunti</label><textarea id="tn" rows="2" maxlength="10000" placeholder="Appunti sull’allenamento…">${esc(d.session.note||'')}</textarea></div></details>${d.id?'<p class="row-sub">La rosa di questa sessione include anche i giocatori oggi inattivi.</p>':''}</div><div class="training-controls"><div class="field"><label for="trainingSearch">Cerca un giocatore</label><input id="trainingSearch" type="search" value="${esc(d.search)}" placeholder="Nome, cognome o ruolo" autocomplete="off"></div><div class="attendance-filters" role="group" aria-label="Filtra presenze"><button data-attendance-filter="all">Tutti</button><button data-attendance-filter="exceptions">Eccezioni</button></div><div id="trainingCounts" class="attendance-counts" aria-live="polite"></div><div class="row-sub" id="trainingVisible" aria-live="polite"></div></div><div class="list" id="trainList"></div><div class="training-save"><button class="primary wide" id="saveTraining" ${d.saving?'disabled':''}>${d.id?'Riepilogo correzioni':'Riepilogo e salva'}</button><span class="row-sub" id="trainingSaveStatus" role="status">${d.saving?'Salvataggio in corso…':'Bozza non ancora salvata'}</span></div>`;
+ return `<div class="section-title"><div><h2>${d.id?'Correggi sessione':'Allenamento rapido'}</h2><div class="muted">${d.id?'Modifica le presenze già registrate':'Tutti presenti: modifica solo le eccezioni'}</div></div>${d.id?'<button class="ghost" id="newTraining">Nuova</button>':`<span class="badge b-blue">${d.players.length} giocatori</span>`}</div>${trainingModeTabs()}<div class="card"><div class="form-grid training-session-fields"><div class="field"><label for="td">Data</label><input id="td" type="date" required value="${d.session.session_date}"></div><div class="field"><label for="tt">Tipo</label><select id="tt">${['Allenamento','Partita','Riunione'].map(t=>`<option ${d.session.session_type===t?'selected':''}>${t}</option>`).join('')}</select></div></div><details class="session-notes field-space" ${d.session.note?'open':''}><summary>Nota sessione${d.session.note?' · Presente':' · Facoltativa'}</summary><div class="field field-space"><label for="tn">Appunti</label><textarea id="tn" rows="2" maxlength="10000" placeholder="Appunti sull’allenamento…">${esc(d.session.note||'')}</textarea></div></details>${d.id?'<p class="row-sub">La rosa di questa sessione include anche i giocatori oggi inattivi.</p>':''}</div><div class="training-controls"><div class="field"><label for="trainingSearch">Cerca un giocatore</label><input id="trainingSearch" type="search" value="${esc(d.search)}" placeholder="Nome, cognome o ruolo" autocomplete="off"></div><div class="attendance-filters" role="group" aria-label="Filtra presenze"><button data-attendance-filter="all">Tutti</button><button data-attendance-filter="exceptions">Eccezioni</button></div><div id="trainingCounts" class="attendance-counts" aria-live="polite"></div><div class="row-sub" id="trainingVisible" aria-live="polite"></div></div><div class="list" id="trainList"></div><div class="training-save"><button class="primary wide" id="saveTraining" ${d.saving?'disabled':''}>${d.id?'Riepilogo correzioni':'Riepilogo e salva'}</button><span class="row-sub" id="trainingSaveStatus" role="status">${d.saving?'Salvataggio in corso…':'Bozza non ancora salvata'}</span></div>`;
 }
 function attendanceCounts(entries){const a=Array.from(entries);return {present:a.filter(x=>x.status==='Presente').length,absent:a.filter(x=>x.status==='Assente').length,injured:a.filter(x=>x.status==='Infortunato').length}}
 function countBadges(c){return `<span class="badge b-green">${c.present} presenti</span><span class="badge b-red">${c.absent} assenti</span><span class="badge b-blue">${c.injured} infortunati</span>`}
@@ -22,7 +25,7 @@ function pollReminder(d){
  const no=group(false),unknown=group(null),includeUnknown=d.reminderUnknown!==false;
  return [`Sondaggio · ${d.session.session_type} · ${fmt(d.session.session_date)}`,d.id?'Sessione salvata (eventuali correzioni in bozza)':'Bozza non ancora salvata',`Da sollecitare: ${no.length+(includeUnknown?unknown.length:0)}`,`Non hanno risposto (${no.length})`,...no,...(includeUnknown?[`Da verificare (${unknown.length})`,...unknown]:[])].join('\n');
 }
-function bindTraining(){
+function bindActualTraining(){
  const d=getTrainingDraft(),box=document.querySelector('#trainList');
  const controls=document.querySelector('.training-controls'),poll=document.createElement('details');
  poll.className='poll-controls';poll.innerHTML='<summary><b>Risposte al sondaggio</b><span id="pollCompactCounts" class="row-sub"></span></summary><div class="poll-detail"><p class="row-sub">La risposta al sondaggio è separata dalla presenza effettiva.</p><div class="attendance-filters poll-filters" role="group" aria-label="Filtra avvisi"><button data-poll-filter="yes">Risposto</button><button data-poll-filter="no">Non risposto</button><button data-poll-filter="unknown">Da verificare</button><button data-poll-filter="pending">Da sollecitare</button></div><div id="pollCounts" class="attendance-counts" aria-live="polite"></div><label class="reminder-option"><input id="reminderUnknown" type="checkbox" checked> Includi i nomi da verificare</label></div>';controls.append(poll);const actions=document.createElement('div');actions.className='poll-actions';actions.innerHTML='<button id="pendingRepliesShortcut">Da sollecitare</button><button id="copyPollReminder" class="ghost">Copia elenco</button><p id="pollCopyStatus" class="row-sub" role="status"></p>';controls.append(actions);
@@ -46,11 +49,11 @@ function bindTraining(){
  box.onclick=e=>{if(d.saving)return;const quick=e.target.closest('[data-notified]');if(quick){const a=d.entries.get(quick.dataset.player);d.entries.set(quick.dataset.player,{...a,notified:quick.dataset.notified==='true'});paint();return}const b=e.target.closest('[data-a]');if(b)attendanceModal(b.dataset.a,d.entries,paint,d.players)};
  for(const [id,key] of [['td','session_date'],['tt','session_type'],['tn','note']])document.querySelector('#'+id).oninput=e=>{d.session[key]=key==='note'?(e.target.value.trim()||null):e.target.value};
  document.querySelector('#saveTraining').onclick=()=>reviewTrainingDraft(d);
- const newButton=document.querySelector('#newTraining');if(newButton)newButton.onclick=()=>{if(d.saving)return;if(draftChanged(d)&&!confirm('Scartare le correzioni non salvate e iniziare una nuova sessione?'))return;trainingDraft=null;render()};
+ const newButton=document.querySelector('#newTraining');if(newButton)newButton.onclick=()=>{if(d.saving)return;if(draftChanged(d)&&!confirm('Scartare le correzioni non salvate e iniziare una nuova sessione?'))return;state.trainingDraft=null;render()};
 }
-async function editAttendanceSession(id,button,discardConfirmed=false){
- if(trainingDraft?.saving)return toast('Attendi il salvataggio in corso');
- if(!discardConfirmed&&trainingDraft&&draftChanged(trainingDraft)&&!confirm('Aprire questa sessione e scartare la bozza non salvata?'))return;
+async function editAttendanceSession(id,button,discardConfirmed=false){if(!canOperate()){state.page='register';render();return}
+ if(state.trainingDraft?.saving)return toast('Attendi il salvataggio in corso');
+ if(!discardConfirmed&&state.trainingDraft&&draftChanged(state.trainingDraft)&&!confirm('Aprire questa sessione e scartare la bozza non salvata?'))return;
  if(button)button.disabled=true;
  try{
   const current=teamRequestGuard(),uid=teamOwner();
@@ -58,7 +61,7 @@ async function editAttendanceSession(id,button,discardConfirmed=false){
   if(session.error)throw session.error;if(attendance.error)throw attendance.error;
   if(!attendance.data.length)throw new Error('Questa sessione non contiene presenze da correggere');
   if(!current())return;
-  trainingDraft=makeTrainingDraft(session.data,attendance.data);state.trainingMode='actual';state.page='training';render();window.scrollTo(0,0);
+  state.trainingDraft=makeTrainingDraft(session.data,attendance.data);state.trainingMode='actual';state.page='training';render();window.scrollTo(0,0);
  }catch(error){fail(error)}finally{if(button)button.disabled=false}
 }
 function reviewTrainingDraft(d){
@@ -79,7 +82,7 @@ function reviewTrainingDraft(d){
    const {data,error}=await db.rpc('save_attendance_session',payload);if(error)throw error;
    if(!data?.session?.id)throw new Error('Risposta del salvataggio non valida');
    root.remove();if(!current())return;
-   if(trainingDraft===d)trainingDraft=null;
+   if(state.trainingDraft===d)state.trainingDraft=null;
    state.registerDate=data.session.session_date;state.page='register';
    let refreshed=false;try{refreshed=await refresh()}catch(error){fail(error)}
    if(!current())return;
@@ -103,3 +106,5 @@ function sessionHistoryModal(id){
  const load=async()=>{const button=root.querySelector('#loadMoreHistory');button.disabled=true;try{const {data,error}=await db.from('attendance_history').select('*').eq('user_id',teamOwner()).eq('session_id',id).eq('action','UPDATE').order('changed_at',{ascending:false}).order('id').range(offset,offset+19);if(error)throw error;if(offset===0)root.querySelector('#historyList').innerHTML='';root.querySelector('#historyList').insertAdjacentHTML('beforeend',data.map(h=>{const p=state.players.find(x=>x.id===h.player_id),actor=h.actor_id===state.user.id?(state.user.email||'Tu'):h.actor_id?'Utente '+h.actor_id.slice(0,8):'Sistema',time=new Intl.DateTimeFormat('it-IT',{dateStyle:'short',timeStyle:'short'}).format(new Date(h.changed_at));return `<article class="history-change"><b>${h.entity==='session'?'Dati sessione':esc(p?`${p.surname} ${p.name}`:'Giocatore storico')}</b><div class="row-sub">${esc(actor)} · ${esc(time)}</div>${Object.entries(labels).filter(([key])=>JSON.stringify(h.before_data?.[key])!==JSON.stringify(h.after_data?.[key])).map(([key,label])=>`<div class="history-field"><strong>${label}</strong><span>${esc(historyValue(key,h.before_data?.[key]))} → ${esc(historyValue(key,h.after_data?.[key]))}</span></div>`).join('')}</article>`}).join(''));if(offset===0&&!data.length)root.querySelector('#historyList').innerHTML='<div class="empty">Nessuna correzione registrata dall’attivazione dello storico.</div>';offset+=data.length;button.hidden=data.length<20}catch(error){if(!offset)root.querySelector('#historyList').textContent=error.message;else toast('Impossibile caricare altre modifiche')}finally{button.disabled=false}};
  root.querySelector('#loadMoreHistory').onclick=load;load();
 }
+
+export { attendanceValues, sessionValues, draftRows, draftChanged, makeTrainingDraft, getTrainingDraft, actualTrainingPage, attendanceCounts, countBadges, notifiedBadge, pollReminder, bindActualTraining, editAttendanceSession, reviewTrainingDraft, attendanceModal, historyValue, sessionHistoryModal };

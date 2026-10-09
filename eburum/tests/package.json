@@ -1,1 +1,9 @@
-{"private":true,"scripts":{"test":"node --test staff-access.cjs workflows-ui.cjs report-pdf.cjs secretary-ui.cjs discipline-ui.cjs communications-ui.cjs runtime-safety.cjs"},"devDependencies":{"jsdom":"26.1.0"}}
+{
+  "private": true,
+  "scripts": {
+    "test": "node --experimental-vm-modules --test staff-access.cjs workflows-ui.cjs report-pdf.cjs secretary-ui.cjs discipline-ui.cjs communications-ui.cjs runtime-safety.cjs realtime-season.cjs"
+  },
+  "devDependencies": {
+    "jsdom": "26.1.0"
+  }
+}

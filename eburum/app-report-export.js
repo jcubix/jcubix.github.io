@@ -1,3 +1,5 @@
+import { esc, fmt, state } from './app-part1.js';
+
 /* Individual report charts and local PDF export. No player data leaves the device. */
 function playerReportModel(d){
  const p=state.players.find(p=>p.id===d.player);if(!p)throw new Error('Seleziona un giocatore');
@@ -40,3 +42,5 @@ function createPlayerReportPdf(m){
  for(let i=1;i<=pdf.getNumberOfPages();i++){pdf.setPage(i);pdf.setDrawColor(205,215,227);pdf.line(18,283,192,283);pdf.setFontSize(8);pdf.setTextColor(91,105,122);pdf.text('Eburum | Report individuale | '+m.from+' - '+m.to,18,289);pdf.text(`${i} / ${pdf.getNumberOfPages()}`,192,289,{align:'right'})}
  return pdf;
 }
+
+export { playerReportModel, renderPlayerCharts, playerReportFilename, createPlayerReportPdf };

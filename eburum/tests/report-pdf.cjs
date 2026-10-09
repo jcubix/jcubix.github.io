@@ -2,8 +2,8 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 const dom=new JSDOM('<div id="app"></div>',{runScripts:'outside-only',url:'https://eburum.vercel.app'}),w=dom.window,run=code=>vm.runInContext(code,dom.getInternalVMContext());
 w.TextEncoder=TextEncoder;w.TextDecoder=TextDecoder;w.CONFIG={supabaseUrl:'demo',supabaseAnonKey:'demo',season:'2026/27'};w.scrollTo=()=>{};
 run(fs.readFileSync(__dirname+'/fixtures/team-ui.js','utf8'));
-for(const file of ['vendor/jspdf.umd.min.js','app-dialogs.js','app-part1.js','app-part2.js','app-part3.js','app-part4.js','app-report-export.js','app-part5.js','app-team.js','app-operations.js','app-workflows.js','app-access.js','app-discipline.js','app-communications.js','app-admin.js'])run(fs.readFileSync(__dirname+'/../'+file,'utf8').replace(/boot\(\);\s*$/,''));
-(async()=>{run("state.user=fixtureUser");await run("refresh()");
+const ready=require('./load-app.cjs').loadApp(dom);
+(async()=>{await ready;run("state.user=fixtureUser");await run("refresh()");
 run("state.user=fixtureUser;state.page='reports';render();document.querySelector('#rp').value='player-1';document.querySelector('#rf').value='2026-10-01';document.querySelector('#rt').value='2026-10-31';document.querySelector('#rp').dispatchEvent(new Event('change'))");
 assert.equal(w.document.querySelector('[data-report-tab="team"]'),null);
 assert.match(w.document.querySelector('#playerCharts').textContent,/WhatsApp/);

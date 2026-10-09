@@ -1,3 +1,8 @@
+import { bindDialog } from './app-dialogs.js';
+import { db, esc, fmt, isAdmin, refresh, state, teamOwner, teamRequestGuard, toast } from './app-part1.js';
+import { roleLabels } from './app-team.js';
+import { setBusyControls } from './app-workflows.js';
+
 async function adminRequest(body){
  const {data,error}=await db.functions.invoke('manage-users',{body});
  if(error){let message='Servizio non raggiungibile. Controlla la connessione e riprova.';try{const context=typeof error.context?.clone==='function'?error.context.clone():error.context;const detail=await context.json();message=detail.error||message}catch{}throw new Error(message)}
@@ -28,4 +33,5 @@ function usersModal(){
  root.querySelector('#createUserForm').onsubmit=async e=>{e.preventDefault();if(creatingUser)return;creatingUser=true;const message=root.querySelector('#userMessage');setBusyControls(e.target,true);message.textContent='Creazione in corso…';try{await adminRequest({action:'create',email:root.querySelector('#newUserEmail').value,password:root.querySelector('#newUserPassword').value,role:root.querySelector('#newUserRole').value});e.target.reset();updateRoleHelp();message.textContent='Utenza creata e associata alla squadra.';await load(true)}catch(error){message.textContent=error.message}finally{creatingUser=false;setBusyControls(e.target,false)}};
  load();
 }
-boot();
+
+export { adminRequest, userPasswordModal, usersModal };

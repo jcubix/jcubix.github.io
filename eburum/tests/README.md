@@ -6,7 +6,7 @@ Da questa cartella: `npm ci` e `npm test`. I test JavaScript usano account e dat
 
 I test SQL `../supabase/tests/attendance_review.sql`, `../supabase/tests/team_operations.sql` e `survey_to_attendance.sql` sono eseguibili sul progetto inizializzato con un collegamento amministrativo. Ogni file apre una transazione e termina con `ROLLBACK`: i dati sintetici non vengono conservati. Verificano anche conflitti, atomicità, autore delle modifiche e isolamento delle squadre.
 
-I test `report-pdf.cjs` verificano report esclusivamente individuali, grafici, inclusione del giocatore uscito nelle sostituzioni e PDF su piu pagine. Impostando `REPORT_PDF_OUTPUT` si salvano due PDF dimostrativi per il controllo visivo.
+I test `report-pdf.cjs` verificano report esclusivamente individuali, grafici, inclusione del giocatore uscito nelle sostituzioni e PDF su più pagine. Impostando `REPORT_PDF_OUTPUT` si salvano due PDF dimostrativi per il controllo visivo.
 
 `secretary-ui.cjs` verifica scadenze, schede amministrative e consultazione dei dati sportivi. `../supabase/tests/secretary_role.sql` verifica il trigger di assegnazione e le policy RLS, con dati sintetici annullati tramite rollback.
 
@@ -17,3 +17,5 @@ I test `report-pdf.cjs` verificano report esclusivamente individuali, grafici, i
 `communications-ui.cjs` verifica accesso dalla Dashboard e da Altro, creazione con le tre durate, dati conservati in caso di errore, invii doppi, associazione al giocatore, testo HTML neutralizzato, ricerca e messaggi scaduti nascosti. `../supabase/tests/staff_communications.sql` verifica durata e autore sul server, lettura e pubblicazione condivise, eliminazione riservata, scadenze non modificabili, isolamento e pulizia con rollback.
 
 `runtime-safety.cjs` carica gli script nell'ordine effettivo di `index.html` e verifica risposte fuori ordine, cambio ruolo, logout durante richieste pendenti, doppio invio del cambio password, recupero dagli errori di eliminazione, totali della scheda giocatore e cache offline. Il service worker conserva solo risposte statiche riuscite, non restituisce HTML al posto di JavaScript e non elimina cache appartenenti ad altre applicazioni.
+
+`realtime-season.cjs` verifica aggiornamento del badge a pannello chiuso, pannello aperto e cancellazioni, singola sottoscrizione, rimozione al logout, recupero alla riconnessione, scadenza senza polling, selettore stagione, report sull’intero storico e slot espliciti. Il caricatore usa i moduli ES effettivi con `--experimental-vm-modules`; l’esposizione degli export alle espressioni legacy è limitata al test harness e non esiste in produzione. La suite contiene 20 test.

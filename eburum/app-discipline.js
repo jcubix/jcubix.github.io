@@ -1,5 +1,12 @@
+import { sportSeason } from './app-data.js';
+import { bindDialog } from './app-dialogs.js';
+import { registerBinder, registerExtension } from './app-hooks.js';
+import { canOperate, db, esc, fmt, sortPlayers, state, teamOwner, teamRequestGuard, toast, today } from './app-part1.js';
+import { eventTone } from './app-part4.js';
+import { setBusyControls } from './app-workflows.js';
+
 /* Card index derives only from recorded match events. */
-function disciplineSeason(){const year=Number(String(window.CONFIG.season||'').match(/20\d{2}/)?.[0])||Number(today().slice(0,4));return {key:`${year}/${year+1}`,from:`${year}-07-01`,to:`${year+1}-06-30`}}
+function disciplineSeason(){return sportSeason()}
 function playerDiscipline(id){
  const season=disciplineSeason(),cancelled=new Set((state.activities||[]).filter(a=>a.status==='Annullato').map(a=>a.match_id)),matches=new Map(state.matches.filter(m=>m.match_date>=season.from&&m.match_date<=season.to&&m.match_date<=today()&&!cancelled.has(m.id)).map(m=>[m.id,m]));
  const seen=new Set(),events=state.events.filter(e=>{if(seen.has(e.id)||e.player_id!==id||!matches.has(e.match_id)||!['Ammonizione','Espulsione'].includes(e.event_type))return false;seen.add(e.id);return true}).sort((a,b)=>matches.get(a.match_id).match_date.localeCompare(matches.get(b.match_id).match_date)||(a.minute??999)-(b.minute??999)||(a.created_at||'').localeCompare(b.created_at||'')||a.id.localeCompare(b.id));
@@ -29,9 +36,12 @@ function clearanceModal(playerId,eventId,onSaved){
  root.querySelector('form').onsubmit=async e=>{e.preventDefault();if(busy||!canOperate())return;const matchId=root.querySelector('#clearanceMatch').value;if(!choices.some(m=>m.id===matchId)||!root.querySelector('#clearanceConfirmed').checked){root.querySelector('#clearanceStatus').textContent='Seleziona una gara e conferma la squalifica scontata.';return}busy=true;setBusyControls(root,true);try{const {data,error}=await db.from('disciplinary_clearances').insert({user_id:teamOwner(),player_id:playerId,season_start:d.season.from,threshold_event_id:eventId,served_match_id:matchId}).select().single();if(error)throw error;if(!current())return;state.disciplinary_clearances=(state.disciplinary_clearances||[]).concat(data);root.remove();onSaved();toast('Squalifica scontata confermata')}catch(error){root.querySelector('#clearanceStatus').textContent=error.code==='23505'?'Questa soglia o questa gara sono già state confermate. Ricarica la squadra.':error.message||'Conferma non riuscita'}finally{busy=false;setBusyControls(root,false)}};
 }
 
-const disciplineMatchesPage=matchesPage;matchesPage=function(){return disciplineMatchesPage().replace('<div class="match-list">','<div class="discipline-entry"><button data-discipline>Cartellini e diffide</button><span class="row-sub">Conteggio automatico dalle ammonizioni registrate</span></div><div class="match-list">')};
-const disciplineMorePage=morePage;morePage=function(){return disciplineMorePage().replace('<div class="list tool-list">','<div class="list tool-list"><button data-discipline><b>Cartellini e diffide</b><span>Ammonizioni, soglie e storico per giocatore</span></button>')};
-const disciplineLinks=bindTeamLinks;bindTeamLinks=function(){disciplineLinks();document.querySelectorAll('[data-discipline]').forEach(b=>b.onclick=()=>disciplineModal())};
-const disciplinePlayerSheet=playerSheet;playerSheet=function(id){disciplinePlayerSheet(id);const root=[...document.querySelectorAll('.modal-back')].at(-1),panel=root?.querySelector('.player-kpis');if(!panel)return;const button=document.createElement('button');button.type='button';button.className='ghost wide field-space';button.innerHTML=`Cartellini e diffide · ${disciplineBadge(id)}`;button.onclick=()=>disciplineModal(id);panel.after(button)};
+function registerDiscipline(){
+ registerExtension('match-tools','discipline',()=>'<div class="discipline-entry"><button data-discipline>Cartellini e diffide</button><span class="row-sub">Conteggio automatico dalle ammonizioni registrate</span></div>');
+ registerExtension('tools','discipline',()=>'<button data-discipline><b>Cartellini e diffide</b><span>Ammonizioni, soglie e storico per giocatore</span></button>',20);
+ registerExtension('player-actions','discipline',p=>`<button type="button" class="ghost wide field-space" data-discipline-player="${esc(p.id)}">Cartellini e diffide · ${disciplineBadge(p.id)}</button>`);
+ registerExtension('player-badges','discipline',p=>{const d=playerDiscipline(p.id);return d.total||d.review.length?`<div class="field-space">${disciplineBadge(p.id)}</div>`:''});
+ registerBinder('discipline',root=>{root.querySelectorAll('[data-discipline]').forEach(b=>b.onclick=()=>disciplineModal());root.querySelectorAll('[data-discipline-player]').forEach(b=>b.onclick=()=>disciplineModal(b.dataset.disciplinePlayer))});
+}
 
-const disciplinePlayerRow=playerRow;playerRow=function(p){const html=disciplinePlayerRow(p),d=playerDiscipline(p.id);return d.total||d.review.length?html.replace('<div class="row-main">',`<div class="row-main"><div class="field-space">${disciplineBadge(p.id)}</div>`):html};
+export { disciplineSeason, playerDiscipline, disciplineBadge, disciplineModal, disciplineClearances, clearanceModal, registerDiscipline };

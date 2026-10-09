@@ -8,3 +8,5 @@ function bindDialog(root,onClose){
  focusable()[0]?.focus();
  const observer=new MutationObserver(()=>{if(!root.isConnected){observer.disconnect();viewport?.removeEventListener('resize',resize);viewport?.removeEventListener('scroll',resize);window.removeEventListener('resize',resize);if(previous?.isConnected)previous.focus()}});observer.observe(document.body,{childList:true});
 }
+
+export { bindDialog };

@@ -1,8 +1,15 @@
-function reportData(from,to,player=null){
- const sessions=state.sessions.filter(s=>s.session_date>=from&&s.session_date<=to),sessionIds=new Set(sessions.map(s=>s.id)),attendance=state.attendance.filter(r=>sessionIds.has(r.session_id)&&(!player||r.player_id===player));
- const activities=(state.activities||[]).filter(a=>a.activity_date>=from&&a.activity_date<=to&&a.status!=='Annullato'),activityIds=new Set(activities.map(a=>a.id)),roster=(state.roster||[]).filter(r=>activityIds.has(r.activity_id)&&(!player||r.player_id===player));
- const matches=state.matches.filter(m=>m.match_date>=from&&m.match_date<=to&&!(state.activities||[]).some(a=>a.match_id===m.id&&a.status==='Annullato')),matchIds=new Set(matches.map(m=>m.id)),events=state.events.filter(e=>matchIds.has(e.match_id)&&(!player||e.player_id===player||e.outgoing_player_id===player));
- const availability=activities.flatMap(a=>pollEntries(a).filter(x=>!player||x.player.id===player).map(x=>({activity:a,...x})));
+import { loadSportPeriod } from './app-data.js';
+import { bindDialog } from './app-dialogs.js';
+import { copyOperationalText } from './app-operations.js';
+import { esc, fmt, sortPlayers, state, teamOwner, teamRequestGuard, today } from './app-part1.js';
+import { createPlayerReportPdf, playerReportFilename, playerReportModel, renderPlayerCharts } from './app-report-export.js';
+import { recentFrom } from './app-workflows.js';
+
+function reportData(from,to,player=null,snapshot=state){
+ const sessions=snapshot.sessions.filter(s=>s.session_date>=from&&s.session_date<=to),sessionIds=new Set(sessions.map(s=>s.id)),attendance=snapshot.attendance.filter(r=>sessionIds.has(r.session_id)&&(!player||r.player_id===player));
+ const activities=(snapshot.activities||[]).filter(a=>a.activity_date>=from&&a.activity_date<=to&&a.status!=='Annullato'),activityIds=new Set(activities.map(a=>a.id)),roster=(snapshot.roster||[]).filter(r=>activityIds.has(r.activity_id)&&(!player||r.player_id===player));
+ const matches=snapshot.matches.filter(m=>m.match_date>=from&&m.match_date<=to&&!(snapshot.activities||[]).some(a=>a.match_id===m.id&&a.status==='Annullato')),matchIds=new Set(matches.map(m=>m.id)),events=snapshot.events.filter(e=>matchIds.has(e.match_id)&&(!player||e.player_id===player||e.outgoing_player_id===player));
+ const availability=activities.flatMap(a=>state.players.filter(p=>p.active||roster.some(r=>r.player_id===p.id&&r.activity_id===a.id)).map(p=>({player:p,row:roster.find(r=>r.activity_id===a.id&&r.player_id===p.id)||{player_id:p.id,availability:'In attesa',called:false}})).filter(x=>!player||x.player.id===player).map(x=>({activity:a,...x})));
  return {from,to,player,sessions,attendance,activities,roster,matches,events,availability};
 }
 function reportsPage(){
@@ -12,11 +19,19 @@ function reportDrilldown(title,items,range){
  const root=document.createElement('div');root.className='modal-back';root.innerHTML=`<section class="modal" role="dialog" aria-modal="true" aria-labelledby="reportDetailTitle"><div class="modal-head"><h2 id="reportDetailTitle">${esc(title)}</h2><button aria-label="Chiudi dettagli report">✕</button></div><p class="muted">${fmt(range.from)} – ${fmt(range.to)} · ${items.length} registrazioni</p><div class="list">${items.map(x=>`<article class="row"><div class="row-main"><b>${esc(x.name)}</b><p class="row-sub">${esc(x.detail)}</p></div>${x.player?`<button data-drill-player="${x.player}" aria-label="Report di ${esc(x.name)}">Report</button>`:''}</article>`).join('')||'<p class="empty">Nessuna registrazione nel periodo.</p>'}</div></section>`;document.body.append(root);const close=()=>root.remove();root.querySelector('.modal-head button').onclick=close;bindDialog(root,close);root.querySelectorAll('[data-drill-player]').forEach(b=>b.onclick=()=>{close();document.querySelector('#rp').value=b.dataset.drillPlayer;document.querySelector('#rp').dispatchEvent(new Event('change'))});
 }
 function bindReports(){
- let current=null,drills={};const $=s=>document.querySelector(s),names=new Map(state.players.map(p=>[p.id,`${p.surname} ${p.name}`]));
+ let current=null,drills={},request=0;const root=document.querySelector('#reportContent'),sameTeam=teamRequestGuard();const $=s=>document.querySelector(s),names=new Map(state.players.map(p=>[p.id,`${p.surname} ${p.name}`]));
  const metric=(key,value,label)=>`<button class="report-metric" data-report-detail="${key}" aria-label="${label}: ${value}. Apri dettagli"><b>${value}</b><span>${label}</span><small>Vedi dettagli ›</small></button>`;
- const paint=()=>{
+ const paint=async()=>{
+ const generation=++request;
  const from=$('#rf').value,to=$('#rt').value,valid=!!from&&!!to&&from<=to&&!!$('#rp').value;$('#reportError').textContent=valid?'':'Seleziona un giocatore e un periodo valido: la data iniziale deve precedere o coincidere con quella finale.';$('#reportContent').hidden=!valid;$('#copyReport').disabled=!valid;$('#exportReportPdf').disabled=!valid;if(!valid){current=null;$('#reportPeriodLabel').textContent='Periodo non valido';$('#report').textContent='';return}
- const player=$('#rp').value,d=reportData(from,to,player);current=d;const sessionMap=new Map(d.sessions.map(s=>[s.id,s])),activityMap=new Map(d.activities.map(a=>[a.id,a])),matchMap=new Map(d.matches.map(m=>[m.id,m]));
+ const player=$('#rp').value;let snapshot=state;
+ if(!state.dataRange||from<state.dataRange.from||to>state.dataRange.to){
+  current=null;$('#copyReport').disabled=true;$('#exportReportPdf').disabled=true;$('#reportContent').hidden=true;$('#reportError').textContent='Caricamento dello storico…';
+  try{snapshot=await loadSportPeriod(from,to,teamOwner(),player)}catch(error){if(generation===request&&sameTeam()&&root.isConnected)$('#reportError').textContent='Storico non caricato: '+error.message;return}
+  if(generation!==request||!sameTeam()||!root.isConnected)return;
+  $('#reportError').textContent='';$('#reportContent').hidden=false;$('#copyReport').disabled=false;$('#exportReportPdf').disabled=false;
+ }
+ const d=reportData(from,to,player,snapshot);current=d;const sessionMap=new Map(d.sessions.map(s=>[s.id,s])),activityMap=new Map(d.activities.map(a=>[a.id,a])),matchMap=new Map(d.matches.map(m=>[m.id,m]));
  const present=d.attendance.filter(r=>r.status==='Presente'),absent=d.attendance.filter(r=>r.status==='Assente'),injured=d.attendance.filter(r=>r.status==='Infortunato'),rate=d.attendance.length?Math.round(present.length/d.attendance.length*100):null;
  const called=d.roster.filter(r=>r.called&&activityMap.get(r.activity_id)?.activity_type==='Partita'),minutes=d.roster.filter(r=>r.minutes_played>0&&activityMap.get(r.activity_id)?.activity_type==='Partita'),goals=d.events.filter(e=>e.event_type==='Gol'&&e.player_id),cards=d.events.filter(e=>e.player_id&&['Ammonizione','Espulsione'].includes(e.event_type));
  $('#reportPeriodLabel').textContent=`${fmt(from)} – ${fmt(to)} · ${names.get(player)||'Nessun giocatore'} · ${d.attendance.length} registrazioni di presenza`;
@@ -34,6 +49,8 @@ function bindReports(){
  $('#playerCharts').innerHTML=renderPlayerCharts(playerReportModel(d));$('#reportCopyStatus').textContent='';
  };
  for(const id of ['rf','rt','rp'])$('#'+id).onchange=()=>{if(id!=='rp')document.querySelectorAll('[data-report-period]').forEach(b=>b.setAttribute('aria-pressed','false'));paint()};
- document.querySelectorAll('[data-report-period]').forEach(b=>b.onclick=()=>{const period=b.dataset.reportPeriod;$('#rt').value=today();$('#rf').value=period==='month'?today().slice(0,7)+'-01':period==='all'?([...state.sessions.map(s=>s.session_date),...state.matches.map(m=>m.match_date),...(state.activities||[]).map(a=>a.activity_date)].sort()[0]||today()):recentFrom(Number(period));document.querySelectorAll('[data-report-period]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));paint()});
+ document.querySelectorAll('[data-report-period]').forEach(b=>b.onclick=()=>{const period=b.dataset.reportPeriod;$('#rt').value=today();$('#rf').value=period==='month'?today().slice(0,7)+'-01':period==='all'?(state.earliestSport||today()):recentFrom(Number(period));document.querySelectorAll('[data-report-period]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));paint()});
  $('#copyReport').onclick=()=>{if(current)copyOperationalText($('#report').textContent,$('#reportCopyStatus'),$('#reportCopyStatus').parentElement)};$('#exportReportPdf').onclick=async()=>{if(!current)return;const button=$('#exportReportPdf');button.disabled=true;try{const pdf=createPlayerReportPdf(playerReportModel(current));pdf.save(playerReportFilename(current));$('#reportCopyStatus').textContent='PDF creato. Controlla i download del dispositivo.'}catch(error){$('#reportCopyStatus').textContent='Impossibile creare il PDF: '+error.message}finally{button.disabled=!current}};paint();
 };
+
+export { reportData, reportsPage, reportDrilldown, bindReports };

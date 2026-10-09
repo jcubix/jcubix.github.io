@@ -1,3 +1,14 @@
+import { applyRoleControls } from './app-access.js';
+import { usersModal } from './app-admin.js';
+import { bindSeasonPicker, loadTeamData, seasonPicker } from './app-data.js';
+import { dashboard } from './app-operations.js';
+import { bindPlayers, playersPage } from './app-part2.js';
+import { bindMatches, bindRegister, matchesPage, registerPage } from './app-part4.js';
+import { bindReports, reportsPage } from './app-part5.js';
+import { notifyCommunications, stopCommunicationsRealtime, syncCommunicationsRealtime } from './app-realtime.js';
+import { agendaPage, bindAgenda, bindMore, bindTeamLinks, morePage } from './app-team.js';
+import { bindTraining, trainingPage } from './app-workflows.js';
+
 const db=window.supabase.createClient(window.CONFIG.supabaseUrl,window.CONFIG.supabaseAnonKey);
 const app=document.querySelector('#app');
 const ROLE_ORDER=['Portiere','Difensore','Centrocampista','Attaccante'];
@@ -7,8 +18,9 @@ for(const key of TEAM_ARRAYS)state[key]=[];
 let refreshGeneration=0,authGeneration=0,sessionEpoch=0;
 function clearTeamState(){
  for(const key of TEAM_ARRAYS)state[key]=[];
- state.team=null;state.loadedActor=null;state.page='dashboard';state.trainingMode='actual';delete state.registerDate;trainingDraft=null;
- document.querySelectorAll('.modal-back').forEach(n=>n.remove());
+ state.team=null;state.loadedActor=null;state.page='dashboard';state.trainingMode='actual';delete state.registerDate;state.trainingDraft=null;
+ stopCommunicationsRealtime();delete state.seasonYear;delete state.dataRange;delete state.earliestSport;
+ document.querySelectorAll('.modal-back').forEach(n=>n.remove());notifyCommunications();
 }
 function teamRequestGuard(){
  const actor=state.user?.id,owner=state.team?.owner_id,role=state.team?.role,epoch=sessionEpoch;
@@ -61,11 +73,8 @@ async function refresh(){
   if(context.error||!context.data){clearTeamState();showTeamLoadError(context.error||new Error('Utenza non associata a una squadra'));return false}
   if(state.loadedActor!==actor||state.team?.owner_id!==context.data.owner_id||state.team?.role!==context.data.role){clearTeamState();app.innerHTML='<main class="shell"><div class="card" role="status">Caricamento squadra…</div></main>'}
   state.team=context.data;state.loadedActor=actor;const uid=teamOwner();
-  const tables=['players','sessions','attendance','matches','match_events','activities','activity_roster','player_administration','activity_technical','disciplinary_clearances','staff_communications'];
-  const results=await Promise.all(tables.map(table=>fetchAllRows(()=>db.from(table).select('*').eq('user_id',uid).order(table==='player_administration'?'player_id':table==='activity_technical'?'activity_id':'id'))));
-  if(!current())return false;for(const r of results)if(r.error){showTeamLoadError(r.error);return false}
-  for(let i=0;i<tables.length;i++)state[({match_events:'events',activity_roster:'roster',player_administration:'administration',activity_technical:'technical'})[tables[i]]||tables[i]]=results[i].data||[];
-  state.sessions.sort((a,b)=>b.session_date.localeCompare(a.session_date));state.matches.sort((a,b)=>b.match_date.localeCompare(a.match_date));render();return true;
+  const data=await loadTeamData(uid);if(!current())return false;
+  Object.assign(state,data);syncCommunicationsRealtime();notifyCommunications();render();return true;
  }catch(error){if(current())showTeamLoadError(error);return false}
 }
 function showTeamLoadError(error){app.innerHTML=`<main class="shell"><div class="card"><h2>Squadra non caricata</h2><p>${esc(error.message||'Connessione non disponibile')}</p><div class="toolbar"><button id="retryTeam">Riprova</button><button id="exitTeam">Esci</button></div></div></main>`;document.querySelector('#retryTeam').onclick=()=>refresh();document.querySelector('#exitTeam').onclick=()=>db.auth.signOut()}
@@ -74,8 +83,10 @@ function navBtn(page,label){
  const active=state.page===page||page==='more'&&['training','register','reports'].includes(state.page);
  return `<button data-page="${page}" class="${active?'active':''}" ${active?'aria-current="page"':''}><b aria-hidden="true"><svg viewBox="0 0 24 24">${paths[page]}</svg></b><span>${label}</span></button>`;
 }
-function shell(content){return `<main class="shell"><header class="topbar"><div class="brand"><img src="./icon.svg" alt="Eburum"><div><h1>EBVRVM</h1><small>${esc(window.CONFIG.season)} · Team Manager</small></div></div><div class="header-actions">${isAdmin()?'<button class="ghost" id="users">Utenti</button>':''}<button class="ghost" id="logout">Esci</button></div></header>${content}</main><nav class="nav team-nav" aria-label="Navigazione principale"><div class="nav-brand" aria-hidden="true"><img src="./icon.svg" alt=""><span>EBVRVM<small>Team Manager</small></span></div>${navBtn('dashboard','Home')}${navBtn('agenda','Agenda')}${navBtn('players','Rosa')}${navBtn('matches','Partite')}${navBtn('more','Altro')}</nav>`}
-function render(){const pages={dashboard,training:trainingPage,players:playersPage,matches:matchesPage,register:registerPage,reports:reportsPage,agenda:agendaPage,more:morePage};app.innerHTML=shell((pages[state.page]||pages.dashboard)());document.querySelector('#logout').onclick=()=>db.auth.signOut();const users=document.querySelector('#users');if(users)users.onclick=usersModal;document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>{state.page=b.dataset.page;render()});if(state.page==='players')bindPlayers();if(state.page==='training')bindTraining();if(state.page==='matches')bindMatches();if(state.page==='reports')bindReports();if(state.page==='register')bindRegister();if(state.page==='dashboard')bindDashboard();if(state.page==='agenda')bindAgenda();if(state.page==='more')bindMore();bindTeamLinks()}
+function shell(content){return `<main class="shell ${state.page==='dashboard'?'dashboard-shell':''}"><header class="topbar"><div class="brand"><img src="./icon.svg" alt="Eburum"><div><h1>EBVRVM</h1><small>${esc(window.CONFIG.season)} · Team Manager</small></div></div><div class="header-actions">${isAdmin()?'<button class="ghost" id="users">Utenti</button>':''}<button class="ghost" id="logout">Esci</button></div></header>${content}</main><nav class="nav team-nav ${state.page==='dashboard'?'dashboard-nav':''}" aria-label="Navigazione principale"><div class="nav-brand" aria-hidden="true"><img src="./icon.svg" alt=""><span>EBVRVM<small>Team Manager</small></span></div>${navBtn('dashboard','Home')}${navBtn('agenda','Agenda')}${navBtn('players','Rosa')}${navBtn('matches','Partite')}${navBtn('more','Altro')}</nav>`}
+function render(){if(!canOperate()&&state.page==='training')state.page='register';const pages={dashboard,training:trainingPage,players:playersPage,matches:matchesPage,register:registerPage,reports:reportsPage,agenda:agendaPage,more:morePage};app.innerHTML=shell(seasonPicker()+(pages[state.page]||pages.dashboard)());bindSeasonPicker();document.querySelector('#logout').onclick=()=>db.auth.signOut();const users=document.querySelector('#users');if(users)users.onclick=usersModal;document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>{state.page=b.dataset.page;render()});if(state.page==='players')bindPlayers();if(state.page==='training')bindTraining();if(state.page==='matches')bindMatches();if(state.page==='reports')bindReports();if(state.page==='register')bindRegister();if(state.page==='dashboard')bindDashboard();if(state.page==='agenda')bindAgenda();if(state.page==='more')bindMore();bindTeamLinks();applyRoleControls()}
 
 function emptyTeamDashboard(){return `<div class="card"><h2>Importa i dati Eburum</h2><p class="muted">Il database è pronto. Inserisci il codice monouso per caricare i 30 giocatori e lo storico degli allenamenti dal file Excel.</p><div class="field"><label>Codice importazione</label><input id="claimCode" autocomplete="off" placeholder="EBURUM-...."></div><button class="primary" id="claimSeed" style="width:100%;margin-top:12px">Importa rosa e storico</button></div>`;}
 async function bindDashboard(){const b=document.querySelector('#claimSeed');if(!b)return;b.onclick=async()=>{try{const code=document.querySelector('#claimCode').value.trim();if(!code)throw new Error('Inserisci il codice di importazione');b.disabled=true;b.textContent='Importazione in corso...';const {data,error}=await db.rpc('claim_eburum_seed',{p_code:code});if(error)throw error;toast(`Importati ${data.players} giocatori e ${data.attendance} registrazioni`);await refresh()}catch(e){b.disabled=false;b.textContent='Importa rosa e storico';fail(e)}}}
+
+export { db, app, ROLE_ORDER, TEAM_ARRAYS, state, refreshGeneration, authGeneration, sessionEpoch, clearTeamState, teamRequestGuard, esc, today, teamOwner, teamRole, isAdmin, canManage, canOperate, canTechnical, fmt, roleRank, sortPlayers, activePlayers, badge, toast, fail, boot, syncSession, renderLogin, login, fetchAllRows, refresh, showTeamLoadError, navBtn, shell, render, emptyTeamDashboard, bindDashboard };

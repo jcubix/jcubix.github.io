@@ -48,4 +48,18 @@ Le due tabelle private di seed prive di chiave primaria sono materiale dell'impo
 
 I test UI usano un DOM simulato: non sostituiscono una verifica visiva su dispositivi reali. La funzione amministrativa è coperta da test simulati e dalla revisione del controllo autorizzativo, senza cambiare password o ruoli dello staff.
 
-La prossima evoluzione architetturale utile è passare gradualmente dai moduli globali e dai wrapper ancora necessari a moduli ES con responsabilità esplicite. Per molti anni di storico sarà utile caricare presenze ed eventi per intervallo, invece di scaricare tutte le tabelle a ogni aggiornamento. Questi interventi richiedono una modifica più ampia e non sono necessari per la pulizia completata.
+## Aggiornamento PWA, Realtime e storico
+
+Completato il passaggio a 18 moduli ES con import ed export espliciti. `app-main.js` registra le estensioni e avvia l'applicazione; `app-hooks.js` compone slot nominati per Dashboard, strumenti, partite e scheda giocatore. Le funzioni non vengono più ridefinite da file successivi e la composizione non cerca sottostringhe nelle classi HTML.
+
+Le icone PNG 180, 192 e 512 sono derivate dall'emblema SVG esistente. Il manifest usa icone normali e una versione maskable separata, con il simbolo dentro l'area sicura; iOS riceve il PNG 180. Il service worker v27 include l'intero grafo di moduli e tutte le icone.
+
+`app-data.js` carica attività, sessioni e partite della stagione selezionata e recupera i dati collegati tramite identificativi, in lotti paginati. Il selettore consente di consultare le stagioni precedenti. I report caricano separatamente il periodo richiesto, mantenendo “Tutto lo storico”, grafici e PDF. Un risultato di report obsoleto non può sovrascrivere un nuovo filtro o una nuova sessione.
+
+La migrazione `20261009203300_staff_communications_private_realtime.sql` è applicata al database. Il trigger invia una notifica priva di contenuti a un canale privato della squadra su inserimento, modifica e cancellazione. La policy di `realtime.messages` autorizza soltanto i membri della squadra del canale. Il client rilegge i messaggi tramite RLS e aggiorna Dashboard e pannello: nessun polling del database. Al rientro online, al ritorno sulla pagina e alla riconnessione recupera gli aggiornamenti mancati; il logout rimuove il canale e scarta richieste obsolete. Le scadenze restano assegnate dal server, nascoste al termine e cancellate dal job ogni minuto.
+
+È usato [Broadcast da trigger](https://supabase.com/docs/guides/realtime/broadcast), anziché Postgres Changes: non richiede di aggiungere la tabella alla publication e permette di isolare anche le cancellazioni senza trasmettere contenuti o identificativi di altre squadre. La [policy del canale privato](https://supabase.com/docs/guides/realtime/authorization) viene verificata dal server.
+
+Verifica effettiva sul database di produzione con SDK Supabase 2.57.4 e WebSocket: account segretario collegato alla UI in DOM simulato, pubblicazione da un altro account, aggiornamento della Dashboard e del pannello aperto, cancellazione remota, pubblicazione e rimozione del segretario. Un account di un'altra squadra è stato respinto dal canale e non ha letto la riga via REST. Account, giocatore e comunicazioni sintetici erano isolati dallo staff e sono stati rimossi. Test SQL di durata, autore, permessi, scadenza e pulizia passati con rollback. Il job di pulizia risulta attivo, con esecuzioni recenti riuscite.
+
+Suite: 20 test superati. Rimane il limite già indicato: i test UI sono eseguiti in un DOM simulato e non rappresentano una prova visiva su un iPhone fisico.

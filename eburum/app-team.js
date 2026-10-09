@@ -1,3 +1,12 @@
+import { readonlyActivity } from './app-access.js';
+import { usersModal } from './app-admin.js';
+import { bindDialog } from './app-dialogs.js';
+import { bindExtensions, renderExtensions } from './app-hooks.js';
+import { mountCallupCopy, mountMatchResults } from './app-operations.js';
+import { ROLE_ORDER, canManage, canOperate, canTechnical, db, esc, fail, fetchAllRows, fmt, isAdmin, refresh, render, sortPlayers, state, teamOwner, teamRequestGuard, teamRole, toast, today } from './app-part1.js';
+import { draftChanged } from './app-part3.js';
+import { configureActivityWorkflow, matchPhase, mountMatchPhases, setBusyControls, startActualAttendance, trackDialogDraft } from './app-workflows.js';
+
 const roleLabels = {
   admin: "Amministratore",
   manager: "Team manager",
@@ -42,7 +51,7 @@ function activityCard(a) {
   return `<button class="activity-card" data-open-activity="${a.id}"><span class="activity-date"><b>${new Date(a.activity_date + "T12:00:00").getDate()}</b><small>${new Intl.DateTimeFormat("it-IT", { month: "short" }).format(new Date(a.activity_date + "T12:00:00"))}</small></span><span class="activity-main"><span class="activity-type">${esc(a.activity_type)} · ${esc(a.status)}</span><strong>${esc(activityLabel(a))}</strong><span>${clock(a.start_time)}${a.location ? " · " + esc(a.location) : ""}</span><small>${called.length} convocati${waiting ? " · " + waiting + " risposte da registrare" : ""}</small></span><span aria-hidden="true">›</span></button>`;
 }
 function morePage() {
-  return `<div class="section-title"><div><h2>Strumenti squadra</h2><p class="muted">${roleLabels[teamRole()]} · ${esc(state.user.email || "")}</p></div></div><div class="list tool-list"><button data-page="training"><b>Registra presenze</b><span>Allenamenti e attività svolte</span></button><button data-page="register"><b>Registro</b><span>Consulta e correggi le presenze</span></button><button data-page="reports"><b>Report e statistiche</b><span>Presenze, convocazioni e minuti giocati</span></button>${canManage() ? "<button data-expiries><b>Scadenze e tesseramenti</b><span>Certificati e documenti da verificare</span></button>" : ""}${isAdmin() ? '<button id="teamUsers"><b>Gestione staff</b><span>Utenze e ruoli della squadra condivisa</span></button>' : ""}</div>`;
+  return `<div class="section-title"><div><h2>Strumenti squadra</h2><p class="muted">${roleLabels[teamRole()]} · ${esc(state.user.email || "")}</p></div></div><div class="list tool-list">${renderExtensions("tools")}<button data-page="training"><b>Registra presenze</b><span>Allenamenti e attività svolte</span></button><button data-page="register"><b>Registro</b><span>Consulta e correggi le presenze</span></button><button data-page="reports"><b>Report e statistiche</b><span>Presenze, convocazioni e minuti giocati</span></button>${canManage() ? "<button data-expiries><b>Scadenze e tesseramenti</b><span>Certificati e documenti da verificare</span></button>" : ""}${isAdmin() ? '<button id="teamUsers"><b>Gestione staff</b><span>Utenze e ruoli della squadra condivisa</span></button>' : ""}</div>`;
 }
 function bindMore() {
   document.querySelector("#teamUsers")?.addEventListener("click", usersModal);
@@ -104,6 +113,7 @@ function bindTeamLinks() {
   document
     .querySelectorAll("[data-expiries]")
     .forEach((b) => (b.onclick = expiryModal));
+ bindExtensions(document);
 }
 async function openActivity(id, preferredTab = "auto") {
   if(state.openingActivity)return;state.openingActivity=true;
@@ -141,6 +151,7 @@ async function openActivity(id, preferredTab = "auto") {
   } finally {state.openingActivity=false}
 }
 function activityModal(a = {}, savedRows = [], technical = {}, preferredTab = "details") {
+ if(!canOperate()){if(a.id)readonlyActivity(a);else toast("Creazione attività riservata allo staff operativo");return}
   teamArrays();
   const root = document.createElement("div");
   root.className = "modal-back";
@@ -301,8 +312,8 @@ function activityModal(a = {}, savedRows = [], technical = {}, preferredTab = "d
         );
       if(a.status==='Annullato')return toast('L’attività è annullata');
       if(a.activity_date>today())return toast('Per una data futura registra il sondaggio. Le presenze si confermano dopo l’attività.');
-      if(trainingDraft?.saving)return toast('Attendi il salvataggio in corso');
-      if(trainingDraft&&draftChanged(trainingDraft)&&!confirm('Scartare la bozza presenze non salvata?'))return;
+      if(state.trainingDraft?.saving)return toast('Attendi il salvataggio in corso');
+      if(state.trainingDraft&&draftChanged(state.trainingDraft)&&!confirm('Scartare la bozza presenze non salvata?'))return;
       root.remove();startActualAttendance(a,true);
     };
   }
@@ -423,8 +434,9 @@ function playerSheet(id) {
     minutes = rows.reduce((n, r) => n + Number(r.minutes_played||0), 0);
   const root = document.createElement("div");
   root.className = "modal-back";
-  root.innerHTML = `<section class="modal" role="dialog" aria-modal="true" aria-labelledby="playerSheetTitle"><div class="modal-head"><div><div class="eyebrow">SCHEDA GIOCATORE</div><h2 id="playerSheetTitle">${esc(p.surname)} ${esc(p.name)}</h2></div><button aria-label="Chiudi scheda">✕</button></div><p class="muted">${esc(p.role || "")} ${p.secondary_role ? "· " + esc(p.secondary_role) : ""}${p.shirt_number ? " · #" + p.shirt_number : ""}</p><div class="player-kpis"><div><b>${rows.filter((r) => r.called).length}</b><span>Convocazioni</span></div><div><b>${minutes}</b><span>Minuti registrati</span></div></div>${canManage() ? `<form id="playerAdminForm"><h3 class="sheet-heading">Tesseramento e scadenze</h3><div class="field"><label for="registrationState">Tesseramento</label><select id="registrationState">${["Da verificare", "In regola", "Da completare"].map((v) => `<option ${d.registration_status === v ? "selected" : ""}>${v}</option>`).join("")}</select></div><div class="form-grid field-space"><div class="field"><label for="certificateUntil">Certificato valido fino al</label><input id="certificateUntil" type="date" value="${d.certificate_until || ""}"></div><div class="field"><label for="documentUntil">Documento valido fino al</label><input id="documentUntil" type="date" value="${d.document_until || ""}"></div></div><div class="field field-space"><label for="emergencyContact">Contatto di emergenza</label><input id="emergencyContact" maxlength="300" value="${esc(d.emergency_contact || "")}"></div><p class="muted">Registra solo scadenze e recapiti necessari, senza diagnosi o documenti sanitari.</p><button class="primary wide" type="submit">Salva scheda</button><p role="status" id="playerAdminStatus"></p></form>` : ""}</section>`;
+  root.innerHTML = `<section class="modal" role="dialog" aria-modal="true" aria-labelledby="playerSheetTitle"><div class="modal-head"><div><div class="eyebrow">SCHEDA GIOCATORE</div><h2 id="playerSheetTitle">${esc(p.surname)} ${esc(p.name)}</h2></div><button aria-label="Chiudi scheda">✕</button></div><p class="muted">${esc(p.role || "")} ${p.secondary_role ? "· " + esc(p.secondary_role) : ""}${p.shirt_number ? " · #" + p.shirt_number : ""}</p><div class="player-kpis"><div><b>${rows.filter((r) => r.called).length}</b><span>Convocazioni</span></div><div><b>${minutes}</b><span>Minuti registrati</span></div></div>${renderExtensions("player-actions",p)}${canManage() ? `<form id="playerAdminForm"><h3 class="sheet-heading">Tesseramento e scadenze</h3><div class="field"><label for="registrationState">Tesseramento</label><select id="registrationState">${["Da verificare", "In regola", "Da completare"].map((v) => `<option ${d.registration_status === v ? "selected" : ""}>${v}</option>`).join("")}</select></div><div class="form-grid field-space"><div class="field"><label for="certificateUntil">Certificato valido fino al</label><input id="certificateUntil" type="date" value="${d.certificate_until || ""}"></div><div class="field"><label for="documentUntil">Documento valido fino al</label><input id="documentUntil" type="date" value="${d.document_until || ""}"></div></div><div class="field field-space"><label for="emergencyContact">Contatto di emergenza</label><input id="emergencyContact" maxlength="300" value="${esc(d.emergency_contact || "")}"></div><p class="muted">Registra solo scadenze e recapiti necessari, senza diagnosi o documenti sanitari.</p><button class="primary wide" type="submit">Salva scheda</button><p role="status" id="playerAdminStatus"></p></form>` : ""}</section>`;
   document.body.appendChild(root);
+ bindExtensions(root);
   let busy=false;const current=teamRequestGuard(),close = trackDialogDraft(root,()=>busy);
   root.querySelector(".modal-head button").onclick = close;
   bindDialog(root, close);
@@ -485,8 +497,5 @@ function expiryModal() {
       }),
   );
 }
-const originalEventModal = eventModal;
-eventModal = function (...args) {
-  originalEventModal(...args);
-  if (!isAdmin()) document.querySelector("#deleteEvent")?.remove();
-};
+
+export { roleLabels, teamArrays, activityRows, activityLabel, clock, expiryLimit, expiringPlayers, activityCard, morePage, bindMore, agendaPage, bindAgenda, bindTeamLinks, openActivity, activityModal, rosterModal, playerSheet, expiryModal };
