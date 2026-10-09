@@ -47,7 +47,7 @@ shell = function (content) {
   const nav = html.indexOf('<nav class="nav">');
   return (
     html.slice(0, nav) +
-    `<nav class="nav team-nav" aria-label="Navigazione principale"><div class="nav-brand" aria-hidden="true"><img src="./icon.svg" alt=""></div>${navBtn("dashboard", "", "Home")}${navBtn("agenda", "", "Agenda")}${navBtn("players", "", "Rosa")}${navBtn("matches", "", "Partite")}${navBtn("more", "", "Altro")}</nav>`
+    `<nav class="nav team-nav" aria-label="Navigazione principale"><div class="nav-brand" aria-hidden="true"><img src="./icon.svg" alt=""><span>EBVRVM<small>Team Manager</small></span></div>${navBtn("dashboard", "", "Home")}${navBtn("agenda", "", "Agenda")}${navBtn("players", "", "Rosa")}${navBtn("matches", "", "Partite")}${navBtn("more", "", "Altro")}</nav>`
   );
 };
 const originalNav = navBtn;
