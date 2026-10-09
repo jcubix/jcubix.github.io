@@ -3,8 +3,8 @@
   "short_name": "Eburum",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#e9e7da",
-  "theme_color": "#243e85",
+  "background_color": "#010736",
+  "theme_color": "#010736",
   "description": "Gestione rosa, allenamenti, presenze, partite e report squadra.",
   "icons": [
     {
