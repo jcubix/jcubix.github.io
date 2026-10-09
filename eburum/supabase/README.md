@@ -2,7 +2,7 @@
 
 La funzione `manage-users` verifica la sessione con Auth e la membership corrente sul server. Solo gli amministratori della squadra possono elencare e creare utenti, assegnare ruoli o cambiare le password degli altri utenti della stessa squadra. Le nuove utenze sono associate alla stessa squadra dell'amministratore. I dati delle altre squadre restano isolati tramite RLS.
 
-Il trigger `eburum_require_managed_account` blocca la creazione di utenti senza `app_metadata.managed_account = true`. I metadati applicativi sono assegnabili soltanto dal backend privilegiato: passare `user_metadata`, anche con nomi identici, non consente la registrazione. Le nuove utenze vanno create dalla schermata Utenti; la creazione diretta dal dashboard richiede il medesimo metadato applicativo.
+Il constraint trigger `eburum_finalize_managed_account` verifica la creazione alla fine della transazione Auth, dopo che GoTrue ha aggiornato i metadati applicativi. Richiede `managed_account = true`, un `created_by` corrispondente a un amministratore corrente e un `team_role` valido; quindi associa atomicamente l�utente alla squadra. Non verifica i metadati troppo presto nell�inserimento iniziale di GoTrue. Passare `user_metadata`, anche con nomi identici, non consente la registrazione. Le nuove utenze vanno create dalla schermata Utenti. Il test `tests/managed_auth_creation.sql` riproduce l�ordine reale di inserimento e aggiornamento, verifica tutti i ruoli e i tentativi non autorizzati, e termina con rollback.
 
 Il primo amministratore viene individuato dal proprietario registrato in `private_import.bootstrap_state`, senza inserire identificativi o email nel repository. Gli utenti condividono i dati della squadra attraverso `team_members`: non vengono create copie della rosa o dello storico. Il proprietario resta amministratore; gli altri ruoli sono modificabili dalla schermata Utenti.
 
@@ -52,3 +52,6 @@ I report distinguono presenze effettive, disponibilità previste e impiego. Ogni
 | Eliminare definitivamente dati sportivi | Si | No | No | No |
 
 Le autorizzazioni usano la membership nel database, non i metadati modificabili dall'utente. Il ruolo Segretario e selezionabile da Gestione utenti sia in creazione sia sulle utenze esistenti. Nessuna utenza esistente viene riassegnata automaticamente. Le scadenze compaiono nella Dashboard e in Altro > Scadenze e tesseramenti. I dati amministrativi sono modificabili dalla scheda del giocatore. Le modifiche sportive sono bloccate dalle policy RLS anche per chiamate API dirette.
+
+
+La creazione distingue email gi� registrata (409), dati non validi (400), limite di richieste (429) e servizio non disponibile (503). La funzione conferma la membership prima di comunicare il successo; i log diagnostici non includono credenziali. Il modulo conserva i dati dopo un errore e impedisce invii simultanei. Dopo un cambio password pu� essere necessario accedere nuovamente perch� Auth revoca le sessioni precedenti.

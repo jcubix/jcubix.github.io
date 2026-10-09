@@ -132,13 +132,23 @@ Deno.serve(async (req: Request) => {
         created_by: user.id,
       },
     });
-    if (error)
-      return reply(400, {
-        error:
-          error.code === "email_exists"
-            ? "Email già registrata"
-            : "Creazione non riuscita. Controlla email e password.",
-      });
+    if (error) {
+      const code = error.code || "auth_error";
+      if (["email_exists", "user_already_exists"].includes(code))
+        return reply(409, { error: "Email gia registrata. Usa l'utenza esistente o un'altra email.", code });
+      if (["weak_password", "validation_failed"].includes(code))
+        return reply(400, { error: "Email o password non accettate. Usa una email valida e una password robusta da 12 a 128 caratteri.", code });
+      if (code === "over_request_rate_limit" || error.status === 429)
+        return reply(429, { error: "Troppe richieste. Attendi qualche minuto e riprova.", code });
+      // Only log safe diagnostics: never credentials, tokens or the complete request.
+      console.error(JSON.stringify({ operation: "create_staff", code, status: error.status || 500 }));
+      return reply(503, { error: "Il servizio non ha completato la creazione. Riprova tra poco; se il problema persiste contatta l'amministratore.", code: "staff_creation_unavailable" });
+    }
+    if (!data.user) return reply(503, { error: "Creazione non confermata dal servizio. Ricarica l'elenco prima di riprovare.", code: "staff_creation_unconfirmed" });
+    const { data: assigned, error: assignmentError } = await admin.from("team_members")
+      .select("owner_id,role").eq("user_id", data.user.id).single();
+    if (assignmentError || assigned?.owner_id !== member.owner_id || assigned?.role !== role)
+      return reply(503, { error: "Associazione alla squadra non confermata. Contatta l'amministratore prima di riprovare.", code: "staff_assignment_unconfirmed" });
     return reply(201, {
       user: { id: data.user.id, email: data.user.email, role },
     });

@@ -1,7 +1,8 @@
 begin;
 do $$declare owner uuid; manager uuid:=gen_random_uuid();coach uuid:=gen_random_uuid();outside uuid:=gen_random_uuid();begin
  select claimed_by into owner from private_import.bootstrap_state where singleton;
- insert into auth.users(id,raw_app_meta_data) values(manager,'{"managed_account":true}'),(coach,'{"managed_account":true}'),(outside,'{"managed_account":true}');
+ insert into auth.users(id,raw_app_meta_data) values(manager,jsonb_build_object('managed_account',true,'created_by',owner,'team_role','manager')),(coach,jsonb_build_object('managed_account',true,'created_by',owner,'team_role','coach')),(outside,jsonb_build_object('managed_account',true,'created_by',owner,'team_role','manager'));
+ set constraints auth.eburum_finalize_managed_account immediate;
  insert into public.team_members(user_id,owner_id,role) values(manager,owner,'manager'),(coach,owner,'coach'),(outside,outside,'manager') on conflict(user_id) do update set owner_id=excluded.owner_id,role=excluded.role;
  perform set_config('test.owner',owner::text,true);perform set_config('test.manager',manager::text,true);perform set_config('test.coach',coach::text,true);perform set_config('test.outside',outside::text,true);
  perform set_config('request.jwt.claim.sub',manager::text,true);

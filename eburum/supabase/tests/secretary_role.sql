@@ -1,7 +1,8 @@
 begin;
 do $$declare owner uuid; secretary uuid:=gen_random_uuid(); outsider uuid:=gen_random_uuid(); pid uuid:=gen_random_uuid(); aid uuid:=gen_random_uuid();begin
  select claimed_by into owner from private_import.bootstrap_state where singleton;
- insert into auth.users(id,raw_app_meta_data) values(secretary,jsonb_build_object('managed_account',true,'created_by',owner,'team_role','secretary')),(outsider,'{"managed_account":true}');
+ insert into auth.users(id,raw_app_meta_data) values(secretary,jsonb_build_object('managed_account',true,'created_by',owner,'team_role','secretary')),(outsider,jsonb_build_object('managed_account',true,'created_by',owner,'team_role','manager'));
+ set constraints auth.eburum_finalize_managed_account immediate;
  if (select role from public.team_members where user_id=secretary)<>'secretary' then raise exception 'Secretary assignment failed';end if;
  insert into public.players(id,user_id,surname,name,role,active) values(pid,owner,'Synthetic secretary','Test','Difensore',true);
  insert into public.activities(id,user_id,activity_type,activity_date,title) values(aid,owner,'Allenamento','2300-05-01','Synthetic secretary activity');

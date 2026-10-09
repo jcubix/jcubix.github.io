@@ -15,5 +15,16 @@ run("state.page='agenda';render()");assert.equal($('[data-new-activity]'),null);
 run("state.page='training';render()");assert.equal(run('state.page'),'register');assert.equal($('#saveTraining'),null);
 run("state.page='reports';render()");assert.ok($('#exportReportPdf'));
 run("state.team.role='admin';usersModal()");assert.ok($('#newUserRole option[value="secretary"]'));$('#newUserRole').value='secretary';$('#newUserRole').dispatchEvent(new w.Event('change'));assert.match($('#roleHelp').textContent,/scadenze/);assert.match($('#roleHelp').textContent,/nessuna modifica/);
-dom.window.close();console.log('PASS: secretary dashboard expiries, administrative editor, read-only matches, hidden sporting commands, reports and admin role selection');
+const tick=()=>new Promise(resolve=>setTimeout(resolve,20));await tick();
+let requests=[],release;
+w.invoke=async(name,{body})=>{requests.push(body);if(body.action==='list')return {data:{users:[{id:'demo-user',email:'owner@example.test',role:'admin'}]}};return await new Promise(resolve=>{release=resolve})};run('db.functions.invoke=window.invoke');
+const form=$('#createUserForm'),submit=()=>form.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
+$('#newUserEmail').value='coach@example.test';$('#newUserPassword').value='synthetic-password-123';$('#newUserRole').value='coach';submit();submit();
+assert.equal(requests.filter(r=>r.action==='create').length,1);assert.ok($('#newUserEmail').disabled);assert.ok($('#newUserRole').disabled);
+release({error:{context:{clone:()=>({json:async()=>({error:'Email gia registrata'})})}}});await tick();
+assert.match($('#userMessage').textContent,/gia registrata/);assert.equal($('#newUserEmail').value,'coach@example.test');assert.equal($('#newUserPassword').value,'synthetic-password-123');assert.equal($('#newUserRole').value,'coach');assert.equal($('#newUserEmail').disabled,false);
+$('#newUserEmail').value='new-coach@example.test';submit();release({data:{user:{id:'synthetic-created'}}});await tick();
+assert.match($('#userMessage').textContent,/creata e associata/);assert.equal($('#newUserEmail').value,'');assert.equal($('#newUserPassword').value,'');assert.equal($('#newUserEmail').disabled,false);assert.equal(requests.filter(r=>r.action==='create').length,2);
+
+dom.window.close();console.log('PASS: secretary dashboard expiries, administrative editor, read-only matches, hidden sporting commands, reports and admin role selection, single creation submit, field locking, explicit errors, retry retention and success cleanup');
 })().catch(error=>{console.error(error);process.exitCode=1;dom.window.close()});
