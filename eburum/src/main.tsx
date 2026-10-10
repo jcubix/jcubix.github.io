@@ -1,0 +1,29 @@
+import { createRoot } from "react-dom/client";
+import { createClient } from "@supabase/supabase-js";
+import { HashRouter } from "react-router-dom";
+import { App } from "./app";
+import { createRuntime } from "./runtime";
+import "./styles.css";
+
+async function start() {
+  const root = createRoot(document.getElementById("app")!);
+  window.supabase ??= { createClient };
+  try {
+    const runtime = await createRuntime();
+    root.render(
+      <HashRouter>
+        <App runtime={runtime} />
+      </HashRouter>,
+    );
+    await runtime.start();
+  } catch {
+    root.render(
+      <main className="startup-error">
+        <h1>Eburum non è stato caricato</h1>
+        <p>Verifica la connessione e riprova.</p>
+        <button onClick={() => window.location.reload()}>Riprova</button>
+      </main>,
+    );
+  }
+}
+void start();

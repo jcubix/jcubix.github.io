@@ -11,6 +11,13 @@ async function app(t){
  run('state.user=fixtureUser');return {w,run,$:s=>w.document.querySelector(s)};
 }
 
+test('presentation port preserves the React root during loading, render and logout',async t=>{
+ const {run,$}=await app(t);const root=$('#app');root.innerHTML='<section id="react-owned">React root</section>';let ready=0,loading=0,login=0;
+ run('setPresentationAdapter')({render:()=>ready++,loading:()=>loading++,login:()=>login++,error:()=>{}});
+ await run('refresh()');assert.equal(ready,1);assert.ok(loading>=1);assert.ok($('#react-owned'));
+ run('renderLogin()');assert.equal(login,1);assert.ok($('#react-owned'));assert.equal(run('state.players.length'),0);
+});
+
 test('a late team context cannot restore an obsolete role',async t=>{
  const {w,run,$}=await app(t);w.contexts=[];run("db.rpc=()=>new Promise(resolve=>window.contexts.push(resolve))");
  const older=run('refresh()'),latest=run('refresh()');

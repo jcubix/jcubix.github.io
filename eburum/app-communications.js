@@ -4,6 +4,8 @@ import { db, esc, fetchAllRows, isAdmin, sortPlayers, state, teamOwner, teamRequ
 import { initCommunicationsLifecycle, notifyCommunications, onCommunicationsChanged } from './app-realtime.js';
 import { setBusyControls, trackDialogDraft } from './app-workflows.js';
 
+let communicationsPresenter=null;
+function setCommunicationsPresenter(presenter){communicationsPresenter=presenter}
 /* Shared staff notices with server-assigned lifetime. */
 function activeCommunications(at=Date.now()){return (state.staff_communications||[]).filter(m=>Date.parse(m.expires_at)>at).sort((a,b)=>b.created_at.localeCompare(a.created_at))}
 function communicationTime(value){return new Intl.DateTimeFormat('it-IT',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}).format(new Date(value))}
@@ -22,7 +24,7 @@ function communicationCount(){document.querySelectorAll('[data-communication-cou
 let communicationFetchGeneration=0;
 async function fetchCommunications(){const current=teamRequestGuard(),generation=++communicationFetchGeneration,owner=teamOwner();const result=await fetchAllRows(()=>db.from('staff_communications').select('*').eq('user_id',owner).gt('expires_at',new Date().toISOString()).order('created_at',{ascending:false}));if(!current()||generation!==communicationFetchGeneration)return false;if(result.error)throw result.error;state.staff_communications=result.data;notifyCommunications();return true}
 
-function communicationsModal(){
+function communicationsModal(){if(communicationsPresenter){communicationsPresenter();return}
  const root=document.createElement('div');root.className='modal-back';root.innerHTML=`<section class="modal communications-panel" role="dialog" aria-modal="true" aria-labelledby="communicationsTitle"><div class="modal-head"><div><h2 id="communicationsTitle">Comunicazioni</h2></div><button aria-label="Chiudi comunicazioni">✕</button></div><div class="communication-toolbar"><p class="row-sub">Le informazioni ricevute dai giocatori, in un unico posto per tutto lo staff.</p><button class="primary" id="newCommunication">+ Nuova comunicazione</button></div><div class="communication-filters" role="group" aria-label="Filtra comunicazioni"><button data-communication-filter="all" aria-pressed="true">Tutte</button><button data-communication-filter="players" aria-pressed="false">Per giocatore</button><button data-communication-filter="expiring" aria-pressed="false">In scadenza</button></div><div class="communication-search-grid"><div class="field"><label for="communicationSearch">Cerca</label><input type="search" id="communicationSearch" placeholder="Titolo, testo o giocatore"></div><div class="field" id="communicationPlayerField" hidden><label for="communicationPlayerFilter">Giocatore</label><select id="communicationPlayerFilter"><option value="">Tutti i giocatori</option>${sortPlayers(state.players).map(p=>`<option value="${esc(p.id)}">${esc(p.surname)} ${esc(p.name)}</option>`).join('')}</select></div></div><div class="communication-refresh"><span id="communicationResults" class="row-sub" role="status" aria-live="polite"></span><button type="button" id="refreshCommunications">Aggiorna</button></div><p class="row-sub" data-realtime-status role="status">Aggiornamenti in tempo reale</p><p id="communicationsStatus" role="status" aria-live="polite"></p><div class="communication-list" id="communicationsList"></div><p class="communication-footnote">Le comunicazioni vengono eliminate automaticamente alla scadenza. “In scadenza” mostra quelle delle prossime 24 ore.</p></section>`;document.body.append(root);let loading=false,filter='all',signature='';const currentTeam=teamRequestGuard();
  const paint=()=>{
   const q=root.querySelector('#communicationSearch').value.trim().toLocaleLowerCase('it'),player=root.querySelector('#communicationPlayerFilter').value,now=Date.now();
@@ -53,3 +55,5 @@ function registerCommunications(){
 }
 
 export { activeCommunications, communicationTime, communicationExpiry, communicationAudience, communicationExpiryMarkup, updateCommunicationTimes, communicationPreviews, communicationCount, communicationFetchGeneration, fetchCommunications, communicationsModal, communicationEditor, registerCommunications };
+
+export { setCommunicationsPresenter };

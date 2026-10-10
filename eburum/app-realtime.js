@@ -32,7 +32,7 @@ function syncCommunicationsRealtime(){
   .on('broadcast',{event:'communications_changed'},scheduleCommunicationReload)
   .subscribe(status=>{
    if(generation!==realtimeGeneration)return;
-   state.communicationRealtimeStatus=status;
+   state.communicationRealtimeStatus=status;notifyCommunications();
    document.querySelectorAll('[data-realtime-status]').forEach(el=>el.textContent=status==='SUBSCRIBED'?'Aggiornamenti in tempo reale attivi':'Connessione in corso. Puoi aggiornare manualmente.');
    if(status==='SUBSCRIBED')scheduleCommunicationReload();
   });
