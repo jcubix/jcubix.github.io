@@ -20,7 +20,7 @@ Il test SQL `tests/attendance_review.sql` verifica atomicità, ripetizione del s
 
 # Agenda e squadra condivisa
 
-`activities` collega appuntamenti, partite e sessioni registrate. Le partite create dalla schermata Partite compaiono nell'Agenda; le presenze completano l'attività programmata dello stesso giorno e tipo. Convocazioni, risposte ricevute, titolari, panchina, posizioni e minuti sono conservati in `activity_roster`. I minuti effettivi sono inseriti dallo staff; le sostituzioni registrano entrato, uscito e minuto senza inventare durata o recupero della partita.
+`activities` collega appuntamenti, partite e sessioni registrate. Le partite create dalla schermata Partite compaiono nell'Agenda; le presenze completano l'attività programmata dello stesso giorno e tipo. Convocazioni, risposte ricevute, titolari, panchina, posizioni e minuti sono conservati in `activity_roster`. I minuti seguono la modalità della partita: automatica dagli eventi oppure manuale per lo storico. La durata iniziale è 90 minuti, modificabile dallo staff, anche per il recupero da conteggiare.
 
 `save_team_activity` salva attività, convocazioni e note tecniche in una transazione, verifica la revisione e blocca la ripetizione di una richiesta di creazione già conclusa. Sono consentiti al massimo 11 titolari e l'impiego è riservato alle partite. I collegamenti tra giocatori e attività sono vincolati alla stessa squadra con chiavi esterne composite.
 
@@ -75,3 +75,11 @@ Dashboard e pannello ricevono aggiornamenti via Realtime su un canale privato de
 ## Caricamento per stagione
 
 Le tabelle sportive sono filtrate tra il 1° luglio e il 30 giugno della stagione selezionata. Presenze, eventi, convocazioni e note tecniche sono letti soltanto per gli identificativi delle rispettive attività. Rosa e scadenze restano dati condivisi. I report leggono autonomamente l’intervallo scelto, inclusi gli anni precedenti, senza modificare la stagione della Dashboard. Gli indici esistenti su proprietario e data supportano questi filtri.
+
+## Minuti dalle sostituzioni
+
+Le nuove partite hanno `minutes_auto = true` e `duration_minutes = 90`. Le gare esistenti conservano la modalità manuale e i minuti precedenti: l'attivazione esplicita nella sezione Durata, campo e note richiede conferma prima di sostituirli. Il calcolo usa i titolari e gli eventi in ordine di minuto, data di creazione e ID. A 65′ su 90′ assegna 65 minuti all'uscente e 25 al subentrato. Se il subentrato esce a 80′, gli assegna 15 minuti; un'espulsione in campo termina l'intervallo, mentre quella di un convocato in panchina non assegna minuti. Non è consentito rientrare dopo essere usciti o essere stati espulsi.
+
+Il server ricalcola `activity_roster.minutes_played` nella stessa transazione degli eventi, delle modifiche alla formazione, della durata o del risultato. I controlli differiti vedono la formazione completa a fine transazione. Un cambio incoerente, una durata inferiore a un evento o la cancellazione di un cambio da cui dipende un altro annullano l'intera operazione. In quest'ultimo caso correggere o eliminare prima gli eventi dipendenti. Le gare automatiche annullate hanno minuti a zero; prima di un risultato, di una conclusione o di un cambio/espulsione i minuti restano a zero. I valori calcolati rappresentano il totale sulla durata impostata, non un cronometro live: vanno verificati a fine gara.
+
+`save_match_result` verifica ruolo operativo, squadra e revisione, salva risultato/configurazione e calcola i minuti atomicamente. I campi manuali sono disabilitati in modalità automatica. Dopo un evento il client rilegge attività, formazione, partita ed eventi, aggiornando revisioni e riepilogo. Schede, report, grafici e PDF continuano a usare lo stesso campo persistito. `tests/match_minutes.sql` verifica il flusso reale e i permessi con rollback.
