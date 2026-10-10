@@ -19,12 +19,6 @@ function actualTrainingPage(){
 }
 function attendanceCounts(entries){const a=Array.from(entries);return {present:a.filter(x=>x.status==='Presente').length,absent:a.filter(x=>x.status==='Assente').length,injured:a.filter(x=>x.status==='Infortunato').length,pending:a.filter(x=>!['Presente','Assente','Infortunato'].includes(x.status)).length}}
 function countBadges(c){return `<span class="badge b-green">${c.present} presenti</span><span class="badge b-red">${c.absent} assenti</span><span class="badge b-blue">${c.injured} infortunati</span>${c.pending?`<span class="badge b-yellow">${c.pending} da confermare</span>`:''}`}
-function notifiedBadge(value){return `<span class="badge ${value===true?'b-green':value===false?'b-red':'b-yellow'}">${value===true?'Sondaggio: risposto':value===false?'Sondaggio: non risposto':'Sondaggio: da verificare'}</span>`}
-function pollReminder(d){
- const group=value=>d.players.filter(p=>d.entries.get(p.id).notified===value).map(p=>`• ${p.surname} ${p.name}`);
- const no=group(false),unknown=group(null),includeUnknown=d.reminderUnknown!==false;
- return [`Sondaggio · ${d.session.session_type} · ${fmt(d.session.session_date)}`,d.id?'Sessione salvata (eventuali correzioni in bozza)':'Bozza non ancora salvata',`Da sollecitare: ${no.length+(includeUnknown?unknown.length:0)}`,`Non hanno risposto (${no.length})`,...no,...(includeUnknown?[`Da verificare (${unknown.length})`,...unknown]:[])].join('\n');
-}
 function bindActualTraining(){
  const d=getTrainingDraft(),box=document.querySelector('#trainList');
  const paint=()=>{
@@ -101,4 +95,4 @@ function sessionHistoryModal(id){
  root.querySelector('#loadMoreHistory').onclick=load;load();
 }
 
-export { attendanceValues, sessionValues, draftRows, draftChanged, makeTrainingDraft, getTrainingDraft, actualTrainingPage, attendanceCounts, countBadges, notifiedBadge, pollReminder, bindActualTraining, editAttendanceSession, reviewTrainingDraft, attendanceModal, historyValue, sessionHistoryModal };
+export { attendanceValues, sessionValues, draftRows, draftChanged, makeTrainingDraft, getTrainingDraft, actualTrainingPage, attendanceCounts, countBadges, bindActualTraining, editAttendanceSession, reviewTrainingDraft, attendanceModal, historyValue, sessionHistoryModal };

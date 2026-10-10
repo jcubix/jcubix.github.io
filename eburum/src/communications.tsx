@@ -207,7 +207,7 @@ function VirtualCommunications({
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, []);
+  }, [rows]);
   const virtualizer = useWindowVirtualizer({
     count: rows.length,
     estimateSize: () => 240,

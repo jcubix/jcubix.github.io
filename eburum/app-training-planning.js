@@ -1,6 +1,6 @@
 import { bindDialog } from './app-dialogs.js';
 import { canOperate, db, esc, fmt, refresh, render, sortPlayers, state, teamRequestGuard, toast, today } from './app-part1.js';
-import { activityCard, activityRows, openActivity } from './app-team.js';
+import { activityCard, openActivity } from './app-team.js';
 import { copyOperationalText } from './app-operations.js';
 import { draftChanged } from './app-part3.js';
 import { setBusyControls, startActualAttendance } from './app-workflows.js';

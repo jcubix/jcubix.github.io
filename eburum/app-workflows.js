@@ -1,10 +1,9 @@
 import { trainingHub, bindTrainingHub } from './app-training-planning.js';
 import { bindDialog } from './app-dialogs.js';
 import { registerBinder } from './app-hooks.js';
-import { copyOperationalText } from './app-operations.js';
 import { esc, fmt, render, sortPlayers, state, toast, today } from './app-part1.js';
 import { actualTrainingPage, bindActualTraining, draftChanged, draftRows, editAttendanceSession, getTrainingDraft, makeTrainingDraft } from './app-part3.js';
-import { activityLabel, activityModal, activityRows, openActivity } from './app-team.js';
+import { activityLabel, activityRows, openActivity } from './app-team.js';
 
 /* Operational workflows: planned replies, actual attendance and contextual priorities. */
 function localISO(date){return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`}
@@ -20,7 +19,6 @@ function matchPhase(a){
  if(a.end_time&&now>=a.end_time.slice(0,5))return 'after';return a.start_time&&now>=a.start_time.slice(0,5)?'during':'before';
 }
 function activityHasEnded(a){if(a.status!=='Programmato')return false;return a.activity_date<today()||(a.activity_date===today()&&a.end_time&&matchPhase(a)==='after')}
-function trainingActivity(d){return (state.activities||[]).find(a=>a.status!=='Annullato'&&(d.id?a.session_id===d.id:a.activity_date===d.session.session_date&&a.activity_type===d.session.session_type))}
 function seedPlannedReplies(d,a){
  d.activityId=a.id;d.activityRevision=a.revision;d.planned=new Map(activityRows(a.id).map(r=>[r.player_id,r.availability]));
  for(const [id,row] of d.entries){const response=activityRows(a.id).find(r=>r.player_id===id);row.notified=!!response&&response.availability!=='In attesa';row.status=response?.availability==='Disponibile'?'Presente':response?.availability==='Indisponibile'?'Assente':'Da confermare';row.note=response?.response_note||null}
@@ -42,7 +40,6 @@ function priorityModal(kind){
  const list=kind==='poll'?upcoming.filter(a=>a.activity_type==='Allenamento'&&activityPollPending(a)>0):(state.activities||[]).filter(activityHasEnded).sort((a,b)=>a.activity_date.localeCompare(b.activity_date));
  const root=document.createElement('div');root.className='modal-back';root.innerHTML=`<section class="modal" role="dialog" aria-modal="true" aria-labelledby="priorityTitle"><div class="modal-head"><h2 id="priorityTitle">${kind==='poll'?'Risposte WhatsApp da registrare':'Attività da completare'}</h2><button aria-label="Chiudi priorità">✕</button></div><p class="muted">${kind==='poll'?'Risposte al sondaggio WhatsApp degli allenamenti ancora da registrare.':'Attività trascorse da verificare: conferma le presenze o aggiorna lo stato nella sezione corrispondente.'}</p><div class="list">${list.map(a=>`<button class="priority-row" data-priority-activity="${a.id}"><span><b>${esc(activityLabel(a))}</b><small>${fmt(a.activity_date)} · ${kind==='poll'?activityPollPending(a)+' risposte in attesa':'Stato da aggiornare'}</small></span><span aria-hidden="true">›</span></button>`).join('')||'<p class="empty">Tutto aggiornato.</p>'}</div></section>`;document.body.append(root);const close=()=>root.remove();root.querySelector('.modal-head button').onclick=close;bindDialog(root,close);root.querySelectorAll('[data-priority-activity]').forEach(b=>b.onclick=()=>{close();openActivity(b.dataset.priorityActivity,kind==='poll'?'roster':undefined)});
 }
-function surveyHub(){return trainingHub()}
 function trainingModeTabs(){return '<button class="ghost" id="backToTrainings">Torna agli allenamenti</button>'}
 function trainingPage(){return state.trainingMode==='actual'?actualTrainingPage():trainingHub()}
 function bindTraining(){
@@ -78,4 +75,4 @@ function trackDialogDraft(root,isBusy=()=>false){
 
 function registerWorkflows(){registerBinder("workflows",bindWorkflowLinks)}
 
-export { localISO, recentFrom, rosterIndexes, indexedActivityRows, activityPeople, pollEntries, activityPollPending, matchPhase, activityHasEnded, trainingActivity, seedPlannedReplies, startActualAttendance, busyControlStates, setBusyControls, priorityModal, surveyHub, trainingModeTabs, trainingPage, bindTraining, configureActivityWorkflow, mountMatchPhases, bindWorkflowLinks, trackDialogDraft, registerWorkflows };
+export { localISO, recentFrom, rosterIndexes, indexedActivityRows, activityPeople, pollEntries, activityPollPending, matchPhase, activityHasEnded, seedPlannedReplies, startActualAttendance, busyControlStates, setBusyControls, priorityModal, trainingModeTabs, trainingPage, bindTraining, configureActivityWorkflow, mountMatchPhases, bindWorkflowLinks, trackDialogDraft, registerWorkflows };

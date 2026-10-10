@@ -6,7 +6,7 @@
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "npm --prefix tests test",
+    "test": "npm --prefix tests test && node --test tests/frontend-interactions.cjs",
     "typecheck": "tsc --noEmit",
     "verify": "npm run build && npm test && node --test tests/frontend-build.cjs",
     "format:check": "prettier --check src vite.config.ts tsconfig.json components.json"

@@ -5,7 +5,7 @@ import { canManage, canOperate, db, emptyTeamDashboard, esc, fmt, isAdmin, refre
 import { editAttendanceSession } from './app-part3.js';
 import { eventModal, eventTone, matchEvents } from './app-part4.js';
 import { activityCard, activityLabel, clock, expiringPlayers, openActivity, roleLabels, teamArrays } from './app-team.js';
-import { activityHasEnded, activityPollPending, matchPhase, recentFrom, setBusyControls } from './app-workflows.js';
+import { activityHasEnded, activityPollPending, recentFrom, setBusyControls } from './app-workflows.js';
 
 async function copyOperationalText(text, status, container) {
   try { await navigator.clipboard.writeText(text); status.textContent='Testo copiato'; }

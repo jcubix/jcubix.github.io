@@ -1,5 +1,7 @@
 # Revisione del progetto — 9 ottobre 2026
 
+Per la verifica successiva alla migrazione React, la correzione delle ammonizioni, il controllo del database reale e i 43 test attuali, vedere [Verifica della migrazione — 10 ottobre 2026](AUDIT_MIGRATION.md). Il documento qui sotto conserva la revisione precedente; l'architettura corrente è descritta in [FRONTEND.md](FRONTEND.md).
+
 La revisione comprende i moduli applicativi, il caricamento degli asset, il service worker, la funzione amministrativa, le migrazioni, i test e le policy del database attualmente distribuito. Portfolio e blog presenti nello stesso repository hanno riferimenti attivi e restano separati dall'applicazione della squadra.
 
 ## Difetti corretti

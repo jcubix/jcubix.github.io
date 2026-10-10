@@ -19,7 +19,7 @@ npm run verify
 npm run preview
 ```
 
-`verify` esegue TypeScript, build, 32 test dei moduli operativi e del collegamento React, e 2 test sulla PWA compilata. Le prove browser sono separate: verificano anche layout e interazioni effettive, con dati sintetici. `npm run format:check` controlla la formattazione dei nuovi sorgenti.
+`verify` esegue TypeScript, build, 32 test dei moduli operativi e del presentation adapter, 9 test dei componenti React effettivi e 2 test sulla PWA compilata: 43 in totale. Le prove browser sono separate: verificano anche layout e interazioni effettive, con dati sintetici. `npm run format:check` controlla la formattazione dei nuovi sorgenti. I risultati sul database reale sono documentati in [AUDIT_MIGRATION.md](AUDIT_MIGRATION.md).
 
 ## Architettura e confini
 

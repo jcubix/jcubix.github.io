@@ -171,7 +171,9 @@ export async function createRuntime(): Promise<Runtime> {
       openMatch: parts4.matchModal,
       users: admin.usersModal,
       expiries: team.expiryModal,
-      discipline: discipline.disciplineModal,
+      // React passes a click event to handlers. The general index must never
+      // interpret that event as the optional player filter of the domain modal.
+      discipline: () => discipline.disciplineModal(),
       playerSheet: team.playerSheet,
       editPlayer: parts2.playerModal,
       playerDiscipline: discipline.playerDiscipline,
@@ -204,7 +206,14 @@ export async function createRuntime(): Promise<Runtime> {
         !!state.trainingDraft && parts3.draftChanged(state.trainingDraft),
       reload: core.refresh,
       logout: async () => {
+        if (state.trainingDraft?.saving) return;
         if (navigationGuard && !navigationGuard()) return;
+        if (
+          state.trainingDraft &&
+          parts3.draftChanged(state.trainingDraft) &&
+          !confirm("Uscire e scartare la bozza presenze non salvata?")
+        )
+          return;
         const { error } = await db.auth.signOut();
         if (error) throw error;
       },
