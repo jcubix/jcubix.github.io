@@ -1,4 +1,4 @@
-const CACHE='eburum-team-manager-v27';
+const CACHE='eburum-team-manager-v28';
 const ASSETS=["./","./index.html","./app.css","./config.js","./manifest.webmanifest","./icon.svg","./app-access.js","./app-admin.js","./app-communications.js","./app-data.js","./app-dialogs.js","./app-discipline.js","./app-hooks.js","./app-main.js","./app-operations.js","./app-part1.js","./app-part2.js","./app-part3.js","./app-part4.js","./app-part5.js","./app-realtime.js","./app-report-export.js","./app-team.js","./app-workflows.js","./vendor/jspdf.umd.min.js","./icon-180.png","./icon-192.png","./icon-512.png","./icon-maskable-512.png"];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('eburum-team-manager-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));

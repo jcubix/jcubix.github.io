@@ -42,7 +42,7 @@ function seasonPicker(){
  if(!['dashboard','agenda','matches','register','players'].includes(state.page))return '';
  const selected=sportSeason().year,configured=Number(String(window.CONFIG.season).match(/20\d{2}/)?.[0])||selected,first=state.earliestSport||today(),earliest=Number(first.slice(0,4))-(first.slice(5,7)<'07'?1:0),years=[];
  for(let y=Math.max(configured,selected);y>=Math.min(earliest,selected);y--)years.push(y);
- return `<div class="season-picker field"><label for="sportSeason">Stagione sportiva</label><select id="sportSeason">${years.map(y=>`<option value="${y}" ${y===selected?'selected':''}>${y}/${y+1}</option>`).join('')}</select><span class="row-sub">Dati sportivi della stagione selezionata · i report possono includere tutto lo storico.</span></div>`;
+ return `<div class="season-picker field"><label for="sportSeason">Stagione sportiva</label><select id="sportSeason" aria-describedby="seasonHelp">${years.map(y=>`<option value="${y}" ${y===selected?'selected':''}>${y}/${y+1}</option>`).join('')}</select><span class="row-sub" id="seasonHelp">Dati sportivi della stagione selezionata · i report possono includere tutto lo storico.</span></div>`;
 }
 function bindSeasonPicker(){const select=document.querySelector('#sportSeason');if(!select)return;select.onchange=async()=>{select.disabled=true;state.seasonYear=Number(select.value);delete state.registerDate;await refresh()}}
 

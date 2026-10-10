@@ -76,13 +76,34 @@ test('player sheet totals include matches only and exclude cancelled activities'
  run("state.team.role='coach';state.page='players';render()");assert.equal($('#addPlayer'),null);assert.equal($('[data-edit]'),null);assert.ok($('[data-player-sheet]'));assert.ok($('[data-page="players"][aria-current="page"]'));
 });
 
+test('nested dialogs isolate the background and restore scrolling and focus',async t=>{
+ const {w,run,$}=await app(t);await run('refresh()');
+ w.document.body.style.overflow='scroll';const trigger=$('[data-communications]');trigger.focus();
+ run('communicationsModal()');await tick();const outer=$('.communications-panel').parentElement;
+ assert.equal(w.document.body.style.overflow,'hidden');assert.ok($('#app').hasAttribute('inert'));assert.equal(outer.hasAttribute('inert'),false);
+ const newButton=$('#newCommunication');newButton.focus();newButton.click();const inner=$('.communication-compose').parentElement;
+ assert.ok(outer.hasAttribute('inert'));assert.equal(inner.hasAttribute('inert'),false);
+ $('#cancelCommunication').click();await tick();
+ assert.equal(outer.hasAttribute('inert'),false);assert.ok($('#app').hasAttribute('inert'));assert.equal(w.document.body.style.overflow,'hidden');assert.equal(w.document.activeElement,newButton);
+ outer.querySelector('.modal-head button').click();await tick();
+ assert.equal($('#app').hasAttribute('inert'),false);assert.equal(w.document.body.style.overflow,'scroll');assert.equal(w.document.activeElement,trigger);
+});
+
+test('page navigation returns to the top and exposes an accessible content target',async t=>{
+ const {w,run,$}=await app(t);await run('refresh()');const scrolls=[];w.scrollTo=options=>scrolls.push(options);
+ assert.equal($('.skip-link').getAttribute('href'),'#mainContent');
+ $('[data-page="players"]').click();
+ assert.equal(scrolls.length,1);assert.equal(scrolls[0].top,0);assert.equal(w.document.activeElement,$('#mainContent'));assert.ok($('[aria-current="page"][data-page="players"]'));
+ assert.equal($('#sportSeason').getAttribute('aria-describedby'),'seasonHelp');assert.ok($('#seasonHelp'));
+});
+
 test('service worker preserves good assets and keeps API and other caches separate',async()=>{
  const listeners={},writes=[],deleted=[],installed=[],store=new Map(),tasks=[];
- const scope={self:{location:{origin:'https://eburum.vercel.app',href:'https://eburum.vercel.app/sw.js'},addEventListener:(name,callback)=>listeners[name]=callback,clients:{claim:async()=>{}}},URL,Response,fetch:async()=>new Response('Unavailable',{status:503}),caches:{open:async()=>({addAll:async assets=>installed.push(...assets),put:async(request,response)=>writes.push({request,response})}),match:async request=>store.get(typeof request==='string'?request:request.url),keys:async()=>['eburum-team-manager-v26','eburum-team-manager-v27','another-app'],delete:async name=>deleted.push(name)}};
+ const scope={self:{location:{origin:'https://eburum.vercel.app',href:'https://eburum.vercel.app/sw.js'},addEventListener:(name,callback)=>listeners[name]=callback,clients:{claim:async()=>{}}},URL,Response,fetch:async()=>new Response('Unavailable',{status:503}),caches:{open:async()=>({addAll:async assets=>installed.push(...assets),put:async(request,response)=>writes.push({request,response})}),match:async request=>store.get(typeof request==='string'?request:request.url),keys:async()=>['eburum-team-manager-v26','eburum-team-manager-v27','eburum-team-manager-v28','another-app'],delete:async name=>deleted.push(name)}};
  vm.runInNewContext(fs.readFileSync(path.join(root,'sw.js'),'utf8'),scope);
  await listeners.install({waitUntil:promise=>tasks.push(promise)});await Promise.all(tasks);
  for(const file of [...scripts,'app.css','index.html']){assert.ok(fs.existsSync(path.join(root,file)));assert.ok(installed.includes('./'+file),file+' must be installed for offline use')}
- await new Promise((resolve,reject)=>listeners.activate({waitUntil:promise=>promise.then(resolve,reject)}));assert.deepEqual(deleted,['eburum-team-manager-v26']);
+ await new Promise((resolve,reject)=>listeners.activate({waitUntil:promise=>promise.then(resolve,reject)}));assert.deepEqual(deleted,['eburum-team-manager-v26','eburum-team-manager-v27']);
  async function request(url,mode='same-origin'){let promise;const background=[];listeners.fetch({request:{url,method:'GET',mode},respondWith:value=>promise=value,waitUntil:value=>background.push(value)});const response=await promise;await Promise.all(background);return response}
  assert.equal((await request('https://eburum.vercel.app/app-part1.js')).status,503);assert.equal(writes.length,0);
  scope.fetch=async()=>new Response('Valid asset');await request('https://eburum.vercel.app/app-part1.js');assert.equal(writes.length,1);
