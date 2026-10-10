@@ -18,9 +18,9 @@ I trigger assegnano autore e orario sul server e scrivono le differenze in `atte
 
 Il test SQL `tests/attendance_review.sql` verifica atomicità, ripetizione del salvataggio, conflitti, audit, giocatori inattivi e isolamento tra utenti; termina con `ROLLBACK`. Va eseguito con un collegamento amministrativo sul progetto inizializzato, preferibilmente in staging.
 
-# Agenda e squadra condivisa
+# Allenamenti, partite e squadra condivisa
 
-`activities` collega appuntamenti, partite e sessioni registrate. Le partite create dalla schermata Partite compaiono nell'Agenda; le presenze completano l'attività programmata dello stesso giorno e tipo. Convocazioni, risposte ricevute, titolari, panchina, posizioni e minuti sono conservati in `activity_roster`. I minuti seguono la modalità della partita: automatica dagli eventi oppure manuale per lo storico. La durata iniziale è 90 minuti, modificabile dallo staff, anche per il recupero da conteggiare.
+`activities` collega allenamenti, partite, riunioni e sessioni registrate. Allenamenti e Partite hanno sezioni autonome; le Riunioni sono raggiungibili da Altro. La Dashboard mantiene un riepilogo degli appuntamenti. `activity_roster` conserva le risposte WhatsApp degli allenamenti oppure convocati, titolari, panchina, posizioni e minuti delle partite. Le schede partita non chiedono disponibilità o solleciti. I minuti seguono la modalità della partita: automatica dagli eventi oppure manuale per lo storico. La durata iniziale è 90 minuti, modificabile dallo staff, anche per il recupero da conteggiare.
 
 `save_team_activity` salva attività, convocazioni e note tecniche in una transazione, verifica la revisione e blocca la ripetizione di una richiesta di creazione già conclusa. Sono consentiti al massimo 11 titolari e l'impiego è riservato alle partite. I collegamenti tra giocatori e attività sono vincolati alla stessa squadra con chiavi esterne composite.
 
@@ -32,7 +32,11 @@ Il cambio password usa `auth.admin.updateUserById` sul server e accetta soltanto
 
 # Flusso operativo
 
-Allenamento rapido distingue Sondaggio (disponibilità pianificate in `activity_roster`) e Presenze (registrazioni effettive in `attendance`). Il sondaggio usa il salvataggio atomico dell’attività; non crea sessioni di presenza. L’apertura delle presenze importa solo le risposte ricevute, mantenendo separata la disponibilità prevista. Lo staff conferma l’intera sessione nel riepilogo e modifica solo le eccezioni reali. Il collegamento server già esistente conclude la stessa attività pianificata, conservandone le risposte.
+Allenamenti registra le risposte al sondaggio esterno di WhatsApp: Sì, No o Non risposto. Ricerca e filtro mostrano rapidamente chi manca; Copia sollecito include tutti i nomi in attesa, anche se nascosti dalla ricerca. Il salvataggio usa `save_team_activity` e non crea presenze effettive.
+
+Il giorno dell’allenamento, o dopo, Verifica e conferma presenze apre una bozza: Sì precompila Presente, No precompila Assente, Non risposto resta Da confermare. Lo staff verifica e corregge Presente, Assente o Infortunato, aggiungendo una nota facoltativa. Finché rimangono giocatori da confermare il riepilogo è bloccato. Solo Conferma e salva registra tutta la sessione e aggiorna i report; la bozza conserva separatamente le risposte WhatsApp. Le attività annullate e future non consentono nuove presenze.
+
+`save_training_attendance` verifica squadra, ruolo operativo, revisione dell’allenamento e collegamento alla sessione, quindi richiama il salvataggio atomico delle presenze. Il calendario collega l’allenamento selezionato esplicitamente anche se nello stesso giorno ne esiste un altro. Le richieste ripetute non creano duplicati. Il modello conserva una sessione per squadra, giorno e tipo: una seconda registrazione dello stesso giorno va corretta dal Registro. Le correzioni storiche della data continuano a usare `save_attendance_session`, conservando collegamento al calendario e audit. `tests/training_attendance.sql` verifica questi percorsi e i permessi con rollback.
 
 Le fasi Prima, Durante e Dopo della partita sono suggerite in base a data, orari e stato; non simulano cronometri o minuti. Gli eventi e il risultato mantengono salvataggi espliciti. Modifiche in bozza e conflitti restano visibili; i campi sono bloccati durante le richieste.
 
@@ -44,7 +48,7 @@ I report distinguono presenze effettive, disponibilità previste e impiego. Ogni
 
 | Funzione | Amministratore | Team manager | Allenatore | Segretario |
 | --- | --- | --- | --- | --- |
-| Consultare agenda, presenze, partite e report | Si | Si | Si | Si |
+| Consultare allenamenti, presenze, partite e report | Si | Si | Si | Si |
 | Registrare presenze, convocati, risultati ed eventi | Si | Si | Si | No |
 | Creare e aggiornare rosa, tesseramenti e scadenze | Si | Si | No | Si |
 | Leggere e aggiornare note tecniche riservate | Si | No | Si | No |

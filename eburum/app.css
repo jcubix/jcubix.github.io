@@ -2821,3 +2821,81 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
     outline-offset:-2px
   }
 }
+.training-hub-controls,
+.training-reply-controls {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:12px;
+  margin:24px 0;
+}
+.training-hub-controls > input,
+.training-reply-controls > input {
+  flex:1 1 220px;
+  min-width:0;
+}
+.planning-details > summary,
+.planning-notes > summary {
+  min-height:44px;
+  cursor:pointer;
+  padding:12px 0;
+  font-weight:600;
+}
+.training-actual-entry {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  column-gap:20px;
+  border-block:1px solid var(--border);
+  padding:20px 0;
+  margin:20px 0;
+}
+.training-actual-entry h3 { margin:0 0 4px; }
+.training-actual-entry p { grid-column:1; margin:0; }
+.training-actual-entry button { grid-column:2; grid-row:1 / span 2; align-self:center; }
+.training-replies { margin:24px 0; }
+.training-reply-row {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:16px;
+  padding:16px 0;
+  border-bottom:1px solid var(--border);
+}
+.training-reply-row > div:first-child { min-width:0; }
+.training-reply-row small { display:block; }
+.reply-choice,
+.attendance-quick { display:flex; flex-wrap:wrap; gap:8px; }
+.reply-choice button,
+.attendance-quick button { min-height:44px; }
+.reply-choice button[aria-pressed="true"],
+.attendance-quick button[aria-pressed="true"],
+#pendingReplyFilter[aria-pressed="true"] {
+  background:var(--brand-blue);
+  border-color:var(--sky);
+  color:var(--text);
+}
+.attendance-quick { margin-top:12px; }
+.attendance-row { grid-template-columns:minmax(0,1fr) auto; }
+.attendance-actions {
+  grid-column:1 / -1;
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:space-between;
+  gap:12px;
+  align-items:center;
+}
+.attendance-actions .attendance-quick { margin-top:0; }
+.attendance-actions > button { margin-left:auto; }
+.planned-reply { color:var(--muted); display:block; }
+@media (max-width:600px) {
+  .training-reply-row { align-items:stretch; flex-direction:column; gap:10px; }
+  .reply-choice button { flex:1; padding-inline:10px; }
+  .training-actual-entry { grid-template-columns:1fr; gap:8px; }
+  .training-actual-entry button { grid-column:1; grid-row:auto; justify-self:stretch; }
+  .training-reply-controls > button { flex:1 1 130px; }
+  .attendance-actions { gap:8px; }
+  .attendance-actions .attendance-quick { width:100%; }
+  .attendance-actions .attendance-quick > button { flex:1; padding-inline:8px; }
+}
+
+#trainingCounts { margin:0 0 18px; }

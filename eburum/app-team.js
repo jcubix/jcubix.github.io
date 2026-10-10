@@ -1,11 +1,11 @@
+import { planningModal } from './app-training-planning.js';
 import { readonlyActivity } from './app-access.js';
 import { usersModal } from './app-admin.js';
 import { bindDialog } from './app-dialogs.js';
 import { bindExtensions, renderExtensions } from './app-hooks.js';
 import { mountCallupCopy, mountMatchResults } from './app-operations.js';
 import { ROLE_ORDER, canManage, canOperate, canTechnical, db, esc, fail, fetchAllRows, fmt, isAdmin, refresh, render, sortPlayers, state, teamOwner, teamRequestGuard, teamRole, toast, today } from './app-part1.js';
-import { draftChanged } from './app-part3.js';
-import { configureActivityWorkflow, matchPhase, mountMatchPhases, setBusyControls, startActualAttendance, trackDialogDraft } from './app-workflows.js';
+import { configureActivityWorkflow, matchPhase, setBusyControls } from './app-workflows.js';
 
 const roleLabels = {
   admin: "Amministratore",
@@ -45,60 +45,15 @@ function expiringPlayers() {
     );
 }
 function activityCard(a) {
-  const rows = activityRows(a.id),
-    called = rows.filter((r) => r.called),
-    waiting = called.filter((r) => r.availability === "In attesa").length;
-  return `<button class="activity-card" data-open-activity="${a.id}"><span class="activity-date"><b>${new Date(a.activity_date + "T12:00:00").getDate()}</b><small>${new Intl.DateTimeFormat("it-IT", { month: "short" }).format(new Date(a.activity_date + "T12:00:00"))}</small></span><span class="activity-main"><span class="activity-type">${esc(a.activity_type)} · ${esc(a.status)}</span><strong>${esc(activityLabel(a))}</strong><span>${clock(a.start_time)}${a.location ? " · " + esc(a.location) : ""}</span><small>${called.length} convocati${waiting ? " · " + waiting + " risposte da registrare" : ""}</small></span><span aria-hidden="true">›</span></button>`;
+  const rows = activityRows(a.id), called = rows.filter((r) => r.called);
+ const summary=a.activity_type==="Partita"?`${called.length} convocati`:a.activity_type==="Allenamento"?(a.session_id?"Presenze confermate":`${rows.filter(r=>r.availability!=="In attesa").length} risposte registrate · ${state.players.filter(p=>p.active||rows.some(r=>r.player_id===p.id)).filter(p=>!rows.some(r=>r.player_id===p.id&&r.availability!=="In attesa")).length} da sollecitare`):"Appuntamento staff";
+  return `<button class="activity-card" data-open-activity="${a.id}"><span class="activity-date"><b>${new Date(a.activity_date + "T12:00:00").getDate()}</b><small>${new Intl.DateTimeFormat("it-IT", { month: "short" }).format(new Date(a.activity_date + "T12:00:00"))}</small></span><span class="activity-main"><strong>${esc(activityLabel(a))}</strong><span class="activity-type">${a.activity_type==="Allenamento"?esc(a.status):esc(a.activity_type)+" · "+esc(a.status)}</span><span>${clock(a.start_time)}${a.location ? " · " + esc(a.location) : ""}</span><small>${summary}</small></span><span aria-hidden="true">›</span></button>`;
 }
 function morePage() {
-  return `<div class="section-title"><div><h2>Strumenti squadra</h2><p class="muted">${roleLabels[teamRole()]} · ${esc(state.user.email || "")}</p></div></div><div class="list tool-list">${renderExtensions("tools")}<button data-page="training"><b>Registra presenze</b><span>Allenamenti e attività svolte</span></button><button data-page="register"><b>Registro</b><span>Consulta e correggi le presenze</span></button><button data-page="reports"><b>Report e statistiche</b><span>Presenze, convocazioni e minuti giocati</span></button>${canManage() ? "<button data-expiries><b>Scadenze e tesseramenti</b><span>Certificati e documenti da verificare</span></button>" : ""}${isAdmin() ? '<button id="teamUsers"><b>Gestione staff</b><span>Utenze e ruoli della squadra condivisa</span></button>' : ""}</div>`;
+  return `<div class="section-title"><div><h2>Strumenti squadra</h2><p class="muted">${roleLabels[teamRole()]} · ${esc(state.user.email || "")}</p></div></div><div class="list tool-list">${renderExtensions("tools")}<button data-page="meetings"><b>Riunioni</b><span>Appuntamenti e note dello staff</span></button><button data-page="register"><b>Registro</b><span>Consulta e correggi le presenze</span></button><button data-page="reports"><b>Report e statistiche</b><span>Presenze, convocazioni e minuti giocati</span></button>${canManage() ? "<button data-expiries><b>Scadenze e tesseramenti</b><span>Certificati e documenti da verificare</span></button>" : ""}${isAdmin() ? '<button id="teamUsers"><b>Gestione staff</b><span>Utenze e ruoli della squadra condivisa</span></button>' : ""}</div>`;
 }
 function bindMore() {
   document.querySelector("#teamUsers")?.addEventListener("click", usersModal);
-}
-function agendaPage() {
-  teamArrays();
-  return `<div class="section-title"><div><h2>Agenda squadra</h2><div class="muted">Allenamenti, partite e riunioni in un solo posto.</div></div><button class="primary" data-new-activity>+ Attività</button></div><div class="agenda-controls"><input id="agendaSearch" type="search" aria-label="Cerca attività" placeholder="Cerca titolo o luogo"><div class="report-tabs"><button data-agenda-scope="upcoming" class="active">In programma</button><button data-agenda-scope="all">Tutte</button></div><div class="form-grid"><div class="field"><label for="agendaFrom">Dal</label><input type="date" id="agendaFrom"></div><div class="field"><label for="agendaType">Tipo attività</label><select id="agendaType"><option value="">Tutte le attività</option><option>Allenamento</option><option>Partita</option><option>Riunione</option></select></div></div></div><div class="list" id="agendaList"></div>`;
-}
-function bindAgenda() {
-  let scope = "upcoming";
-  const paint = () => {
-    const q = document
-        .querySelector("#agendaSearch")
-        .value.toLocaleLowerCase("it"),
-      from = document.querySelector("#agendaFrom").value,
-      type = document.querySelector("#agendaType").value;
-    const rows = state.activities
-      .filter(
-        (a) =>
-          (scope === "all" || a.status === "Programmato") &&
-          (!from || a.activity_date >= from) &&
-          (!type || a.activity_type === type) &&
-          `${a.title} ${a.location || ""}`.toLocaleLowerCase("it").includes(q),
-      )
-      .sort((a, b) =>
-        (a.activity_date + (a.start_time || "")).localeCompare(
-          b.activity_date + (b.start_time || ""),
-        ),
-      );
-    document.querySelector("#agendaList").innerHTML =
-      rows.map(activityCard).join("") ||
-      '<div class="card empty">Nessuna attività corrisponde ai filtri.</div>';
-    bindTeamLinks();
-  };
-  for (const id of ["agendaSearch", "agendaFrom", "agendaType"])
-    document.querySelector("#" + id).oninput = paint;
-  document.querySelectorAll("[data-agenda-scope]").forEach(
-    (b) =>
-      (b.onclick = () => {
-        scope = b.dataset.agendaScope;
-        document
-          .querySelectorAll("[data-agenda-scope]")
-          .forEach((x) => x.classList.toggle("active", x === b));
-        paint();
-      }),
-  );
-  paint();
 }
 function bindTeamLinks() {
   document
@@ -106,7 +61,10 @@ function bindTeamLinks() {
     .forEach((b) => (b.onclick = () => openActivity(b.dataset.openActivity)));
   document
     .querySelectorAll("[data-new-activity]")
-    .forEach((b) => (b.onclick = () => activityModal()));
+    .forEach((b) => (b.onclick = () => planningModal({activity_type:"Allenamento"})));
+  document.querySelectorAll("[data-new-training]").forEach(b=>b.onclick=()=>planningModal({activity_type:"Allenamento"}));
+  document.querySelectorAll("[data-new-meeting]").forEach(b=>b.onclick=()=>planningModal({activity_type:"Riunione"}));
+  document.querySelectorAll("[data-new-match]").forEach(b=>b.onclick=()=>activityModal({activity_type:"Partita"}));
   document
     .querySelectorAll("[data-player-sheet]")
     .forEach((b) => (b.onclick = () => playerSheet(b.dataset.playerSheet)));
@@ -145,12 +103,14 @@ async function openActivity(id, preferredTab = "auto") {
     ]);
     if (a.error || r.error || t.error) throw a.error || r.error || t.error;
     if (!current()) return;
+    if(!canOperate())return readonlyActivity(a.data);
     activityModal(a.data, r.data, t.data[0], preferredTab === "auto" ? (a.data.match_id && ["during","after"].includes(matchPhase(a.data)) ? "results" : "details") : preferredTab);
   } catch (e) {
     fail(e);
   } finally {state.openingActivity=false}
 }
 function activityModal(a = {}, savedRows = [], technical = {}, preferredTab = "details") {
+ if(a.activity_type!=="Partita"&&!a.match_id)return planningModal(a,savedRows);
  if(!canOperate()){if(a.id)readonlyActivity(a);else toast("Creazione attività riservata allo staff operativo");return}
   teamArrays();
   const root = document.createElement("div");
@@ -180,7 +140,7 @@ function activityModal(a = {}, savedRows = [], technical = {}, preferredTab = "d
   );
   const field = (id, label, type, value = "") =>
     `<div class="field"><label for="${id}">${label}</label><input id="${id}" type="${type}" value="${esc(value || "")}"></div>`;
-  root.innerHTML = `<section class="modal activity-modal" role="dialog" aria-modal="true" aria-labelledby="activityTitle"><div class="modal-head"><div><h2 id="activityTitle">${a.id ? esc(activityLabel(a)) : "Nuova attività"}</h2></div><button id="closeActivity" aria-label="Chiudi attività">✕</button></div><div class="activity-tabs" role="tablist" aria-label="Scheda attività"><button type="button" data-activity-tab="details" role="tab" aria-selected="true">Organizzazione</button><button type="button" data-activity-tab="roster" role="tab" aria-selected="false">Convocazioni</button>${canTechnical() ? '<button type="button" data-activity-tab="technical" role="tab" aria-selected="false">Formazione</button>' : ""}${a.match_id ? '<button type="button" data-activity-tab="results" role="tab" aria-selected="false">Risultato ed eventi</button>' : ""}</div><div id="matchReadiness" class="notice field-space" role="status"></div><form id="activityForm" novalidate><section data-activity-panel="details"><div class="form-grid"><div class="field"><label for="activityType">Tipo</label><select id="activityType" ${a.id ? "disabled" : ""}>${["Allenamento", "Partita", "Riunione"].map((t) => `<option ${a.activity_type === t ? "selected" : ""}>${t}</option>`).join("")}</select></div><div class="field"><label for="activityName">Titolo / avversario</label><input id="activityName" maxlength="160" required value="${esc(a.title || "")}"></div>${field("activityDate", "Data", "date", a.activity_date || today())}${field("activityStart", "Inizio", "time", a.start_time)}${field("activityEnd", "Fine", "time", a.end_time)}<div class="field"><label for="activityState">Stato</label><select id="activityState">${["Programmato", "Concluso", "Annullato"].map((t) => `<option ${a.status === t ? "selected" : ""}>${t}</option>`).join("")}</select></div></div><div class="field field-space"><label for="activityLocation">Campo / luogo</label><input id="activityLocation" maxlength="500" value="${esc(a.location || "")}"></div><h3 class="sheet-heading">Ritrovo e organizzazione</h3><div class="form-grid">${field("activityMeetingTime", "Ora ritrovo", "time", a.meeting_time)}${field("activityMeetingPlace", "Luogo ritrovo", "text", a.meeting_place)}</div><div class="field field-space"><label for="activityNote">Indicazioni per lo staff</label><textarea id="activityNote" rows="3" maxlength="10000" placeholder="Trasporto, divise, documenti, materiale…">${esc(a.organization_note || "")}</textarea></div>${a.id ? `<div class="session-tools">${a.match_id ? '<button type="button" id="activityMatch">Risultato ed eventi</button>' : ""}<button type="button" id="activityAttendance">${a.session_id ? "Apri presenze" : "Registra presenze"}</button></div>` : ""}</section><section data-activity-panel="roster" hidden><div class="notice">Disponibilità prevista e convocazione. Le presenze effettive si confermano dopo la gara.</div><input type="search" id="rosterSearch" aria-label="Cerca convocato" placeholder="Cerca giocatore"><div id="rosterCounts" class="attendance-counts field-space"></div><div class="list field-space" id="activityRoster"></div></section>${canTechnical() ? `<section data-activity-panel="technical" hidden><div class="notice">Note tecniche visibili soltanto ad amministratori e allenatori.</div><div id="formationPreview" class="formation-preview" aria-label="Titolari raggruppati per ruolo"></div><div class="field field-space"><label for="formation">Modulo</label><input id="formation" maxlength="30" value="${esc(technical?.formation || "")}" placeholder="Es. 4-3-3"></div><div class="field field-space"><label for="technicalNote">Osservazioni tecniche</label><textarea id="technicalNote" rows="4" maxlength="10000">${esc(technical?.note || "")}</textarea></div><p class="muted">Titolari, panchina, posizione e minuti giocati si compilano dalla scheda di ogni convocato. I minuti sono registrati dallo staff.</p></section>` : ""}<div class="modal-actions"><button class="ghost" id="cancelActivity" type="button">Annulla</button><button class="primary" type="submit">${a.id ? "Salva attività" : "Crea attività"}</button></div><p id="activityFeedback" role="status" aria-live="polite"></p></form></section>`;
+  root.innerHTML = `<section class="modal activity-modal" role="dialog" aria-modal="true" aria-labelledby="activityTitle"><div class="modal-head"><div><h2 id="activityTitle">${a.id ? esc(activityLabel(a)) : "Nuova partita"}</h2></div><button id="closeActivity" aria-label="Chiudi attività">✕</button></div><div class="activity-tabs" role="tablist" aria-label="Scheda attività"><button type="button" data-activity-tab="details" role="tab" aria-selected="true">Organizzazione</button><button type="button" data-activity-tab="roster" role="tab" aria-selected="false">Convocazioni</button>${canTechnical() ? '<button type="button" data-activity-tab="technical" role="tab" aria-selected="false">Formazione</button>' : ""}${a.match_id ? '<button type="button" data-activity-tab="results" role="tab" aria-selected="false">Risultato ed eventi</button>' : ""}</div><div id="matchReadiness" class="notice field-space" role="status"></div><form id="activityForm" novalidate><section data-activity-panel="details"><div class="form-grid"><input id="activityType" type="hidden" value="Partita"><div class="field"><label for="activityName">Titolo / avversario</label><input id="activityName" maxlength="160" required value="${esc(a.title || "")}"></div>${field("activityDate", "Data", "date", a.activity_date || today())}${field("activityStart", "Inizio", "time", a.start_time)}${field("activityEnd", "Fine", "time", a.end_time)}<div class="field"><label for="activityState">Stato</label><select id="activityState">${["Programmato", "Concluso", "Annullato"].map((t) => `<option ${a.status === t ? "selected" : ""}>${t}</option>`).join("")}</select></div></div><div class="field field-space"><label for="activityLocation">Campo / luogo</label><input id="activityLocation" maxlength="500" value="${esc(a.location || "")}"></div><h3 class="sheet-heading">Ritrovo e organizzazione</h3><div class="form-grid">${field("activityMeetingTime", "Ora ritrovo", "time", a.meeting_time)}${field("activityMeetingPlace", "Luogo ritrovo", "text", a.meeting_place)}</div><div class="field field-space"><label for="activityNote">Indicazioni per lo staff</label><textarea id="activityNote" rows="3" maxlength="10000" placeholder="Trasporto, divise, documenti, materiale…">${esc(a.organization_note || "")}</textarea></div></section><section data-activity-panel="roster" hidden><div class="notice">Inserisci la distinta dei convocati, poi assegna titolari e panchina.</div><input type="search" id="rosterSearch" aria-label="Cerca convocato" placeholder="Cerca giocatore"><div id="rosterCounts" class="attendance-counts field-space"></div><div class="list field-space" id="activityRoster"></div></section>${canTechnical() ? `<section data-activity-panel="technical" hidden><div class="notice">Note tecniche visibili soltanto ad amministratori e allenatori.</div><div id="formationPreview" class="formation-preview" aria-label="Titolari raggruppati per ruolo"></div><div class="field field-space"><label for="formation">Modulo</label><input id="formation" maxlength="30" value="${esc(technical?.formation || "")}" placeholder="Es. 4-3-3"></div><div class="field field-space"><label for="technicalNote">Osservazioni tecniche</label><textarea id="technicalNote" rows="4" maxlength="10000">${esc(technical?.note || "")}</textarea></div><p class="muted">Titolari, panchina, posizione e minuti giocati si compilano dalla scheda di ogni convocato. I minuti sono registrati dallo staff.</p></section>` : ""}<div class="modal-actions"><button class="ghost" id="cancelActivity" type="button">Annulla</button><button class="primary" type="submit">${a.id ? "Salva organizzazione e convocati" : "Crea partita"}</button></div><p id="activityFeedback" role="status" aria-live="polite"></p></form></section>`;
   if(a.match_id){const tabs=root.querySelector('.activity-tabs');tabs.prepend(tabs.querySelector('[data-activity-tab="results"]'));const readiness=root.querySelector('#matchReadiness');root.querySelector('[data-activity-panel="roster"]').prepend(readiness);root.querySelector('#activityMatch')?.remove();root.querySelector('[data-activity-panel="technical"] .muted')?.replaceChildren(document.createTextNode('Impiego e posizione si impostano nelle convocazioni. I minuti seguono la modalità scelta nelle impostazioni della partita.'));}
   document.body.appendChild(root);
   const $ = (s) => root.querySelector(s);
@@ -221,9 +181,9 @@ function activityModal(a = {}, savedRows = [], technical = {}, preferredTab = "d
   const paint = () => {
     updateSaveState();
     const pitch = $("#formationPreview");
-    const rowsForWarnings=[...entries.values()].filter(r=>r.called),unavailable=rowsForWarnings.filter(r=>r.availability==="Indisponibile"),startersCount=rowsForWarnings.filter(r=>r.lineup==="Titolare").length;
+    const rowsForWarnings=[...entries.values()].filter(r=>r.called),startersCount=rowsForWarnings.filter(r=>r.lineup==="Titolare").length;
     $("#matchReadiness").hidden=$("#activityType").value!=="Partita";
-    $("#matchReadiness").textContent=$("#activityType").value==="Partita"?`${rowsForWarnings.length} convocati · ${startersCount}/11 titolari${unavailable.length?` · Attenzione: ${unavailable.length} convocati indisponibili`:""}${startersCount!==11?" · Formazione da completare":""}`:"";
+    $("#matchReadiness").textContent=$("#activityType").value==="Partita"?`${rowsForWarnings.length} convocati · ${startersCount}/11 titolari${startersCount!==11?" · Formazione da completare":""}`:"";
     if (pitch) {
       const starters = players.filter((p) => {
         const r = entries.get(p.id);
@@ -244,9 +204,8 @@ function activityModal(a = {}, savedRows = [], technical = {}, preferredTab = "d
     const q = $("#rosterSearch").value.toLocaleLowerCase("it");
     const rows = [...entries.values()],
       called = rows.filter((r) => r.called);
-    const responseRows=rows;
     $("#rosterCounts").innerHTML =
-      `<span class="badge b-blue">${called.length} convocati</span><span class="badge b-green">${responseRows.filter((r) => r.availability === "Disponibile").length} disponibili</span><span class="badge b-yellow">${responseRows.filter((r) => r.availability === "In attesa").length} non hanno risposto</span>`;
+      `<span class="badge b-blue">${called.length} convocati</span><span class="badge b-green">${called.filter(r=>r.lineup==="Titolare").length} titolari</span><span class="badge b-gray">${called.filter(r=>r.lineup==="Panchina").length} panchina</span>`;
     $("#activityRoster").innerHTML =
       players
         .filter((p) =>
@@ -254,7 +213,7 @@ function activityModal(a = {}, savedRows = [], technical = {}, preferredTab = "d
         )
         .map((p) => {
           const r = entries.get(p.id);
-          return `<div class="roster-person"><label><input type="checkbox" data-called="${p.id}" ${$("#activityType").value!=="Partita"?"hidden":""} ${r.called ? "checked" : ""}><span><b>${esc(p.surname)} ${esc(p.name)}</b><small>${esc(p.role || "")}${!p.active ? " · Inattivo" : ""}</small></span></label><button type="button" data-roster-edit="${p.id}">${esc(r.availability)}</button><div class="row-sub">${r.called ? `${esc(r.lineup)} · ${r.minutes_played} min${r.position ? " · " + esc(r.position) : ""}` : "Non convocato"}</div></div>`;
+          return `<div class="roster-person"><label><input type="checkbox" data-called="${p.id}" ${$("#activityType").value!=="Partita"?"hidden":""} ${r.called ? "checked" : ""}><span><b>${esc(p.surname)} ${esc(p.name)}</b><small>${esc(p.role || "")}${!p.active ? " · Inattivo" : ""}</small></span></label><button type="button" data-roster-edit="${p.id}">${r.called?"Impiego e minuti":"Scheda"}</button><div class="row-sub">${r.called ? `${esc(r.lineup)} · ${r.minutes_played} min${r.position ? " · " + esc(r.position) : ""}` : "Non convocato"}</div></div>`;
         })
         .join("") || '<div class="empty">Nessun giocatore.</div>';
     $("#activityRoster")
@@ -289,13 +248,9 @@ function activityModal(a = {}, savedRows = [], technical = {}, preferredTab = "d
       );
     paintRosterExtras();
   };
-  const paintRosterExtras=()=>{
-   root.querySelectorAll('.roster-person').forEach(el=>{const id=el.querySelector('[data-roster-edit]').dataset.rosterEdit,r=entries.get(id),quick=document.createElement('div');quick.className='roster-quick';quick.setAttribute('role','group');quick.setAttribute('aria-label','Risposta di '+players.find(p=>p.id===id)?.surname);quick.innerHTML=['Disponibile','Indisponibile','In attesa'].map(v=>`<button type="button" data-availability="${v}" aria-pressed="${r.availability===v}">${v==='In attesa'?'Non risposto':v}</button>`).join('');el.append(quick);quick.querySelectorAll('[data-availability]').forEach(b=>b.onclick=()=>{if(busy)return;r.availability=b.dataset.availability;dirty=true;paint()});if($("#activityType").value!=='Partita')el.querySelector('.row-sub').hidden=true;
-   });workflow?.filterRows();
-  };
+  const paintRosterExtras=()=>{workflow?.filterRows()};
   $("#rosterSearch").oninput = paint;
   workflow=configureActivityWorkflow(root,a,entries,players,value=>{if(value===null)return dirty;dirty=true;updateSaveState();return dirty},paint);
-  $("#activityType").addEventListener('change',()=>{const match=$("#activityType").value==='Partita';root.querySelector('[data-activity-tab="roster"]').textContent=match?'Convocazioni':'Sondaggio';root.querySelector('[data-activity-tab="technical"]')?.toggleAttribute('hidden',!match);if(match&&!root.querySelector('.match-phases'))mountMatchPhases(root,{...a,activity_type:'Partita'});if(root.querySelector('.match-phases'))root.querySelector('.match-phases').hidden=!match;if(match&&!root.querySelector('.callup-copy'))mountCallupCopy(root,a,entries,players,()=>dirty);if(root.querySelector('.callup-copy'))root.querySelector('.callup-copy').hidden=!match;paint()});
   paint();
   if($("#activityType").value==="Partita")mountCallupCopy(root,a,entries,players,()=>dirty);
   if(a.match_id&&state.matches.some(m=>m.id===a.match_id))resultPanel=mountMatchResults(root,a,()=>!busy&&!dirty,()=>state.matches.find(m=>m.id===a.match_id),timeline=>{for(const row of timeline.roster)if(entries.has(row.player_id))Object.assign(entries.get(row.player_id),row);paint()});
@@ -307,17 +262,6 @@ function activityModal(a = {}, savedRows = [], technical = {}, preferredTab = "d
         return toast("Salva o annulla le modifiche prima di aprire la partita");
       root.querySelector('[data-activity-tab="results"]')?.click();
     });
-    $("#activityAttendance").onclick = () => {
-      if (dirty)
-        return toast(
-          "Salva o annulla le modifiche prima di aprire le presenze",
-        );
-      if(a.status==='Annullato')return toast('L’attività è annullata');
-      if(a.activity_date>today())return toast('Per una data futura registra il sondaggio. Le presenze si confermano dopo l’attività.');
-      if(state.trainingDraft?.saving)return toast('Attendi il salvataggio in corso');
-      if(state.trainingDraft&&draftChanged(state.trainingDraft)&&!confirm('Scartare la bozza presenze non salvata?'))return;
-      root.remove();startActualAttendance(a,true);
-    };
   }
   $("#activityForm").onsubmit = async (e) => {
     e.preventDefault();
@@ -386,12 +330,12 @@ function activityModal(a = {}, savedRows = [], technical = {}, preferredTab = "d
       dirty = false;
       root.remove();
       await refresh();
-      toast("Attività e convocazioni salvate");
+      toast("Partita e convocazioni salvate");
     } catch (error) {
       $("#activityFeedback").textContent = error.message;
       if(error.code==='40001'){
-        const reopen=document.createElement('button');reopen.type='button';reopen.className='ghost wide field-space';reopen.textContent='Ricarica Agenda';
-        $("#activityFeedback").appendChild(reopen);reopen.onclick=async()=>{if(!confirm('Scartare questa bozza e caricare l’Agenda aggiornata?'))return;root.remove();state.page='agenda';await refresh()};
+        const reopen=document.createElement('button');reopen.type='button';reopen.className='ghost wide field-space';reopen.textContent='Ricarica partite';
+        $("#activityFeedback").appendChild(reopen);reopen.onclick=async()=>{if(!confirm('Scartare questa bozza e caricare le partite aggiornate?'))return;root.remove();state.page='matches';await refresh()};
       }
     } finally {
       busy = false;
@@ -404,7 +348,7 @@ function rosterModal(p, r, onSave, isMatch = true) {
   const automatic=isMatch&&(!r.activity_id||state.matches.find(m=>state.activities.some(a=>a.id===r.activity_id&&a.match_id===m.id))?.minutes_auto);
   const root = document.createElement("div");
   root.className = "modal-back event-back";
-  root.innerHTML = `<section class="modal" role="dialog" aria-modal="true" aria-labelledby="rosterTitle"><div class="modal-head"><h2 id="rosterTitle">${esc(p.surname)} ${esc(p.name)}</h2><button aria-label="Chiudi convocato">✕</button></div><form><div class="field"><label for="availability">Disponibilità</label><select id="availability">${["In attesa", "Disponibile", "Indisponibile"].map((v) => `<option ${r.availability === v ? "selected" : ""}>${v}</option>`).join("")}</select></div><div class="field field-space"><label for="responseNote">Nota sulla risposta</label><textarea id="responseNote" maxlength="2000" rows="2">${esc(r.response_note || "")}</textarea></div><div class="form-grid field-space"><div class="field"><label for="lineup">Impiego</label><select id="lineup" ${!r.called || !isMatch ? "disabled" : ""}>${["Non impiegato", "Titolare", "Panchina"].map((v) => `<option ${r.lineup === v ? "selected" : ""}>${v}</option>`).join("")}</select></div><div class="field"><label for="minutesPlayed">Minuti giocati</label><input id="minutesPlayed" type="number" min="0" max="130" step="1" value="${r.minutes_played}" ${!r.called || !isMatch || automatic ? "disabled" : ""}></div></div><div class="field field-space"><label for="position">Posizione in campo</label><input id="position" maxlength="50" value="${esc(r.position || "")}"></div><p class="muted">${r.called ? automatic ? "Minuti automatici dai titolari e dagli eventi. Verifica la durata nelle impostazioni della partita." : "Convocato. Indica i minuti effettivamente giocati." : "Seleziona la convocazione nella lista per indicare l’impiego."}</p><button class="primary wide field-space" type="submit">Conferma in bozza</button><p role="status" id="rosterError"></p></form></section>`;
+  root.innerHTML = `<section class="modal" role="dialog" aria-modal="true" aria-labelledby="rosterTitle"><div class="modal-head"><h2 id="rosterTitle">${esc(p.surname)} ${esc(p.name)}</h2><button aria-label="Chiudi convocato">✕</button></div><form><div class="form-grid field-space"><div class="field"><label for="lineup">Impiego</label><select id="lineup" ${!r.called || !isMatch ? "disabled" : ""}>${["Non impiegato", "Titolare", "Panchina"].map((v) => `<option ${r.lineup === v ? "selected" : ""}>${v}</option>`).join("")}</select></div><div class="field"><label for="minutesPlayed">Minuti giocati</label><input id="minutesPlayed" type="number" min="0" max="130" step="1" value="${r.minutes_played}" ${!r.called || !isMatch || automatic ? "disabled" : ""}></div></div><div class="field field-space"><label for="position">Posizione in campo</label><input id="position" maxlength="50" value="${esc(r.position || "")}"></div><p class="muted">${r.called ? automatic ? "Minuti automatici dai titolari e dagli eventi. Verifica la durata nelle impostazioni della partita." : "Convocato. Indica i minuti effettivamente giocati." : "Seleziona la convocazione nella lista per indicare l’impiego."}</p><button class="primary wide field-space" type="submit">Conferma in bozza</button><p role="status" id="rosterError"></p></form></section>`;
   document.body.appendChild(root);
   const $ = (s) => root.querySelector(s);
   const close = () => root.remove();
@@ -418,8 +362,6 @@ function rosterModal(p, r, onSave, isMatch = true) {
       return;
     }
     Object.assign(r, {
-      availability: $("#availability").value,
-      response_note: $("#responseNote").value.trim() || null,
       lineup: r.called && isMatch ? $("#lineup").value : "Non impiegato",
       minutes_played: r.called && isMatch ? minutes : 0,
       position: $("#position").value.trim() || null,
@@ -501,4 +443,4 @@ function expiryModal() {
   );
 }
 
-export { roleLabels, teamArrays, activityRows, activityLabel, clock, expiryLimit, expiringPlayers, activityCard, morePage, bindMore, agendaPage, bindAgenda, bindTeamLinks, openActivity, activityModal, rosterModal, playerSheet, expiryModal };
+export { roleLabels, teamArrays, activityRows, activityLabel, clock, expiryLimit, expiringPlayers, activityCard, morePage, bindMore, bindTeamLinks, openActivity, activityModal, rosterModal, playerSheet, expiryModal };
