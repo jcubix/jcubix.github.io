@@ -8,7 +8,7 @@
     "preview": "vite preview --host 127.0.0.1",
     "test": "npm --prefix tests test && node --test tests/frontend-interactions.cjs",
     "typecheck": "tsc --noEmit",
-    "verify": "npm run build && npm test && node --test tests/frontend-build.cjs",
+    "verify": "npm run format:check && npm run build && npm test && node --test tests/frontend-build.cjs",
     "format:check": "prettier --check src vite.config.ts tsconfig.json components.json"
   },
   "dependencies": {
@@ -20,7 +20,6 @@
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "lucide-react": "1.55.0",
-    "motion": "14.1.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-router-dom": "7.18.4",

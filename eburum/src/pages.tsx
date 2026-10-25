@@ -1,36 +1,51 @@
+import { dayLabel, matchOutcome } from "../app-presentation.js";
 import {
+  canPlanRole,
+  canManageRole,
+  canViewExpiriesRole,
+  canViewFinanceRole,
+  canTechnicalRole,
+} from "../app-roles.js";
+import {
+  useEffect,
   useDeferredValue,
   useLayoutEffect,
   useRef,
   useState,
   type ReactNode,
 } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useSearchParams } from "react-router-dom";
+import { matchTitle } from "../app-match-display.js";
 import {
   Plus,
+  Trophy,
   ChevronRight,
-  FileText,
-  MessageSquare,
+  FileChartColumn,
   CalendarDays,
-  ClipboardList,
   ShieldCheck,
   Users,
-  CircleAlert,
   RotateCcw,
+  ArrowUpRight,
+  Search,
+  Flag,
+  Settings2,
+  Wallet,
+  Presentation,
+  LogOut,
+  CheckCheck,
 } from "lucide-react";
 import { Button } from "./components/ui/button";
-import { Input } from "./components/ui/input";
-import type { Runtime, Page, Activity, Player } from "./types";
+import type { Runtime, Page, Player } from "./types";
 const date = (value: string) =>
   new Intl.DateTimeFormat("it-IT", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
   }).format(new Date(value + "T12:00:00"));
-const canOperate = (runtime: Runtime) =>
-  ["admin", "manager", "coach"].includes(runtime.state.team?.role || "");
+const canPlan = (runtime: Runtime) =>
+  canPlanRole(runtime.state.team?.role || "");
 const canManage = (runtime: Runtime) =>
-  ["admin", "manager", "secretary"].includes(runtime.state.team?.role || "");
+  canManageRole(runtime.state.team?.role || "");
 export function PageHeading({
   title,
   description,
@@ -41,9 +56,9 @@ export function PageHeading({
   children?: ReactNode;
 }) {
   return (
-    <div className="page-heading">
+    <div className="sc-page-heading page-heading">
       <div>
-        <h2>{title}</h2>
+        <h1>{title}</h1>
         <p>{description}</p>
       </div>
       {children}
@@ -71,474 +86,891 @@ export function FeatureSurface({
   }, [runtime, page, revision]);
   return <div ref={host} className="domain-surface" />;
 }
-function ActivityRow({
-  runtime,
-  activity,
-}: {
-  runtime: Runtime;
-  activity: Activity;
-}) {
-  const rows = runtime.state.roster.filter(
-      (r) => r.activity_id === activity.id,
-    ),
-    people = runtime.state.players.filter(
-      (p) => p.active || rows.some((r) => r.player_id === p.id),
-    );
-  const replies = rows.filter((r) => r.availability !== "In attesa").length;
-  const summary =
-    activity.activity_type === "Allenamento"
-      ? activity.session_id
-        ? "Presenze confermate"
-        : `${replies} risposte registrate · ${people.filter((p) => !rows.some((r) => r.player_id === p.id && r.availability !== "In attesa")).length} da sollecitare`
-      : "Appuntamento staff";
-  const d = new Date(activity.activity_date + "T12:00:00");
-  return (
-    <button
-      className="activity-card native-activity"
-      data-open-activity={activity.id}
-      onClick={() => void runtime.actions.openActivity(activity.id)}
-    >
-      <span className="activity-date">
-        <b>{d.getDate()}</b>
-        <small>
-          {new Intl.DateTimeFormat("it-IT", { month: "short" }).format(d)}
-        </small>
-      </span>
-      <span className="activity-main">
-        <strong>{activity.title}</strong>
-        <span className="activity-type">{activity.status}</span>
-        <span>
-          {activity.start_time?.slice(0, 5) || "Orario da definire"}
-          {activity.location ? " · " + activity.location : ""}
-        </span>
-        <small>{summary}</small>
-      </span>
-      <ChevronRight size={18} />
-    </button>
-  );
-}
 export function TrainingPage({
   runtime,
-  revision: _revision,
+  revision,
 }: {
   runtime: Runtime;
   revision: number;
 }) {
-  const [query, setQuery] = useState(""),
-    [scope, setScope] = useState("upcoming");
-  const search = useDeferredValue(query).toLocaleLowerCase("it");
-  const rows = runtime.state.activities
+  const activities = runtime.state.activities
+    .filter((a) => a.activity_type === "Allenamento")
+    .sort((a, b) => b.activity_date.localeCompare(a.activity_date));
+  const upcoming = [...activities]
     .filter(
       (a) =>
-        a.activity_type === "Allenamento" &&
-        (scope === "all" || a.status === "Programmato") &&
-        `${a.title} ${a.location || ""}`
-          .toLocaleLowerCase("it")
-          .includes(search),
+        a.status === "Programmato" &&
+        a.activity_date >= new Date().toLocaleDateString("en-CA"),
     )
-    .sort((a, b) =>
-      scope === "all"
-        ? b.activity_date.localeCompare(a.activity_date)
-        : a.activity_date.localeCompare(b.activity_date),
+    .sort((a, b) => a.activity_date.localeCompare(b.activity_date));
+  const [params, setParams] = useSearchParams();
+  const [selected, setSelected] = useState(params.get("activity") || ""),
+    [scope, setScope] = useState(
+      params.get("scope") === "actual"
+        ? "actual"
+        : upcoming.length
+          ? "upcoming"
+          : "actual",
+    ),
+    host = useRef<HTMLDivElement>(null),
+    editor = useRef<ReturnType<
+      Runtime["actions"]["mountTrainingReplies"]
+    > | null>(null);
+  const filtered =
+    scope === "actual"
+      ? activities.filter(
+          (a) =>
+            a.status === "Programmato" &&
+            !a.session_id &&
+            a.activity_date <= new Date().toLocaleDateString("en-CA"),
+        )
+      : upcoming;
+  const activity = filtered.find((a) => a.id === selected) || filtered[0];
+  const canLeave = () =>
+    !editor.current?.isBusy() &&
+    (!editor.current?.isDirty() ||
+      window.confirm("Scartare le risposte non salvate?"));
+  useLayoutEffect(() => {
+    if (
+      !host.current ||
+      !activity ||
+      document.getElementById("workspaceEditor")?.childElementCount
+    )
+      return;
+    const mounted = runtime.actions.mountTrainingReplies(
+      host.current,
+      activity,
     );
+    editor.current = mounted;
+    if (scope === "actual")
+      host.current
+        .querySelector<HTMLButtonElement>('[data-training-phase="actual"]')
+        ?.click();
+    runtime.setNavigationGuard(
+      () =>
+        !mounted.isBusy() &&
+        (!mounted.isDirty() ||
+          window.confirm("Scartare le risposte non salvate?")),
+    );
+    return () => {
+      mounted.dispose();
+      editor.current = null;
+      runtime.setNavigationGuard(null);
+    };
+  }, [runtime, activity?.id, revision, scope]);
   return (
-    <>
+    <div className="sc-surface">
       <PageHeading
         title="Allenamenti"
-        description="Risposte WhatsApp prima. Presenze effettive dopo."
+        description="Programma, presenze e storico"
       >
-        {canOperate(runtime) ? (
-          <Button onClick={runtime.actions.newTraining}>
+        {canPlan(runtime) ? (
+          <Button
+            onClick={() => {
+              if (canLeave()) runtime.actions.newTraining();
+            }}
+            aria-label="Nuovo allenamento"
+          >
             <Plus />
-            Allenamento
+            <span className="page-add-label">Allenamento</span>
           </Button>
         ) : null}
       </PageHeading>
-      {canOperate(runtime) && runtime.actions.hasAttendanceDraft() ? (
+      {runtime.actions.hasAttendanceDraft() ? (
         <Button
           variant="secondary"
-          onClick={runtime.actions.resumeAttendance}
+          onClick={() => {
+            if (canLeave()) runtime.actions.resumeAttendance();
+          }}
           className="mb-5"
         >
           <RotateCcw />
           Riprendi la bozza presenze
         </Button>
       ) : null}
-      <div className="page-controls">
-        <Input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          aria-label="Cerca allenamento"
-          placeholder="Cerca allenamento o campo"
-        />
-        <div
-          className="segmented"
-          role="group"
-          aria-label="Periodo allenamenti"
-        >
-          {[
-            ["upcoming", "In programma"],
-            ["all", "Tutti"],
-          ].map(([key, label]) => (
-            <button
-              key={key}
-              aria-pressed={scope === key}
-              onClick={() => setScope(key)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="list" id="trainingHubList">
-        {rows.length ? (
-          rows.map((a) => (
-            <ActivityRow key={a.id} runtime={runtime} activity={a} />
-          ))
-        ) : (
-          <p className="empty">
-            Nessun allenamento corrisponde ai filtri. Consulta Tutti o programma
-            il prossimo.
-          </p>
-        )}
-      </div>
-    </>
-  );
-}
-export function MeetingsPage({ runtime }: { runtime: Runtime }) {
-  const rows = runtime.state.activities
-    .filter((a) => a.activity_type === "Riunione")
-    .sort((a, b) => b.activity_date.localeCompare(a.activity_date));
-  return (
-    <>
-      <PageHeading
-        title="Riunioni"
-        description="Appuntamenti e indicazioni per lo staff."
+      <div
+        className="segmented training-scope"
+        role="group"
+        aria-label="Fase allenamenti"
       >
-        {canOperate(runtime) ? (
-          <Button onClick={runtime.actions.newMeeting}>
-            <Plus />
-            Riunione
-          </Button>
-        ) : null}
-      </PageHeading>
-      <div className="list">
-        {rows.length ? (
-          rows.map((a) => (
-            <ActivityRow key={a.id} runtime={runtime} activity={a} />
-          ))
-        ) : (
-          <p className="empty">Nessuna riunione programmata.</p>
-        )}
+        {[
+          ["upcoming", "Prossimi"],
+          ["actual", "Da confermare"],
+        ].map(([key, label]) => (
+          <button
+            key={key}
+            aria-pressed={scope === key}
+            onClick={() => {
+              if (canLeave()) {
+                setScope(key);
+                setSelected("");
+                setParams(
+                  (p) => {
+                    p.set("scope", key);
+                    p.delete("activity");
+                    return p;
+                  },
+                  { replace: true },
+                );
+              }
+            }}
+          >
+            {label}
+            {key === "actual" ? (
+              <span className="filter-count">
+                {
+                  activities.filter(
+                    (a) =>
+                      a.status === "Programmato" &&
+                      !a.session_id &&
+                      a.activity_date <= new Date().toLocaleDateString("en-CA"),
+                  ).length
+                }
+              </span>
+            ) : null}
+          </button>
+        ))}
       </div>
-    </>
+      {activity ? (
+        <>
+          <div className="sc-activity-line">
+            <span className="sc-date-tile">
+              <b>{new Date(activity.activity_date + "T12:00:00").getDate()}</b>
+              <small>
+                {new Intl.DateTimeFormat("it-IT", { month: "short" })
+                  .format(new Date(activity.activity_date + "T12:00:00"))
+                  .toUpperCase()}
+              </small>
+            </span>
+            <div>
+              <h2>{activity.title}</h2>
+              <p>
+                {activity.start_time?.slice(0, 5) || "Orario da definire"}
+                {activity.location ? " · " + activity.location : ""}
+              </p>
+              <div
+                className="training-reply-bars"
+                aria-label="Risposte WhatsApp"
+              >
+                <span className="text-success">
+                  Sì{" "}
+                  {
+                    runtime.actions
+                      .pollEntries(activity)
+                      .filter((r) => r.row.availability === "Disponibile")
+                      .length
+                  }
+                </span>
+                <span className="text-destructive">
+                  No{" "}
+                  {
+                    runtime.actions
+                      .pollEntries(activity)
+                      .filter((r) => r.row.availability === "Indisponibile")
+                      .length
+                  }
+                </span>
+                <span>
+                  In attesa{" "}
+                  {
+                    runtime.actions
+                      .pollEntries(activity)
+                      .filter((r) => r.row.availability === "In attesa").length
+                  }
+                </span>
+              </div>
+            </div>
+            <span
+              className={
+                "office-status sc-status status-" +
+                (activity.status === "Concluso"
+                  ? "complete"
+                  : activity.status === "Annullato"
+                    ? "cancelled"
+                    : "planned")
+              }
+            >
+              {activity.status}
+            </span>
+          </div>
+          {canTechnicalRole(runtime.state.team?.role || "") ? (
+            <NavLink
+              className="utility-link training-whiteboard-link"
+              to={"/whiteboard?activity=" + activity.id}
+            >
+              <Presentation size={18} />
+              Crea lavagna per l’allenamento
+            </NavLink>
+          ) : null}
+          <div ref={host} data-detail={"activity:" + activity.id} />
+        </>
+      ) : (
+        <div className="sc-empty-state">
+          <CheckCheck aria-hidden="true" />
+          <h3>
+            {scope === "actual"
+              ? "Nessuna presenza da confermare"
+              : "Nessun allenamento in programma"}
+          </h3>
+          <p>
+            {scope === "actual"
+              ? "Le presenze degli allenamenti trascorsi sono aggiornate."
+              : "Programma la prossima attività della squadra."}
+          </p>
+          {canPlan(runtime) ? (
+            <Button
+              onClick={() => {
+                if (canLeave()) runtime.actions.newTraining();
+              }}
+            >
+              Programma allenamento
+            </Button>
+          ) : null}
+        </div>
+      )}
+      {filtered.length > 1 && (
+        <details className="sc-training-picker">
+          <summary>
+            <CalendarDays size={17} />
+            Scegli allenamento
+          </summary>
+          <label htmlFor="trainingPicker" className="sr-only">
+            Scegli allenamento
+          </label>
+          <select
+            id="trainingPicker"
+            value={activity?.id || ""}
+            onChange={(e) => {
+              if (canLeave()) {
+                setSelected(e.target.value);
+                setParams(
+                  (p) => {
+                    p.set("activity", e.target.value);
+                    p.set("scope", scope);
+                    return p;
+                  },
+                  { replace: true },
+                );
+              }
+            }}
+          >
+            {filtered.map((a) => (
+              <option key={a.id} value={a.id}>
+                {date(a.activity_date)} · {a.title} · {a.status}
+              </option>
+            ))}
+          </select>
+        </details>
+      )}
+      <NavLink className="training-register-link" to="/register">
+        <CalendarDays size={20} />
+        <span className="utility-copy">
+          <strong>Registro degli allenamenti</strong>
+          <small>
+            Presenze, note e schede degli allenamenti passati o annullati
+          </small>
+        </span>
+        <ChevronRight size={20} />
+      </NavLink>
+    </div>
   );
 }
 export function MatchesPage({ runtime }: { runtime: Runtime }) {
+  const today = new Date().toLocaleDateString("en-CA"),
+    activities = runtime.state.activities;
+  const cancelled = (m: Runtime["state"]["matches"][number]) =>
+    activities.some((a) => a.match_id === m.id && a.status === "Annullato");
+  const played = (m: Runtime["state"]["matches"][number]) =>
+    m.match_date <= today && !!matchOutcome(m) && !cancelled(m);
+  const results = [...runtime.state.matches]
+    .filter(played)
+    .sort((a, b) => b.match_date.localeCompare(a.match_date));
+  const upcoming = [...runtime.state.matches]
+    .filter((m) => !played(m) && m.match_date >= today && !cancelled(m))
+    .sort((a, b) => a.match_date.localeCompare(b.match_date));
+  const incomplete = [...runtime.state.matches]
+    .filter((m) => !played(m) && m.match_date < today && !cancelled(m))
+    .sort((a, b) => b.match_date.localeCompare(a.match_date));
+  const others = runtime.state.matches.filter((m) => cancelled(m));
+  const attention = runtime.state.players.filter((p) => {
+    const d = runtime.actions.playerDiscipline(p.id);
+    return d.redAttention || d.pending.length || d.review.length;
+  }).length;
+  const card = (match: Runtime["state"]["matches"][number]) => {
+    const away = match.venue === "Trasferta",
+      activity = activities.find((a) => a.match_id === match.id),
+      outcome = played(match) ? matchOutcome(match) : null;
+    return (
+      <button
+        className={
+          "sc-match-preview " + (match.match_date === today ? "is-today" : "")
+        }
+        key={match.id}
+        onClick={() => runtime.actions.openMatch(match)}
+        aria-label={matchTitle(match) + ", " + date(match.match_date)}
+      >
+        <div className="sc-match-meta">
+          <span>
+            {date(match.match_date)}
+            {match.match_date === today ? (
+              <span className="badge tone-warning">OGGI</span>
+            ) : null}
+          </span>
+          <span className={"badge " + (away ? "venue-away" : "venue-home")}>
+            {match.venue}
+          </span>
+          {outcome ? (
+            <span
+              className={"match-outcome outcome-" + outcome}
+              aria-label={
+                { V: "Vittoria", N: "Pareggio", P: "Sconfitta" }[
+                  outcome as "V" | "N" | "P"
+                ]
+              }
+            >
+              {outcome}
+            </span>
+          ) : null}
+          {cancelled(match) ? (
+            <span className="badge tone-neutral">Annullata</span>
+          ) : null}
+        </div>
+        <div className="match-scoreboard">
+          <span className={"match-team " + (!away ? "is-own" : "")}>
+            {away ? match.opponent : "Eburum"}
+          </span>
+          {outcome ? (
+            <strong className="match-goals">
+              {away ? match.goals_against : match.goals_for}
+            </strong>
+          ) : (
+            <strong className="match-future-time">
+              {activity?.start_time?.slice(0, 5) || "Da definire"}
+              <small>
+                {match.match_date >= today
+                  ? dayLabel(match.match_date, today)
+                  : "Risultato da registrare"}
+              </small>
+            </strong>
+          )}
+          <span className={"match-team " + (away ? "is-own" : "")}>
+            {away ? "Eburum" : match.opponent}
+          </span>
+          {outcome ? (
+            <strong className="match-goals">
+              {away ? match.goals_for : match.goals_against}
+            </strong>
+          ) : null}
+        </div>
+        <footer>
+          <span>
+            {outcome
+              ? "Risultato ed eventi"
+              : canPlan(runtime)
+                ? "Prepara la distinta"
+                : "Consulta partita"}
+          </span>
+          <ArrowUpRight size={20} />
+        </footer>
+      </button>
+    );
+  };
   return (
-    <>
+    <div className="sc-surface">
       <PageHeading
         title="Partite"
-        description="Convocati, risultati ed eventi dal campo."
+        description="Dalla distinta al fischio finale."
       >
-        {canOperate(runtime) ? (
-          <Button onClick={runtime.actions.newMatch}>
+        {canPlan(runtime) ? (
+          <Button onClick={runtime.actions.newMatch} aria-label="Nuova partita">
             <Plus />
-            Partita
+            <span className="page-add-label">Partita</span>
           </Button>
         ) : null}
       </PageHeading>
-      <Button
-        variant="secondary"
-        className="mb-5"
-        onClick={runtime.actions.discipline}
-      >
-        <ShieldCheck />
-        Cartellini e diffide
-      </Button>
-      <div className="match-list">
-        {runtime.state.matches.length ? (
-          runtime.state.matches.map((match) => (
-            <article className="card match-card" key={match.id}>
-              <div className="match-meta">
-                <span>{date(match.match_date)}</span>
-                <span className="badge b-blue">{match.venue}</span>
-              </div>
-              <div className="match-heading">
-                <h3>
-                  Eburum <span>–</span> {match.opponent}
-                </h3>
-                <strong className="match-score" aria-label="Risultato">
-                  {match.goals_for != null && match.goals_against != null
-                    ? `${match.goals_for} : ${match.goals_against}`
-                    : "– : –"}
-                </strong>
-              </div>
-              {match.note ? (
-                <p className="match-note-preview">{match.note}</p>
-              ) : null}
-              <div className="match-card-footer">
-                <span className="row-sub">
-                  {match.minutes_auto
-                    ? "Minuti automatici"
-                    : "Minuti registrati dallo staff"}
-                </span>
-                <Button
-                  variant="secondary"
-                  onClick={() => runtime.actions.openMatch(match)}
-                >
-                  {canOperate(runtime)
-                    ? "Gestisci partita"
-                    : "Consulta partita"}
-                  <ChevronRight />
-                </Button>
-              </div>
-            </article>
-          ))
-        ) : (
-          <p className="empty">
-            Nessuna partita. Aggiungi la prossima gara per registrare eventi e
-            note.
-          </p>
-        )}
+      <div className="sc-section-heading">
+        <h2>Calendario gare</h2>
+        <button
+          onClick={runtime.actions.discipline}
+          aria-label="Cartellini"
+          aria-describedby={attention ? "disciplineCount" : undefined}
+        >
+          <Flag size={20} />
+          Cartellini
+          {attention ? (
+            <span id="disciplineCount" className="badge tone-warning">
+              {attention}
+              <span className="sr-only"> da verificare</span>
+            </span>
+          ) : null}
+        </button>
       </div>
-    </>
+      {results.length ? (
+        <div className="recent-form" aria-label="Ultime cinque partite">
+          <span>Forma recente</span>
+          {results
+            .slice(0, 5)
+            .reverse()
+            .map((m) => (
+              <span
+                key={m.id}
+                className={"match-outcome outcome-" + matchOutcome(m)}
+                title={date(m.match_date) + " · " + m.opponent}
+              >
+                {matchOutcome(m)}
+              </span>
+            ))}
+        </div>
+      ) : null}
+      {upcoming.length ? (
+        <section className="sc-match-upcoming">
+          <div className="sc-section-heading">
+            <h2>Prossima</h2>
+          </div>
+          <div className="sc-match-grid">{card(upcoming[0])}</div>
+          {upcoming.length > 1 ? (
+            <details className="sc-match-future-list">
+              <summary>Altre gare in programma ({upcoming.length - 1})</summary>
+              <div className="sc-match-grid">{upcoming.slice(1).map(card)}</div>
+            </details>
+          ) : null}
+        </section>
+      ) : null}
+      {incomplete.length ? (
+        <section>
+          <div className="sc-section-heading">
+            <h2>Da completare</h2>
+            <span>{incomplete.length} senza risultato</span>
+          </div>
+          <div className="sc-match-grid">{incomplete.map(card)}</div>
+        </section>
+      ) : null}
+      {results.length ? (
+        <section>
+          <div className="sc-section-heading">
+            <h2>Risultati</h2>
+          </div>
+          <div className="sc-match-grid">{results.map(card)}</div>
+        </section>
+      ) : null}
+      {others.length ? (
+        <section>
+          <div className="sc-section-heading">
+            <h2>Gare annullate</h2>
+          </div>
+          <div className="sc-match-grid">{others.map(card)}</div>
+        </section>
+      ) : null}
+      {!runtime.state.matches.length ? (
+        <div className="sc-empty-state">
+          <Trophy aria-hidden="true" />
+          <h3>Nessuna partita registrata</h3>
+          <p>La prossima gara e i risultati della squadra compariranno qui.</p>
+          {canPlan(runtime) ? (
+            <Button onClick={runtime.actions.newMatch}>
+              Programma partita
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+      {canTechnicalRole(runtime.state.team?.role || "") ? (
+        <NavLink className="utility-link" to="/whiteboard">
+          <Presentation size={20} />
+          <span className="utility-copy">
+            <strong>Lavagna tattica delle partite</strong>
+            <small>Campo, foto e annotazioni</small>
+          </span>
+          <ChevronRight size={20} />
+        </NavLink>
+      ) : null}
+    </div>
   );
 }
+
 function PlayerRow({ runtime, player }: { runtime: Runtime; player: Player }) {
-  const [busy, setBusy] = useState(false),
-    [error, setError] = useState("");
   const cards = runtime.actions.playerDiscipline(player.id);
   return (
-    <article className="row native-player">
-      <div className="row-main">
-        <b className="row-title">
-          {player.surname} {player.name}
-        </b>
-        <p className="row-sub">
-          {player.shirt_number ? "#" + player.shirt_number + " · " : ""}
-          {player.phone || "Nessun telefono"}
-        </p>
-        {error ? (
-          <p role="alert" className="text-sm text-red-200">
-            {error}
-          </p>
-        ) : null}
-      </div>
-      <div className="toolbar">
-        {cards.total || cards.review.length ? (
-          <span
-            className={
-              "badge " +
-              (cards.pending.length || cards.review.length
-                ? "b-red"
-                : cards.diffida
-                  ? "b-yellow"
-                  : "b-gray")
-            }
-          >
-            {cards.total} gialli{cards.diffida ? " · Diffida" : ""}
-            {cards.pending.length
+    <article className="sc-directory-row native-player">
+      <button
+        className="player-directory-entry"
+        onClick={() => runtime.actions.playerSheet(player.id)}
+        aria-label={`Scheda di ${player.surname} ${player.name}`}
+      >
+        <span className="sc-person-avatar" aria-hidden="true">
+          {player.name.slice(0, 1)}
+          {player.surname.slice(0, 1)}
+        </span>
+        <span className="sc-person-copy">
+          <b>
+            {player.surname} {player.name}
+          </b>
+          <small>{player.role}</small>
+        </span>
+      </button>
+      {cards.redAttention ||
+      cards.diffida ||
+      cards.pending.length ||
+      cards.review.length ? (
+        <span className="sc-warning">
+          {cards.redAttention ? "Espulsione da gestire" : ""}
+          {cards.redAttention &&
+          (cards.diffida || cards.pending.length || cards.review.length)
+            ? " · "
+            : ""}
+          {cards.diffida ? "Diffida" : ""}
+          {cards.pending.length
+            ? cards.diffida
               ? " · Da scontare"
-              : cards.review.length
+              : "Da scontare"
+            : cards.review.length
+              ? cards.diffida
                 ? " · Da verificare"
-                : ""}
-          </span>
-        ) : null}
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => runtime.actions.playerSheet(player.id)}
-        >
-          Scheda
-        </Button>
-        {canManage(runtime) ? (
-          <>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => runtime.actions.editPlayer(player)}
-            >
-              Modifica
-            </Button>
-            <Button
-              variant={player.active ? "destructive" : "secondary"}
-              size="sm"
-              disabled={busy}
-              onClick={async () => {
-                if (
-                  player.active &&
-                  !confirm(
-                    `Rimuovere ${player.surname} ${player.name} dalla rosa attiva? Lo storico resterà disponibile.`,
-                  )
-                )
-                  return;
-                setBusy(true);
-                setError("");
-                try {
-                  await runtime.actions.setPlayerActive(player, !player.active);
-                } catch (err) {
-                  setError(
-                    err instanceof Error
-                      ? err.message
-                      : "Modifica non riuscita. Riprova.",
-                  );
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              {busy ? "Salvataggio…" : player.active ? "Rimuovi" : "Riattiva"}
-            </Button>
-          </>
-        ) : null}
-      </div>
+                : "Da verificare"
+              : ""}
+        </span>
+      ) : null}
+      <span className="sc-shirt">{player.shirt_number ?? ""}</span>
+      <button
+        className="sc-player-open"
+        aria-label={`Apri scheda di ${player.surname} ${player.name}`}
+        onClick={() => runtime.actions.playerSheet(player.id)}
+      >
+        <ChevronRight size={17} />
+      </button>
     </article>
   );
 }
 export function PlayersPage({ runtime }: { runtime: Runtime }) {
-  const [query, setQuery] = useState(""),
-    search = useDeferredValue(query).toLocaleLowerCase("it");
-  const filtered = runtime.state.players.filter((p) =>
-      `${p.surname} ${p.name} ${p.role}`
+  const [params, setParams] = useSearchParams();
+  const [query, setQuery] = useState(params.get("q") || "");
+  const [sort, setSort] = useState<"surname" | "role">(
+    params.get("sort") === "surname" ? "surname" : "role",
+  );
+  const [desktop, setDesktop] = useState(
+    () => window.matchMedia("(min-width:1024px)").matches,
+  );
+  useEffect(() => {
+    const media = window.matchMedia("(min-width:1024px)");
+    const update = () => setDesktop(media.matches);
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  useEffect(() => {
+    setQuery(params.get("q") || "");
+    setSort(params.get("sort") === "surname" ? "surname" : "role");
+  }, [params]);
+  const search = useDeferredValue(query).toLocaleLowerCase("it");
+  const roleOrder = ["Portiere", "Difensore", "Centrocampista", "Attaccante"];
+  const compare = (a: Player, b: Player) =>
+    a.surname.localeCompare(b.surname, "it") ||
+    a.name.localeCompare(b.name, "it");
+  const all = runtime.state.players.filter((p) =>
+      (p.surname + " " + p.name + " " + p.role)
         .toLocaleLowerCase("it")
         .includes(search),
     ),
-    roles = ["Portiere", "Difensore", "Centrocampista", "Attaccante"],
-    inactive = filtered.filter((p) => !p.active);
+    active = all.filter((p) => p.active).sort(compare),
+    inactive = all.filter((p) => !p.active).sort(compare);
+  const groups = [
+    ...roleOrder,
+    ...new Set(
+      active
+        .map((p) => p.role || "Ruolo non indicato")
+        .filter((role) => !roleOrder.includes(role)),
+    ),
+  ];
+  const collection = (people: Player[]) =>
+    desktop ? (
+      <table className="roster-table sc-directory">
+        <thead>
+          <tr>
+            <th scope="col">Giocatore</th>
+            <th scope="col">Ruolo</th>
+            <th scope="col">Numero</th>
+            <th scope="col">Segnalazioni</th>
+          </tr>
+        </thead>
+        <tbody>
+          {people.map((p) => {
+            const d = runtime.actions.playerDiscipline(p.id);
+            return (
+              <tr key={p.id}>
+                <td>
+                  <button onClick={() => runtime.actions.playerSheet(p.id)}>
+                    {p.surname} {p.name}
+                  </button>
+                </td>
+                <td>{p.role}</td>
+                <td>{p.shirt_number ?? "—"}</td>
+                <td>
+                  {d.redAttention
+                    ? "Espulsione da gestire"
+                    : d.pending.length
+                      ? "Da scontare"
+                      : d.review.length
+                        ? "Da verificare"
+                        : d.diffida
+                          ? "Diffida"
+                          : "—"}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    ) : (
+      <div className="sc-directory">
+        {people.map((p) => (
+          <PlayerRow key={p.id} runtime={runtime} player={p} />
+        ))}
+      </div>
+    );
   return (
-    <>
-      <PageHeading
-        title="Rosa"
-        description="Schede dei giocatori e gestione della squadra."
-      >
+    <div className="sc-surface">
+      <PageHeading title="Rosa" description="Le persone, prima dei numeri.">
         {canManage(runtime) ? (
-          <Button onClick={() => runtime.actions.editPlayer()}>
+          <Button
+            onClick={() => runtime.actions.editPlayer()}
+            aria-label="Nuovo giocatore"
+          >
             <Plus />
-            Giocatore
+            <span className="page-add-label">Giocatore</span>
           </Button>
         ) : null}
       </PageHeading>
-      <Input
-        type="search"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        aria-label="Cerca giocatore"
-        placeholder="Nome, cognome o ruolo"
-        className="mb-6"
-      />
-      {roles.map((role) => {
-        const players = filtered
-          .filter((p) => p.active && p.role === role)
-          .sort(
-            (a, b) =>
-              (a.role_order || 9999) - (b.role_order || 9999) ||
-              a.surname.localeCompare(b.surname, "it"),
-          );
-        return players.length ? (
-          <section className="role-group" key={role}>
-            <div className="role-head">
-              <h3>{role}</h3>
-              <span className="badge b-gray">{players.length}</span>
-            </div>
-            <div className="list">
-              {players.map((p) => (
-                <PlayerRow key={p.id} runtime={runtime} player={p} />
-              ))}
-            </div>
-          </section>
-        ) : null;
-      })}
+      <label className="sc-search">
+        <Search size={20} />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setParams(
+              (p) => {
+                if (e.target.value) p.set("q", e.target.value);
+                else p.delete("q");
+                return p;
+              },
+              { replace: true },
+            );
+          }}
+          placeholder="Cerca un giocatore"
+          aria-label="Cerca un giocatore"
+        />
+      </label>
+      <div className="sc-section-heading">
+        <h2>Rosa attiva</h2>
+        <span>{active.length} giocatori</span>
+      </div>
+      <label className="sc-roster-sort">
+        Ordina per
+        <select
+          value={sort}
+          onChange={(e) => {
+            setSort(e.target.value as "surname" | "role");
+            setParams(
+              (p) => {
+                p.set("sort", e.target.value);
+                return p;
+              },
+              { replace: true },
+            );
+          }}
+          aria-label="Ordina rosa"
+        >
+          <option value="role">Ruolo</option>
+          <option value="surname">Cognome</option>
+        </select>
+      </label>
+      {sort === "role" && active.length
+        ? groups.map((role) => {
+            const players = active.filter(
+              (p) => (p.role || "Ruolo non indicato") === role,
+            );
+            return players.length ? (
+              <section key={role} className="sc-roster-group">
+                <div className="sc-section-heading">
+                  <h3>{role}</h3>
+                  <span>{players.length}</span>
+                </div>
+                {collection(players)}
+              </section>
+            ) : null;
+          })
+        : collection(active)}
+      <div>
+        {!active.length ? (
+          <div className="sc-empty-state">
+            <Search />
+            <h3>Nessun giocatore trovato</h3>
+            <p>Prova con nome, cognome o ruolo.</p>
+          </div>
+        ) : null}
+      </div>
       {inactive.length ? (
         <details className="inactive-box">
           <summary>Giocatori inattivi ({inactive.length})</summary>
-          <div className="list mt-4">
-            {inactive.map((p) => (
-              <PlayerRow key={p.id} runtime={runtime} player={p} />
-            ))}
-          </div>
+          {collection(inactive)}
         </details>
       ) : null}
-      {!filtered.length ? (
-        <p className="empty">Nessun giocatore corrisponde alla ricerca.</p>
-      ) : null}
-    </>
+    </div>
   );
 }
 export function ToolsPage({ runtime }: { runtime: Runtime }) {
-  const links = [
+  const [error, setError] = useState(""),
+    [busy, setBusy] = useState(false),
+    docs = runtime.actions.documentSummary(),
+    role = runtime.state.team?.role || "";
+  const groups = [
     {
-      page: "communications",
-      label: "Comunicazioni",
-      description: "Messaggi condivisi e scadenza automatica",
-      icon: MessageSquare,
+      label: "Squadra",
+      tools: [
+        {
+          page: "players",
+          label: "Rosa",
+          description: "Giocatori, ruoli e schede personali",
+          icon: Users,
+        },
+        {
+          page: "reports",
+          label: "Report giocatori",
+          description: "Presenze, minuti e rendimento",
+          icon: FileChartColumn,
+        },
+        {
+          action: runtime.actions.discipline,
+          label: "Cartellini e diffide",
+          description: "Ammonizioni e gare da scontare",
+          icon: Flag,
+        },
+      ],
     },
     {
-      page: "reports",
-      label: "Report e statistiche",
-      description: "Schede individuali, grafici e PDF",
-      icon: FileText,
+      label: "Attività",
+      tools: [
+        {
+          page: "whiteboard",
+          label: "Lavagna tattica",
+          description: "Campo, foto e annotazioni per lo staff tecnico",
+          icon: Presentation,
+          visible: canTechnicalRole(role),
+        },
+        {
+          page: "register",
+          label: "Registro",
+          description: "Consulta lo storico delle presenze",
+          icon: CalendarDays,
+        },
+      ],
     },
     {
-      page: "register",
-      label: "Registro",
-      description: "Consulta le presenze e lo storico delle correzioni",
-      icon: ClipboardList,
+      label: "Amministrazione",
+      tools: [
+        {
+          action: runtime.actions.expiries,
+          label: "Scadenze e tesseramenti",
+          description: "Certificati, documenti e tesseramenti",
+          icon: ShieldCheck,
+          visible: canViewExpiriesRole(role),
+          count: docs.review,
+        },
+        {
+          action: runtime.actions.users,
+          label: "Gestione utenti",
+          description: "Accessi e ruoli dello staff",
+          icon: Settings2,
+          visible: role === "admin",
+        },
+        {
+          page: "finance",
+          label: "Economia",
+          description: "Fondi, movimenti, ricevute e rendiconto",
+          icon: Wallet,
+          visible: canViewFinanceRole(role),
+        },
+      ],
     },
-    {
-      page: "meetings",
-      label: "Riunioni",
-      description: "Appuntamenti e note dello staff",
-      icon: CalendarDays,
-    },
-  ] as const;
+  ];
   return (
-    <>
+    <div className="sc-surface sc-tools">
       <PageHeading
-        title="Strumenti squadra"
-        description="Le funzioni di supporto al lavoro dello staff."
+        title="Altro"
+        description="Tutti gli strumenti del tuo club."
       />
-      <div className="native-tool-list">
-        {links.map(({ page, label, description, icon: Icon }) => (
-          <NavLink key={page} to={"/" + page}>
-            <Icon size={22} />
-            <span>
-              <b>{label}</b>
-              <small>{description}</small>
-            </span>
-            <ChevronRight size={18} />
-          </NavLink>
-        ))}
-        <button onClick={runtime.actions.discipline}>
-          <ShieldCheck size={22} />
-          <span>
-            <b>Cartellini e diffide</b>
-            <small>Soglie, squalifiche e gare scontate</small>
-          </span>
-          <ChevronRight size={18} />
+      {groups.map((group) => (
+        <section className="tool-group" key={group.label}>
+          <h2>{group.label}</h2>
+          <div className="sc-tool-list">
+            {group.tools
+              .filter((t) => !("visible" in t) || t.visible !== false)
+              .map((t) => {
+                const Icon = t.icon,
+                  content = (
+                    <>
+                      <span className="sc-row-icon">
+                        <Icon size={20} />
+                      </span>
+                      <span className="sc-row-copy">
+                        <strong>{t.label}</strong>
+                        <small>{t.description}</small>
+                      </span>
+                      {"count" in t && t.count ? (
+                        <span className="badge tone-warning">
+                          {t.count}
+                          <span className="sr-only"> da verificare</span>
+                        </span>
+                      ) : null}
+                      <ChevronRight size={20} className="sc-chevron" />
+                    </>
+                  );
+                return "page" in t ? (
+                  <NavLink
+                    key={t.label}
+                    className="sc-list-row"
+                    to={"/" + t.page}
+                  >
+                    {content}
+                  </NavLink>
+                ) : (
+                  <button
+                    key={t.label}
+                    className="sc-list-row"
+                    onClick={t.action}
+                  >
+                    {content}
+                  </button>
+                );
+              })}
+          </div>
+        </section>
+      ))}
+      <footer className="tools-footer">
+        <button
+          className="danger"
+          disabled={busy}
+          onClick={async () => {
+            if (busy) return;
+            setBusy(true);
+            setError("");
+            try {
+              await runtime.actions.logout();
+            } catch {
+              setError("Uscita non riuscita. Riprova.");
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          <LogOut size={20} />
+          Esci
         </button>
-        {canManage(runtime) ? (
-          <button onClick={runtime.actions.expiries}>
-            <CircleAlert size={22} />
-            <span>
-              <b>Scadenze e tesseramenti</b>
-              <small>Certificati e documenti da verificare</small>
-            </span>
-            <ChevronRight size={18} />
-          </button>
-        ) : null}
-        {runtime.state.team?.role === "admin" ? (
-          <button onClick={runtime.actions.users}>
-            <Users size={22} />
-            <span>
-              <b>Gestione staff</b>
-              <small>Utenze e ruoli della squadra condivisa</small>
-            </span>
-            <ChevronRight size={18} />
-          </button>
-        ) : null}
-      </div>
-    </>
+        <small>Eburum · Versione 2026.10</small>
+      </footer>
+      {error ? (
+        <p role="alert" className="text-destructive">
+          {error}
+        </p>
+      ) : null}
+    </div>
   );
 }

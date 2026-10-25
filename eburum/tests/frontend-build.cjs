@@ -23,3 +23,29 @@ test('built worker caches static assets only, preserves other apps and waits for
  handlers.fetch({request:new Request('https://eburum.test/assets/'+file),respondWith:p=>result=p});await result;assert.equal(puts.length,0,'HTML must never poison a JavaScript asset');
  offline=true;handlers.fetch({request:new Request('https://eburum.test/assets/'+file),respondWith:p=>result=p});assert.equal((await result).status,503);
 });
+
+test('built entry starts login without a pre-injected legacy client',()=>{
+ const {execFileSync}=require('node:child_process'),{pathToFileURL}=require('node:url');
+ const html=fs.readFileSync(path.join(root,'index.html'),'utf8'),entry=html.match(/src="([^"]+assets\/index-[^"]+\.js)"/)[1];
+ const script=`
+  import assert from 'node:assert/strict';
+  import {JSDOM} from ${JSON.stringify(pathToFileURL(require.resolve('jsdom')).href)};
+  const dom=new JSDOM('<div id="app"></div>',{url:'https://eburum.test/#/dashboard',pretendToBeVisual:true});
+  for(const key of ['window','document','location','MutationObserver','HTMLElement','Element','Node','localStorage'])Object.defineProperty(globalThis,key,{value:dom.window[key],configurable:true});
+  Object.defineProperty(globalThis,'navigator',{value:dom.window.navigator,configurable:true});
+  globalThis.getComputedStyle=dom.window.getComputedStyle.bind(dom.window);
+  globalThis.requestAnimationFrame=dom.window.requestAnimationFrame.bind(dom.window);globalThis.cancelAnimationFrame=dom.window.cancelAnimationFrame.bind(dom.window);
+  window.matchMedia=()=>({matches:false,addEventListener(){},removeEventListener(){}});
+  window.CONFIG={supabaseUrl:'https://eburum.test',supabaseAnonKey:'test-key',season:'2026/2027'};
+  globalThis.fetch=async request=>{if(String(request).includes('/assets/'))return new Response('');throw Error('Unexpected network during anonymous startup: '+request)};
+  for(const key of ['fetch','Headers','Request','Response'])window[key]=globalThis[key];
+  assert.equal(window.supabase,undefined);
+  await import(${JSON.stringify(pathToFileURL(path.join(root,entry.replace(/^\//,''))).href)});
+  const deadline=Date.now()+3000;
+  while(![...document.querySelectorAll('button')].some(b=>b.textContent==='Accedi')&&Date.now()<deadline)await new Promise(r=>setTimeout(r,20));
+  assert.equal(typeof window.supabase.createClient,'function');
+  assert.ok([...document.querySelectorAll('button')].some(b=>b.textContent==='Accedi'),'real built entry must reach login');
+  dom.window.close();process.exit(0);
+ `;
+ execFileSync(process.execPath,['--input-type=module','-e',script],{timeout:10000,stdio:'pipe'});
+});

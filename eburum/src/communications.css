@@ -1,0 +1,55 @@
+.communication-meeting-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.communication-meeting-fields label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.communication-meeting-fields label:last-child {
+  grid-column: 1 / -1;
+}
+.communication-meeting-fields input {
+  width: 100%;
+  min-width: 0;
+}
+.communication-meeting-info {
+  display: grid;
+  gap: 8px;
+  margin-block: 16px;
+}
+.communication-meeting-info p {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.communication-meeting-info svg {
+  flex: none;
+  margin-top: 0px;
+}
+.communication-legacy-meetings {
+  margin-top: 32px;
+  border-top: 1px solid var(--border);
+  padding-top: 24px;
+}
+.communication-legacy-meetings summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.communication-legacy-meetings .sc-list-row {
+  width: 100%;
+  text-align: left;
+  gap: 16px;
+}
+.modern-dialog-overlay {
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+}
+@media (max-width: 360px) {
+  .app-mobile-nav .app-nav-item > span {
+    font-size: 13px;
+  }
+}

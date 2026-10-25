@@ -1,4 +1,12 @@
 import {
+  detailPath,
+  detailListPath,
+  routeDetail,
+} from "../app-presentation.js";
+import { LoadingState } from "./components/ui/loading-state";
+import { installNavigationMotion } from "./navigation-motion";
+import { roleLabels as roleNames } from "../app-roles.js";
+import {
   Component,
   useEffect,
   useLayoutEffect,
@@ -8,21 +16,23 @@ import {
   useId,
   type ReactNode,
 } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { LazyMotion, domAnimation, MotionConfig, m } from "motion/react";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   CalendarDays,
   Home,
   Users,
   Trophy,
-  MoreHorizontal,
-  PanelLeftClose,
-  PanelLeftOpen,
+  LayoutGrid,
   LogOut,
-  MessageSquare,
-  ShieldCheck,
+  Bell,
   LoaderCircle,
   RefreshCw,
+  Settings,
+  MessageSquare,
+  Wallet,
+  Eye,
+  EyeOff,
+  CircleAlert,
 } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
@@ -31,27 +41,24 @@ import {
   TrainingPage,
   MatchesPage,
   PlayersPage,
-  MeetingsPage,
   ToolsPage,
   FeatureSurface,
 } from "./pages";
 import { CommunicationsPage } from "./communications";
+import { ThemePicker } from "./theme";
+import { UserGuide } from "./user-guide";
+import { FinancePage } from "./finance";
+import { WhiteboardPage } from "./whiteboard";
 import { PwaStatus } from "./pwa";
 import type { Runtime, RuntimeSnapshot, Page } from "./types";
 
 const navigation = [
   { page: "dashboard", label: "Home", icon: Home },
-  { page: "training", label: "Allena", icon: CalendarDays },
-  { page: "players", label: "Rosa", icon: Users },
+  { page: "training", label: "Allenamenti", icon: CalendarDays },
+  { page: "communications", label: "Messaggi", icon: MessageSquare },
   { page: "matches", label: "Partite", icon: Trophy },
-  { page: "more", label: "Altro", icon: MoreHorizontal },
+  { page: "more", label: "Altro", icon: LayoutGrid },
 ] as const;
-const roleNames = {
-  admin: "Amministratore",
-  manager: "Team manager",
-  coach: "Allenatore",
-  secretary: "Segretario",
-};
 const allPages = new Set<Page>([
   "dashboard",
   "training",
@@ -62,6 +69,8 @@ const allPages = new Set<Page>([
   "meetings",
   "more",
   "communications",
+  "finance",
+  "whiteboard",
 ]);
 const pageFromPath = (path: string): Page =>
   allPages.has(path.slice(1) as Page) ? (path.slice(1) as Page) : "dashboard";
@@ -90,20 +99,55 @@ export function App({ runtime }: { runtime: Runtime }) {
   const snapshot = useSyncExternalStore(runtime.subscribe, runtime.getSnapshot),
     location = useLocation(),
     navigate = useNavigate(),
-    previousPath = useRef(location.pathname);
+    previousPath = useRef(location.pathname),
+    previousUrl = useRef(location.pathname + location.search);
+  useEffect(() => installNavigationMotion(), []);
+  useEffect(() => {
+    const root = document.documentElement;
+    const pointer = () => {
+      root.dataset.uiInput = "pointer";
+    };
+    const keyboard = () => {
+      root.dataset.uiInput = "keyboard";
+    };
+    window.addEventListener("pointerdown", pointer, true);
+    window.addEventListener("keydown", keyboard, true);
+    return () => {
+      window.removeEventListener("pointerdown", pointer, true);
+      window.removeEventListener("keydown", keyboard, true);
+      delete root.dataset.uiInput;
+    };
+  }, []);
+
   useLayoutEffect(() => {
     if (snapshot.status !== "ready") return;
     if (previousPath.current !== location.pathname) {
       previousPath.current = location.pathname;
       if (runtime.state.trainingDraft?.saving) {
-        navigate("/" + snapshot.page, { replace: true });
+        navigate(previousUrl.current, { replace: true });
         return;
       }
       const page = pageFromPath(location.pathname);
       if (page !== snapshot.page && !runtime.navigate(page))
-        navigate("/" + snapshot.page, { replace: true });
-    } else if (location.pathname !== "/" + snapshot.page)
-      navigate("/" + snapshot.page, { replace: location.pathname === "/" });
+        navigate(previousUrl.current, { replace: true });
+      else previousUrl.current = location.pathname + location.search;
+    } else if (location.pathname !== "/" + snapshot.page) {
+      const detail =
+        [
+          ...document.querySelectorAll<HTMLElement>(".modal-back[data-detail]"),
+        ].some((root) => root.dataset.page === snapshot.page) ||
+        (snapshot.page === "training" &&
+          runtime.state.trainingMode === "actual" &&
+          !!runtime.state.trainingDraft?.id);
+      const closingAttendance =
+        runtime.state.trainingMode !== "actual" &&
+        routeDetail(
+          pageFromPath(location.pathname),
+          location.search,
+        )?.key.startsWith("session:");
+      if (!detail && !closingAttendance)
+        navigate("/" + snapshot.page, { replace: location.pathname === "/" });
+    }
   }, [
     location.pathname,
     snapshot.page,
@@ -114,33 +158,32 @@ export function App({ runtime }: { runtime: Runtime }) {
   ]);
   return (
     <ErrorBoundary>
-      <LazyMotion features={domAnimation}>
-        <MotionConfig
-          reducedMotion="user"
-          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        >
-          <TooltipProvider delayDuration={300}>
-            {snapshot.status === "login" ? (
-              <Login runtime={runtime} />
-            ) : snapshot.status === "ready" ? (
-              <Workspace runtime={runtime} snapshot={snapshot} />
-            ) : (
-              <StatusPage runtime={runtime} snapshot={snapshot} />
-            )}
-            <PwaStatus runtime={runtime} />
-          </TooltipProvider>
-        </MotionConfig>
-      </LazyMotion>
+      <TooltipProvider delayDuration={300}>
+        {snapshot.status === "login" ? (
+          <Login runtime={runtime} />
+        ) : snapshot.status === "ready" ? (
+          <Workspace runtime={runtime} snapshot={snapshot} />
+        ) : (
+          <StatusPage runtime={runtime} snapshot={snapshot} />
+        )}
+        <PwaStatus runtime={runtime} />
+      </TooltipProvider>
     </ErrorBoundary>
   );
 }
-function Brand() {
+function Brand({ season }: { season?: number } = {}) {
   return (
     <div className="app-brand">
       <img src="./icon.svg" width="40" height="40" alt="" />
       <div>
         <strong>EBVRVM</strong>
-        <span>Team Manager</span>
+        <span
+          aria-label={season ? `Stagione ${season}/${season + 1}` : undefined}
+        >
+          {season
+            ? `${season}/${String(season + 1).slice(-2)}`
+            : "Team Manager"}
+        </span>
       </div>
     </div>
   );
@@ -148,6 +191,12 @@ function Brand() {
 function Login({ runtime }: { runtime: Runtime }) {
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
+    [showPassword, setShowPassword] = useState(false),
+    [showRecovery, setShowRecovery] = useState(false),
+    [fieldErrors, setFieldErrors] = useState<{
+      email?: string;
+      password?: string;
+    }>({}),
     pending = useRef(false);
   return (
     <main className="auth-page">
@@ -158,9 +207,29 @@ function Login({ runtime }: { runtime: Runtime }) {
           Accedi con le credenziali ricevute dall’amministratore.
         </p>
         <form
+          noValidate
           onSubmit={async (e) => {
             e.preventDefault();
             if (pending.current) return;
+            const email = e.currentTarget.elements.namedItem(
+                "email",
+              ) as HTMLInputElement,
+              password = e.currentTarget.elements.namedItem(
+                "password",
+              ) as HTMLInputElement;
+            const invalid = {
+              email: !email.value.trim()
+                ? "Inserisci la tua email."
+                : email.validity.typeMismatch
+                  ? "Inserisci un indirizzo email valido."
+                  : undefined,
+              password: !password.value ? "Inserisci la password." : undefined,
+            };
+            setFieldErrors(invalid);
+            if (invalid.email || invalid.password) {
+              (invalid.email ? email : password).focus();
+              return;
+            }
             pending.current = true;
             setBusy(true);
             setError("");
@@ -172,10 +241,21 @@ function Login({ runtime }: { runtime: Runtime }) {
               });
               if (error) throw error;
             } catch (err) {
+              const raw = err instanceof Error ? err.message : "";
+              const known: Record<string, string> = {
+                "Invalid login credentials": "Email o password non corretti.",
+                "Email not confirmed":
+                  "Email non ancora confermata. Contatta l’amministratore.",
+                "Email logins are disabled":
+                  "Accesso con email disattivato. Contatta l’amministratore.",
+              };
               setError(
-                err instanceof Error
-                  ? err.message
-                  : "Accesso non riuscito. Controlla le credenziali e riprova.",
+                known[raw] ||
+                  (/rate limit|too many requests/i.test(raw)
+                    ? "Troppi tentativi. Attendi qualche minuto e riprova."
+                    : /failed to fetch|network/i.test(raw)
+                      ? "Connessione non disponibile. Controlla la rete e riprova."
+                      : "Accesso non riuscito. Controlla le credenziali e riprova."),
               );
             } finally {
               pending.current = false;
@@ -193,32 +273,99 @@ function Login({ runtime }: { runtime: Runtime }) {
               autoComplete="username"
               required
               disabled={busy}
+              aria-invalid={!!fieldErrors.email || !!error}
+              aria-describedby={
+                fieldErrors.email
+                  ? "loginEmailError"
+                  : error
+                    ? "loginError"
+                    : undefined
+              }
             />
           </label>
+          {fieldErrors.email ? (
+            <p
+              id="loginEmailError"
+              className="auth-field-error field-error"
+              role="alert"
+            >
+              {fieldErrors.email}
+            </p>
+          ) : null}
           <label className="grid gap-2" htmlFor="password">
             Password
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              disabled={busy}
-            />
+            <span className="auth-password">
+              <Input
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                required
+                disabled={busy}
+                aria-invalid={!!fieldErrors.password || !!error}
+                aria-describedby={
+                  fieldErrors.password
+                    ? "loginPasswordError"
+                    : error
+                      ? "loginError"
+                      : undefined
+                }
+              />
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={
+                  showPassword ? "Nascondi password" : "Mostra password"
+                }
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </span>
           </label>
+          {fieldErrors.password ? (
+            <p
+              id="loginPasswordError"
+              className="auth-field-error field-error"
+              role="alert"
+            >
+              {fieldErrors.password}
+            </p>
+          ) : null}
+          {error ? (
+            <p id="loginError" role="alert" className="auth-error">
+              <CircleAlert size={18} />
+              {error}
+              {error.includes("Connessione") ? (
+                <Button variant="secondary" type="submit" disabled={busy}>
+                  Riprova
+                </Button>
+              ) : null}
+            </p>
+          ) : null}
           <Button type="submit" disabled={busy}>
             {busy ? (
               <>
                 <LoaderCircle className="animate-spin" />
-                Accesso…
+                Accesso in corso…
               </>
             ) : (
               "Accedi"
             )}
           </Button>
-          <p role="status" className="text-sm text-red-200">
-            {error}
-          </p>
+          <button
+            type="button"
+            className="auth-help-link"
+            onClick={() => setShowRecovery((v) => !v)}
+          >
+            Password dimenticata?
+          </button>
+          {showRecovery ? (
+            <p className="auth-help" role="status">
+              Chiedi all’amministratore una nuova password. Può assegnarla da
+              Gestione utenti → Cambia password.
+            </p>
+          ) : null}
         </form>
         <p className="auth-help">
           Accesso riservato allo staff. Solo gli amministratori creano nuove
@@ -240,10 +387,7 @@ function StatusPage({
       <section className="auth-panel">
         <Brand />
         {snapshot.status === "loading" ? (
-          <p role="status" className="flex items-center gap-3">
-            <LoaderCircle className="size-5 animate-spin" />
-            Caricamento squadra…
-          </p>
+          <LoadingState label="Caricamento squadra…" />
         ) : (
           <>
             <h1>Squadra non caricata</h1>
@@ -271,36 +415,23 @@ function NavItem({
   label,
   icon: Icon,
   selected,
-  collapsed = false,
-  mobile = false,
 }: {
   page: Page;
   label: string;
   icon: typeof Home;
   selected: boolean;
-  collapsed?: boolean;
-  mobile?: boolean;
 }) {
   const link = (
-    <NavLink
+    <Link
       to={"/" + page}
       className={"app-nav-item " + (selected ? "is-active" : "")}
       aria-current={selected ? "page" : undefined}
-      aria-label={collapsed ? label : undefined}
     >
-      {selected ? (
-        <m.span
-          layoutId={
-            mobile ? "nav-mobile" : collapsed ? "nav-collapsed" : "nav-full"
-          }
-          className="nav-selection"
-        />
-      ) : null}
       <Icon size={21} strokeWidth={1.8} />
-      <span className={collapsed ? "sr-only" : ""}>{label}</span>
-    </NavLink>
+      <span>{label}</span>
+    </Link>
   );
-  return collapsed ? <Tooltip label={label}>{link}</Tooltip> : link;
+  return link;
 }
 function SeasonPicker({ runtime }: { runtime: Runtime }) {
   const id = useId();
@@ -352,36 +483,123 @@ function Workspace({
   runtime: Runtime;
   snapshot: RuntimeSnapshot;
 }) {
-  const [collapsed, setCollapsed] = useState(() => {
-      try {
-        return localStorage.getItem("eburum:sidebar:v1") === "collapsed";
-      } catch {
-        return false;
-      }
-    }),
-    [actionError, setActionError] = useState("");
-  const count = runtime.actions.activeCommunications().length;
-  const activeNav =
-    snapshot.page === "communications" ||
-    ["meetings", "register", "reports"].includes(snapshot.page)
-      ? "more"
-      : snapshot.page;
+  const [actionError, setActionError] = useState("");
+  const [offline, setOffline] = useState(!navigator.onLine),
+    [checkingNetwork, setCheckingNetwork] = useState(false);
   useEffect(() => {
-    try {
-      localStorage.setItem(
-        "eburum:sidebar:v1",
-        collapsed ? "collapsed" : "expanded",
-      );
-    } catch {
-      /* Preferences are optional. */
-    }
-  }, [collapsed]);
+    const update = () => setOffline(!navigator.onLine);
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+    };
+  }, []);
+  const location = useLocation(),
+    navigate = useNavigate();
+  const routeRef = useRef(location),
+    acceptedRoute = useRef(location.pathname + location.search);
+  routeRef.current = location;
+  useLayoutEffect(() => {
+    runtime.setDetailRouter((detail) => {
+      const current = window.location.hash;
+      if (detail) {
+        const target = detailPath(detail.page, detail.key, current);
+        if (target === current.slice(1)) return;
+        const previous = routeDetail(detail.page, current.split("?")[1] || "");
+        navigate(target, {
+          replace: previous?.key.endsWith(":new") === true,
+          state: { detailEntry: true },
+        });
+      } else if (routeRef.current.state?.detailEntry) navigate(-1);
+      else navigate(detailListPath(current), { replace: true });
+    });
+    return () => runtime.setDetailRouter(null);
+  }, [runtime, navigate]);
+  useLayoutEffect(() => {
+    if (location.pathname !== "/" + snapshot.page) return;
+    let cancelled = false;
+    setActionError("");
+    runtime
+      .syncDetail(snapshot.page, location.search)
+      .then((allowed) => {
+        if (cancelled) return;
+        if (!allowed) navigate(acceptedRoute.current, { replace: true });
+        else acceptedRoute.current = location.pathname + location.search;
+      })
+      .catch((error) => {
+        if (!cancelled)
+          setActionError(error.message || "Dettaglio non caricato. Riprova.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [runtime, location.pathname, location.search, snapshot.page, navigate]);
+  const settingsRef = useRef<HTMLDetailsElement>(null);
+  const count = runtime.actions
+    .activeCommunications()
+    .filter(
+      (m) =>
+        m.requires_ack &&
+        !runtime.state.communication_receipts.some(
+          (r) =>
+            r.communication_id === m.id &&
+            r.reader_id === runtime.state.user?.id,
+        ),
+    ).length;
+  useEffect(() => {
+    const outside = (event: PointerEvent) => {
+      if (
+        settingsRef.current &&
+        !settingsRef.current.contains(event.target as Node)
+      )
+        settingsRef.current.open = false;
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && settingsRef.current?.open) {
+        settingsRef.current.open = false;
+        settingsRef.current.querySelector("summary")?.focus();
+      }
+    };
+    document.addEventListener("pointerdown", outside);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("pointerdown", outside);
+      document.removeEventListener("keydown", escape);
+    };
+  }, []);
+  const officeRole = ["treasurer", "president"].includes(snapshot.role || "");
+  const roleNavigation = officeRole
+    ? navigation.map((item) =>
+        item.page === "training"
+          ? {
+              page: "communications" as const,
+              label: "Messaggi",
+              icon: MessageSquare,
+            }
+          : item.page === "communications"
+            ? { page: "finance" as const, label: "Economia", icon: Wallet }
+            : item,
+      )
+    : navigation;
+  const navPage =
+    snapshot.page === "meetings" ? "communications" : snapshot.page;
+  const activeNav = roleNavigation.some((item) => item.page === navPage)
+    ? navPage
+    : "more";
   useLayoutEffect(() => {
     document.getElementById("mainContent")?.focus({ preventScroll: true });
-    window.scrollTo({ top: 0, behavior: "instant" });
-  }, [snapshot.page]);
+    const frame = requestAnimationFrame(() =>
+      window.scrollTo({
+        top: runtime.state.pageScroll?.[snapshot.page] || 0,
+        behavior: "instant",
+      }),
+    );
+    if (settingsRef.current) settingsRef.current.open = false;
+    return () => cancelAnimationFrame(frame);
+  }, [snapshot.page, runtime]);
   return (
-    <div className={"app-layout " + (collapsed ? "sidebar-collapsed" : "")}>
+    <div className="app-layout soft-club">
       <a
         className="skip-link"
         href="#mainContent"
@@ -392,120 +610,183 @@ function Workspace({
       >
         Vai al contenuto
       </a>
-      <aside className="app-sidebar">
-        <Brand />
-        <Button
-          variant="ghost"
-          size="icon"
-          className="sidebar-toggle"
-          onClick={() => setCollapsed((c) => !c)}
-          aria-label={
-            collapsed ? "Espandi navigazione" : "Comprimi navigazione"
-          }
-          aria-expanded={!collapsed}
-        >
-          {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
-        </Button>
-        <nav aria-label="Navigazione principale" className="app-desktop-nav">
-          {navigation.map((item) => (
-            <NavItem
-              key={item.page}
-              {...item}
-              selected={activeNav === item.page}
-              collapsed={collapsed}
-            />
-          ))}
-        </nav>
-        <div className="sidebar-staff">
-          {!collapsed ? (
-            <>
-              <span>{snapshot.role ? roleNames[snapshot.role] : ""}</span>
-              <small title={snapshot.email}>{snapshot.email}</small>
-            </>
-          ) : (
-            <ShieldCheck size={20} />
-          )}
-        </div>
-      </aside>
       <div className="app-workspace">
         <header className="app-header">
           <div className="mobile-brand">
-            <Brand />
+            <Brand season={runtime.actions.season().year} />
           </div>
           <div className="desktop-context">
             <SeasonPicker runtime={runtime} />
-            {snapshot.role ? (
-              <span className="staff-role">{roleNames[snapshot.role]}</span>
-            ) : null}
           </div>
-          <div className="flex items-center gap-2">
-            <Tooltip label="Comunicazioni">
+          <div className="header-actions">
+            <UserGuide role={snapshot.role || ""} />
+            <Tooltip label="Messaggi">
               <Button variant="secondary" size="icon" asChild>
                 <NavLink
                   to="/communications"
-                  aria-label={"Comunicazioni, " + count + " attive"}
+                  aria-label={"Notifiche, " + count + " da confermare"}
                   className="relative"
                 >
-                  <MessageSquare />
+                  <Bell />
                   {count > 0 ? (
-                    <span className="communication-nav-count">{count}</span>
+                    <span
+                      className="communication-nav-dot"
+                      aria-hidden="true"
+                    />
                   ) : null}
                 </NavLink>
               </Button>
             </Tooltip>
-            {snapshot.role === "admin" ? (
-              <Tooltip label="Gestione utenti">
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  onClick={runtime.actions.users}
-                  aria-label="Gestione utenti"
-                >
-                  <Users />
-                </Button>
-              </Tooltip>
-            ) : null}
-            <Tooltip label="Esci">
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Esci"
-                onClick={async () => {
-                  try {
-                    await runtime.actions.logout();
-                  } catch (err) {
-                    setActionError(
-                      err instanceof Error
-                        ? err.message
-                        : "Uscita non riuscita. Riprova.",
-                    );
-                  }
-                }}
+            <details
+              ref={settingsRef}
+              className="header-settings"
+              onClick={(event) => {
+                if (
+                  (event.target as Element).closest(
+                    ".header-settings-panel button",
+                  ) &&
+                  settingsRef.current
+                )
+                  settingsRef.current.open = false;
+              }}
+            >
+              <summary
+                title="Opzioni account e stagione"
+                aria-label="Opzioni account e stagione"
               >
-                <LogOut />
-              </Button>
-            </Tooltip>
+                <span className="account-initials" aria-hidden="true">
+                  {[
+                    runtime.state.team?.first_name,
+                    runtime.state.team?.last_name,
+                  ]
+                    .filter(Boolean)
+                    .map((n) => n?.slice(0, 1))
+                    .join("") || <Settings size={20} />}
+                </span>
+              </summary>
+              <div className="header-settings-panel">
+                <strong className="account-name">
+                  {[
+                    runtime.state.team?.first_name,
+                    runtime.state.team?.last_name,
+                  ]
+                    .filter(Boolean)
+                    .join(" ") || "Staff Eburum"}
+                </strong>
+                <p className="account-role">
+                  {snapshot.role ? roleNames[snapshot.role] : ""}
+                </p>
+                <SeasonPicker runtime={runtime} />
+                <ThemePicker />
+                {snapshot.role === "admin" ? (
+                  <Tooltip label="Gestione utenti">
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      onClick={runtime.actions.users}
+                      aria-label="Gestione utenti"
+                    >
+                      <Users />
+                    </Button>
+                  </Tooltip>
+                ) : null}
+                <Tooltip label="Esci">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Esci"
+                    onClick={async () => {
+                      try {
+                        await runtime.actions.logout();
+                      } catch (err) {
+                        setActionError(
+                          err instanceof Error
+                            ? err.message
+                            : "Uscita non riuscita. Riprova.",
+                        );
+                      }
+                    }}
+                  >
+                    <LogOut />
+                  </Button>
+                </Tooltip>
+              </div>
+            </details>
           </div>
         </header>
-        <div className="mobile-season">
-          <SeasonPicker runtime={runtime} />
-        </div>
-        {actionError ? (
-          <p role="alert" className="text-red-200">
-            {actionError}
-          </p>
+        {offline ? (
+          <div className="route-feedback" role="alert">
+            <p>
+              Connessione assente. Le modifiche non salvate restano locali:
+              riprova il salvataggio quando torna la rete.
+            </p>
+            <Button
+              variant="secondary"
+              disabled={checkingNetwork}
+              onClick={async () => {
+                setCheckingNetwork(true);
+                try {
+                  const response = await fetch("./config.js", {
+                    cache: "no-store",
+                  });
+                  setOffline(!navigator.onLine || !response.ok);
+                } catch {
+                  setOffline(true);
+                } finally {
+                  setCheckingNetwork(false);
+                }
+              }}
+            >
+              Riprova connessione
+            </Button>
+          </div>
         ) : null}
-        <main id="mainContent" tabIndex={-1} className="workspace-content">
+        {actionError ? (
+          <div role="alert" className="route-feedback">
+            <p>{actionError}</p>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setActionError("");
+                void runtime
+                  .syncDetail(snapshot.page, location.search)
+                  .catch((e) => setActionError(e.message));
+              }}
+            >
+              Riprova
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() =>
+                navigate(detailListPath(window.location.hash), {
+                  replace: true,
+                })
+              }
+            >
+              Torna all’elenco
+            </Button>
+          </div>
+        ) : null}
+        <main
+          key={snapshot.page}
+          id="mainContent"
+          tabIndex={-1}
+          className="workspace-content"
+        >
           <PageContent runtime={runtime} snapshot={snapshot} />
         </main>
+        <div id="workspaceEditor" className="workspace-editor-host" />
       </div>
-      <nav className="app-mobile-nav" aria-label="Navigazione mobile">
-        {navigation.map((item) => (
+      <nav className="app-mobile-nav" aria-label="Navigazione principale">
+        <div className="nav-brand">
+          <Brand />
+        </div>
+        {roleNavigation.map((item) => (
           <NavItem
             key={item.page}
             {...item}
+            label={item.page === "communications" ? "Messaggi" : item.label}
             selected={activeNav === item.page}
-            mobile
           />
         ))}
       </nav>
@@ -520,6 +801,20 @@ function PageContent({
   snapshot: RuntimeSnapshot;
 }) {
   switch (snapshot.page) {
+    case "dashboard":
+      return snapshot.role === "treasurer" ? (
+        <FinancePage
+          key={runtime.state.team?.owner_id + ":" + snapshot.role}
+          runtime={runtime}
+          home
+        />
+      ) : (
+        <FeatureSurface
+          runtime={runtime}
+          page="dashboard"
+          revision={snapshot.revision + snapshot.communicationRevision}
+        />
+      );
     case "training":
       return runtime.state.trainingMode === "actual" ? (
         <FeatureSurface
@@ -535,7 +830,13 @@ function PageContent({
     case "players":
       return <PlayersPage runtime={runtime} />;
     case "meetings":
-      return <MeetingsPage runtime={runtime} />;
+      return (
+        <CommunicationsPage
+          runtime={runtime}
+          revision={snapshot.communicationRevision}
+          meetings
+        />
+      );
     case "communications":
       return (
         <CommunicationsPage
@@ -545,6 +846,20 @@ function PageContent({
       );
     case "more":
       return <ToolsPage runtime={runtime} />;
+    case "finance":
+      return (
+        <FinancePage
+          key={runtime.state.team?.owner_id + ":" + snapshot.role}
+          runtime={runtime}
+        />
+      );
+    case "whiteboard":
+      return (
+        <WhiteboardPage
+          key={runtime.state.team?.owner_id + ":" + snapshot.role}
+          runtime={runtime}
+        />
+      );
     default:
       return (
         <FeatureSurface

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { confirmDialog } from "../app-confirm.js";
 import { RefreshCw, WifiOff } from "lucide-react";
 import { Button } from "./components/ui/button";
 import type { Runtime } from "./types";
@@ -18,6 +19,22 @@ export function PwaStatus({ runtime }: { runtime: Runtime }) {
     if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return;
     let active = true,
       changing = false;
+    let registrationRef: ServiceWorkerRegistration | undefined;
+    let installingWorker: ServiceWorker | null = null;
+    const stateChanged = () => {
+      if (
+        active &&
+        installingWorker?.state === "installed" &&
+        navigator.serviceWorker.controller
+      )
+        setWaiting(installingWorker);
+    };
+    const updateFound = () => {
+      installingWorker?.removeEventListener("statechange", stateChanged);
+      installingWorker = registrationRef?.installing ?? null;
+      installingWorker?.addEventListener("statechange", stateChanged);
+      stateChanged();
+    };
     const reload = () => {
       if (changing) window.location.reload();
     };
@@ -27,17 +44,9 @@ export function PwaStatus({ runtime }: { runtime: Runtime }) {
       .then((registration) => {
         if (!active) return;
         if (registration.waiting) setWaiting(registration.waiting);
-        registration.addEventListener("updatefound", () => {
-          const worker = registration.installing;
-          worker?.addEventListener("statechange", () => {
-            if (
-              active &&
-              worker.state === "installed" &&
-              navigator.serviceWorker.controller
-            )
-              setWaiting(worker);
-          });
-        });
+        registrationRef = registration;
+        registration.addEventListener("updatefound", updateFound);
+        updateFound();
       })
       .catch(() => {
         /* Online access remains available when offline installation fails. */
@@ -51,6 +60,8 @@ export function PwaStatus({ runtime }: { runtime: Runtime }) {
     window.addEventListener("eburum-activate-update", activate);
     return () => {
       active = false;
+      registrationRef?.removeEventListener("updatefound", updateFound);
+      installingWorker?.removeEventListener("statechange", stateChanged);
       navigator.serviceWorker.removeEventListener("controllerchange", reload);
       window.removeEventListener("eburum-activate-update", activate);
     };
@@ -73,7 +84,7 @@ export function PwaStatus({ runtime }: { runtime: Runtime }) {
               runtime.state.trainingDraft?.saving ||
               !!document.querySelector('[aria-busy="true"]')
             }
-            onClick={() => {
+            onClick={async () => {
               if (
                 runtime.state.trainingDraft?.saving ||
                 document.querySelector('[aria-busy="true"]')
@@ -83,7 +94,12 @@ export function PwaStatus({ runtime }: { runtime: Runtime }) {
                 runtime.actions.hasAttendanceDraft() ||
                 document.querySelector('[data-dirty="true"]')
               ) {
-                if (!confirm("Ricaricare e scartare le modifiche non salvate?"))
+                if (
+                  !(await confirmDialog({
+                    message: "Ricaricare e scartare le modifiche non salvate?",
+                    confirmLabel: "Ricarica",
+                  }))
+                )
                   return;
               }
               window.dispatchEvent(

@@ -1,6 +1,18 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),test=require('node:test'),{JSDOM}=require('jsdom');
 async function app(t){const dom=new JSDOM('<div id="app"></div>',{runScripts:'outside-only',url:'https://eburum.vercel.app'}),w=dom.window,run=code=>vm.runInContext(code,dom.getInternalVMContext());t.after(()=>w.close());w.CONFIG={supabaseUrl:'demo',supabaseAnonKey:'demo',season:'2026/27'};w.scrollTo=()=>{};run(fs.readFileSync(__dirname+'/fixtures/team-ui.js','utf8'));await require('./load-app.cjs').loadApp(dom);run('state.user=fixtureUser');await run('refresh()');return {w,run,$:s=>w.document.querySelector(s)}}
 const tick=()=>new Promise(r=>setTimeout(r,30));
+test('new match venue stays visible across preparation tabs and survives failed save',async t=>{
+ const {w,run,$}=await app(t);run("state.page='matches';render()");$('#addMatch').click();
+ assert.ok($('#activityVenue'));assert.equal($('#activityVenue').closest('[data-activity-panel]'),null);
+ $('#activityVenue').value='Trasferta';$('#activityVenue').dispatchEvent(new w.Event('change',{bubbles:true}));
+ $('[data-activity-tab="roster"]').click();assert.equal($('#activityVenue').value,'Trasferta');
+ $('#activityName').value='Avversario';w.fixtureSaveError={message:'Interrotto'};
+ await $('#activityForm').onsubmit({preventDefault(){},target:$('#activityForm')});
+ assert.match($('#activityFeedback').textContent,/Interrotto/);assert.equal($('#activityVenue').value,'Trasferta');
+ assert.equal(w.fixtureTeamCalls.at(-1).p_activity.venue,'Trasferta');
+ w.fixtureSaveError=null;await $('#activityForm').onsubmit({preventDefault(){},target:$('#activityForm')});
+ assert.equal(w.fixtureTeamCalls.at(-1).p_activity.venue,'Trasferta');assert.ok($('#activityForm'));assert.equal($('[data-activity-panel=roster]').hidden,false);assert.match($('#activityRoster').textContent,/Rossi/);
+});
 test('match sheets expose only football operations; meetings have a secondary entry',async t=>{
  const {run,$}=await app(t);run("state.page='matches';render()");$('#addMatch').click();assert.equal($('#activityType').type,'hidden');assert.equal($('#activityType').value,'Partita');assert.equal($('#activityAttendance'),null);assert.equal($('#copyActivityReminder'),null);assert.equal($('[data-availability]'),null);assert.doesNotMatch($('#rosterCounts').textContent,/risposto|disponibili/);$('#closeActivity').click();
  run("state.page='more';render()");$('[data-page="meetings"]').click();$('[data-new-meeting]').click();assert.ok($('#planningForm'));assert.equal($('#trainingReplies'),null);assert.equal($('#planningAttendance'),null);assert.equal($('#formation'),null);$('#planningName').value='Riunione staff';await $('#planningForm').onsubmit({preventDefault(){}});assert.equal(run("fixtureData.activities.at(-1).activity_type"),'Riunione');assert.equal(run('fixtureTeamCalls.at(-1).p_roster.length'),0);assert.equal(run('fixtureTeamCalls.at(-1).p_technical'),null);

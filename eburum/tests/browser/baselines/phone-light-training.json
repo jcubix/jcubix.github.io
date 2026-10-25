@@ -1,0 +1,27 @@
+{
+  "header": {
+    "x": 0,
+    "y": 0,
+    "width": 390,
+    "height": 65
+  },
+  "navigation": {
+    "x": 16,
+    "y": 752,
+    "width": 358,
+    "height": 80
+  },
+  "main": {
+    "x": 0,
+    "width": 390,
+    "paddingTop": 20,
+    "paddingBottom": 192
+  },
+  "palette": {
+    "--bg": "#e9edf3",
+    "--surface": "#fff",
+    "--ink": "#0f1b3d",
+    "--primary": "#0d1e45",
+    "--primary-foreground": "#fff"
+  }
+}

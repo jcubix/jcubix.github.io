@@ -4,3 +4,9 @@ dist/
 *.tsbuildinfo
 .env*
 !.env.example
+
+# Local review artifacts and generated code maps
+/output/
+/graphify-out/
+/.playwright-cli/
+/.impeccable/review/

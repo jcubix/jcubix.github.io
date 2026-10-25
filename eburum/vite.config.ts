@@ -25,12 +25,20 @@ function appAssets(): Plugin {
           fileName,
           source: readFileSync(new URL(fileName, import.meta.url)),
         });
+      this.emitFile({
+        type: "asset",
+        fileName: "fonts/OFL.txt",
+        source: readFileSync(
+          new URL("src/assets/fonts/OFL.txt", import.meta.url),
+        ),
+      });
       const assets = [
         "./",
         ...Object.keys(bundle)
           .filter((name) => !name.endsWith(".map"))
           .map((name) => "./" + name),
         ...staticFiles.map((name) => "./" + name),
+        "./fonts/OFL.txt",
       ];
       const id = createHash("sha256")
         .update(assets.join("|"))

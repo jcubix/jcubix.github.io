@@ -12,8 +12,9 @@ do $$declare a jsonb;aid uuid;pid uuid;rows jsonb;rev integer;blocked boolean;se
  if private_access.team_owner()::text<>current_setting('test.owner') then raise exception 'Wrong shared owner';end if;
  select id into pid from public.players where user_id=private_access.team_owner() limit 1;
  rows:=jsonb_build_array(jsonb_build_object('player_id',pid,'called',true,'availability','Disponibile','response_note',null,'lineup','Titolare','position','DC','minutes_played',90));
- a:=jsonb_build_object('activity_date','2300-03-01','activity_type','Partita','title','Synthetic fixture','status','Programmato','start_time','15:00','end_time','17:00','meeting_time','14:00','request_id',gen_random_uuid());
+ a:=jsonb_build_object('activity_date','2300-03-01','activity_type','Partita','venue','Trasferta','title','Synthetic fixture','status','Programmato','start_time','15:00','end_time','17:00','meeting_time','14:00','request_id',gen_random_uuid());
  result:=public.save_team_activity(a,rows);aid:=(result->>'id')::uuid;rev:=(result->>'revision')::integer;
+ if (select venue from public.matches where id=(result->>'match_id')::uuid) is distinct from 'Trasferta' then raise exception 'Away venue not saved atomically';end if;
  if not exists(select 1 from public.activities where id=aid and match_id is not null) then raise exception 'Missing linked match';end if;
  if (select count(*) from public.activities where match_id=(result->>'match_id')::uuid)<>1 then raise exception 'Duplicate calendar match';end if;
  if not exists(select 1 from public.activity_roster where activity_id=aid and updated_by=auth.uid() and minutes_played=90) then raise exception 'Roster or actor missing';end if;

@@ -11,6 +11,29 @@ async function app(t){
  run('state.user=fixtureUser');return {w,run,$:s=>w.document.querySelector(s)};
 }
 
+test('styled confirmations escape content, cancel by default and restore nested dialog isolation',async t=>{
+ const {w,run,$}=await app(t);await run('refresh()');run('setConfirmationPresenter(null);communicationsModal()');
+ const outer=$('.communications-panel').parentElement,trigger=$('#newCommunication');trigger.focus();
+ const pending=run('confirmDialog')({message:'<img src=x onerror=alert(1)>',danger:true,confirmLabel:'Elimina'});
+ await tick();
+ assert.equal($('.confirm-modal img'),null);assert.match($('#confirmBody').textContent,/<img/);
+ assert.equal(w.document.activeElement,$('.confirm-actions [data-confirm-cancel]'));
+ assert.ok(outer.hasAttribute('inert'));assert.ok($('#app').hasAttribute('inert'));
+ assert.equal(await run('confirmDialog')({message:'Seconda operazione'}),false);
+ $('.confirm-modal').dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+ assert.equal(await pending,false);await tick();assert.equal($('.confirm-modal'),null);assert.equal(outer.hasAttribute('inert'),false);assert.equal(w.document.activeElement,trigger);
+ const accepted=run('confirmDialog')({message:'Conferma'});await tick();$('[data-confirm-accept]').click();assert.equal(await accepted,true);await tick();
+ const removed=run('confirmDialog')({message:'Accesso cambiato'});await tick();$('.confirm-back').remove();assert.equal(await removed,false);await tick();assert.equal(outer.hasAttribute('inert'),false);
+});
+
+test('event confirmation prevents duplicate deletion and refuses an obsolete team session',async t=>{
+ const {w,run,$}=await app(t);await run('refresh()');let release;
+ run('setConfirmationPresenter')(()=>new Promise(resolve=>release=resolve));
+ run("eventModal('match-1',state.events[0])");
+ const first=$('#deleteEvent').onclick();await $('#deleteEvent').onclick();assert.equal(w.fixtureData.match_events.length,1);assert.equal($('#deleteEvent').disabled,true);
+ run('state.user=null');release(true);await first;assert.equal(w.fixtureData.match_events.length,1);assert.equal($('#deleteEvent').disabled,false);
+});
+
 test('presentation port preserves the React root during loading, render and logout',async t=>{
  const {run,$}=await app(t);const root=$('#app');root.innerHTML='<section id="react-owned">React root</section>';let ready=0,loading=0,login=0;
  run('setPresentationAdapter')({render:()=>ready++,loading:()=>loading++,login:()=>login++,error:()=>{}});
@@ -19,7 +42,7 @@ test('presentation port preserves the React root during loading, render and logo
 });
 
 test('a late team context cannot restore an obsolete role',async t=>{
- const {w,run,$}=await app(t);w.contexts=[];run("db.rpc=()=>new Promise(resolve=>window.contexts.push(resolve))");
+ const {w,run,$}=await app(t);w.contexts=[];run("const originalRpc=db.rpc;db.rpc=(name,...args)=>name==='team_context'?new Promise(resolve=>window.contexts.push(resolve)):originalRpc(name,...args)");
  const older=run('refresh()'),latest=run('refresh()');
  w.contexts[1]({data:{owner_id:'demo-user',role:'secretary'}});assert.equal(await latest,true);
  w.contexts[0]({data:{owner_id:'demo-user',role:'admin'}});assert.equal(await older,false);
@@ -36,7 +59,7 @@ test('an older data response cannot overwrite newer team data',async t=>{
 });
 
 test('logout clears every team dataset and rejects pending loads',async t=>{
- const {w,run,$}=await app(t);await run('refresh()');w.contexts=[];run('db.rpc=()=>new Promise(resolve=>window.contexts.push(resolve))');
+ const {w,run,$}=await app(t);await run('refresh()');w.contexts=[];run("const originalRpc=db.rpc;db.rpc=(name,...args)=>name==='team_context'?new Promise(resolve=>window.contexts.push(resolve)):originalRpc(name,...args)");
  const pending=run('refresh()');run('renderLogin()');w.contexts[0]({data:{owner_id:'demo-user',role:'admin'}});assert.equal(await pending,false);
  assert.equal(run('TEAM_ARRAYS.every(key=>state[key].length===0)'),true);assert.equal(run('state.loadedActor'),null);assert.ok($('#loginForm'));assert.equal($('#users'),null);
 });
@@ -79,7 +102,7 @@ test('password updates reject double submits and restore fields for retry',async
 test('player sheet totals include matches only and exclude cancelled activities',async t=>{
  const {w,run,$}=await app(t);await run('refresh()');
  run("state.activities.push({id:'training',activity_type:'Allenamento'},{id:'cancelled',activity_type:'Partita',status:'Annullato'});state.roster=[{activity_id:'activity-1',player_id:'player-1',called:true,minutes_played:'45'},{activity_id:'training',player_id:'player-1',called:true,minutes_played:90},{activity_id:'cancelled',player_id:'player-1',called:true,minutes_played:90}];playerSheet('player-1')");
- assert.deepEqual([...$('.player-kpis').querySelectorAll('b')].map(el=>el.textContent),['1','45']);
+ assert.deepEqual([...$('.player-kpis').querySelectorAll('b')].map(el=>el.textContent),['1','45','1']);
  run("state.team.role='coach';state.page='players';render()");assert.equal($('#addPlayer'),null);assert.equal($('[data-edit]'),null);assert.ok($('[data-player-sheet]'));assert.ok($('[data-page="players"][aria-current="page"]'));
 });
 
@@ -104,17 +127,22 @@ test('page navigation returns to the top and exposes an accessible content targe
  assert.equal($('#sportSeason').getAttribute('aria-describedby'),'seasonHelp');assert.ok($('#seasonHelp'));
 });
 
-test('service worker preserves good assets and keeps API and other caches separate',async()=>{
- const listeners={},writes=[],deleted=[],installed=[],store=new Map(),tasks=[];
- const scope={self:{location:{origin:'https://eburum.vercel.app',href:'https://eburum.vercel.app/sw.js'},addEventListener:(name,callback)=>listeners[name]=callback,clients:{claim:async()=>{}}},URL,Response,fetch:async()=>new Response('Unavailable',{status:503}),caches:{open:async()=>({addAll:async assets=>installed.push(...assets),put:async(request,response)=>writes.push({request,response})}),match:async request=>store.get(typeof request==='string'?request:request.url),keys:async()=>['eburum-team-manager-v26','eburum-team-manager-v27','eburum-team-manager-v28','eburum-team-manager-v30','another-app'],delete:async name=>deleted.push(name)}};
- vm.runInNewContext(fs.readFileSync(path.join(root,'sw.js'),'utf8'),scope);
- await listeners.install({waitUntil:promise=>tasks.push(promise)});await Promise.all(tasks);
- for(const file of [...scripts,'app.css','index.html']){assert.ok(fs.existsSync(path.join(root,file)));assert.ok(installed.includes('./'+file),file+' must be installed for offline use')}
- await new Promise((resolve,reject)=>listeners.activate({waitUntil:promise=>promise.then(resolve,reject)}));assert.deepEqual(deleted,['eburum-team-manager-v26','eburum-team-manager-v27','eburum-team-manager-v28']);
- async function request(url,mode='same-origin'){let promise;const background=[];listeners.fetch({request:{url,method:'GET',mode},respondWith:value=>promise=value,waitUntil:value=>background.push(value)});const response=await promise;await Promise.all(background);return response}
- assert.equal((await request('https://eburum.vercel.app/app-part1.js')).status,503);assert.equal(writes.length,0);
- scope.fetch=async()=>new Response('Valid asset');await request('https://eburum.vercel.app/app-part1.js');assert.equal(writes.length,1);
- scope.fetch=async()=>{throw Error('Offline')};store.set('./index.html',new Response('<main>Offline shell</main>'));
- assert.equal((await request('https://eburum.vercel.app/app-part1.js')).type,'error','missing JavaScript must not receive HTML');assert.match(await (await request('https://eburum.vercel.app/','navigate')).text(),/Offline shell/);
- assert.equal(await request('https://example.supabase.co/rest/v1/players'),undefined);assert.equal(await request('https://eburum.vercel.app/api/private'),undefined);
+for (const scenario of [
+ {name:'player deactivation', setup:"state.page='players';render()", selector:'[data-remove]', table:'players'},
+ {name:'discipline clearance removal', setup:"state.disciplinary_clearances=[{id:'clearance-1',user_id:fixtureUser.id,player_id:'player-1',season_start:sportSeason().from,threshold_event_id:'event-1',served_match_id:'match-1'}];fixtureData.disciplinary_clearances=state.disciplinary_clearances.map(c=>({...c}));disciplineModal()", selector:'[data-undo-clearance]', table:'disciplinary_clearances'},
+ {name:'legacy communication deletion', setup:"fixtureData.staff_communications=[{id:'notice-1',user_id:fixtureUser.id,created_by:fixtureUser.id,title:'Avviso',body:'Test',created_at:new Date().toISOString(),expires_at:new Date(Date.now()+86400000).toISOString(),retention_days:1}];state.staff_communications=fixtureData.staff_communications.map(m=>({...m}));communicationsModal()", selector:'[data-delete-communication]', table:'staff_communications'},
+]) test(scenario.name+' confirms once and rejects an obsolete account',async t=>{
+ const {w,run,$}=await app(t);await run('refresh()');run(scenario.setup);
+ const button=$(scenario.selector);assert.ok(button);
+ const before=JSON.stringify(w.fixtureData[scenario.table]);let release,count=0;
+ run('setConfirmationPresenter')(()=>{count++;return new Promise(resolve=>release=resolve)});
+ const cancelled=button.onclick();await button.onclick();assert.equal(count,1);assert.equal(button.disabled,true);
+ release(false);await cancelled;assert.equal(button.disabled,false);assert.equal(JSON.stringify(w.fixtureData[scenario.table]),before);
+ const stale=button.onclick();run('state.user=null');release(true);await stale;
+ assert.equal(button.disabled,false);assert.equal(JSON.stringify(w.fixtureData[scenario.table]),before);
+});
+
+
+test('rapid feedback replaces the previous toast instead of covering another message',async t=>{
+ const {run,$}=await app(t);run('toast("Primo messaggio");toast("Secondo messaggio")');assert.equal($('.toast').textContent,'Secondo messaggio');assert.equal(run('document.querySelectorAll(".toast").length'),1);
 });

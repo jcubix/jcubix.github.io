@@ -42,7 +42,7 @@ test('substitution preview and readonly automatic minutes are visible',async t=>
  // Simulate the committed server response; SQL tests verify its real calculation.
  run("const rawFixtureResult=FixtureQuery.prototype.result;FixtureQuery.prototype.result=async function(){const result=await rawFixtureResult.call(this);if(this.table==='match_events'&&this.action==='insert'){fixtureData.activity_roster[0].minutes_played=65;fixtureData.activity_roster[1].minutes_played=25;fixtureData.activities[0].revision++}return result}");
  $('#eventForm').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await tick();await tick();
- assert.equal($('#eventForm'),null);assert.match($('#matchMinutesList').textContent,/65′.*25′/);assert.match($('#matchResultStatus').textContent,/aggiornati/);
+ assert.equal($('#eventForm'),null);assert.match($('#matchMinutesList').textContent,/65′.*25′/);assert.match($('#matchResultStatus').textContent,/aggiornat/);
  assert.equal(run("state.roster.find(r=>r.player_id==='player-1').minutes_played"),65);
  $('[data-activity-tab="roster"]').click();$('[data-roster-edit="player-1"]').click();assert.equal($('#minutesPlayed').disabled,true);assert.equal($('#minutesPlayed').value,'65');
 });

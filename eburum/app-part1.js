@@ -1,3 +1,4 @@
+import { canOperateRole, canPlanRole, canManageRole, canViewExpiriesRole, canTechnicalRole } from './app-roles.js';
 import { meetingsPage } from './app-training-planning.js';
 import { applyRoleControls } from './app-access.js';
 import { usersModal } from './app-admin.js';
@@ -13,7 +14,7 @@ import { bindTraining, trainingPage } from './app-workflows.js';
 const db=window.supabase.createClient(window.CONFIG.supabaseUrl,window.CONFIG.supabaseAnonKey);
 const app=document.querySelector('#app');
 const ROLE_ORDER=['Portiere','Difensore','Centrocampista','Attaccante'];
-const TEAM_ARRAYS=['players','sessions','attendance','matches','events','activities','roster','administration','technical','disciplinary_clearances','staff_communications'];
+const TEAM_ARRAYS=['players','sessions','attendance','matches','events','activities','roster','administration','technical','disciplinary_clearances','dismissals','dismissal_sanctions','dismissal_clearances','staff_communications','communication_receipts'];
 const state={user:null,page:'dashboard'};
 let presentation=null;
 function setPresentationAdapter(adapter){presentation=adapter}
@@ -22,8 +23,8 @@ for(const key of TEAM_ARRAYS)state[key]=[];
 let refreshGeneration=0,authGeneration=0,sessionEpoch=0;
 function clearTeamState(){
  for(const key of TEAM_ARRAYS)state[key]=[];
- state.team=null;state.loadedActor=null;state.page='dashboard';state.trainingMode='hub';delete state.registerDate;state.trainingDraft=null;
- stopCommunicationsRealtime();delete state.seasonYear;delete state.dataRange;delete state.earliestSport;
+ state.team=null;state.loadedActor=null;state.page='dashboard';state.trainingMode='hub';delete state.registerDate;delete state.reportPlayer;state.trainingDraft=null;
+ stopCommunicationsRealtime();delete state.pageScroll;delete state.reportView;delete state.registerMonth;delete state.seasonYear;delete state.dataRange;delete state.earliestSport;
  document.querySelectorAll('.modal-back').forEach(n=>n.remove());notifyCommunications();
 }
 function teamRequestGuard(){
@@ -35,15 +36,17 @@ const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMon
 const teamOwner=()=>state.team?.owner_id||state.user.id;
 const teamRole=()=>state.team?.role||(state.user?.app_metadata?.role==='admin'?'admin':'manager');
 const isAdmin=()=>teamRole()==='admin';
-const canManage=()=>['admin','manager','secretary'].includes(teamRole());
-const canOperate=()=>['admin','manager','coach'].includes(teamRole());
-const canTechnical=()=>['admin','coach'].includes(teamRole());
+const canManage=()=>canManageRole(teamRole());
+const canPlan=()=>canPlanRole(teamRole());
+const canViewExpiries=()=>canViewExpiriesRole(teamRole());
+const canOperate=()=>canOperateRole(teamRole());
+const canTechnical=()=>canTechnicalRole(teamRole());
 const fmt=d=>d?new Intl.DateTimeFormat('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(d+'T12:00:00')):'';
 const roleRank=r=>{const i=ROLE_ORDER.indexOf(r);return i<0?99:i};
 const sortPlayers=a=>[...a].sort((x,y)=>roleRank(x.role)-roleRank(y.role)||(Number(x.role_order)||9999)-(Number(y.role_order)||9999)||`${x.surname} ${x.name}`.localeCompare(`${y.surname} ${y.name}`,'it'));
 const activePlayers=()=>sortPlayers(state.players.filter(p=>p.active));
 const badge=s=>({Presente:'b-green',Assente:'b-red',Infortunato:'b-blue'}[s]||'b-gray');
-function toast(msg){const n=document.createElement('div');n.className='toast';n.setAttribute('role','status');n.textContent=msg;Object.assign(n.style,{position:'fixed',top:'16px',left:'50%',transform:'translateX(-50%)',zIndex:100,background:'var(--panel)',color:'var(--text)',border:'1px solid var(--border)',maxWidth:'calc(100vw - 32px)',textAlign:'center',padding:'12px 16px',borderRadius:'14px'});document.body.appendChild(n);setTimeout(()=>n.remove(),2200)}
+function toast(msg){document.querySelectorAll('.toast').forEach(n=>n.remove());const n=document.createElement('div');n.className='toast';n.setAttribute('role','status');n.textContent=msg;document.body.appendChild(n);setTimeout(()=>n.remove(),3000)}
 function fail(e){console.error(e);toast(e?.message||'Operazione non riuscita')}
 
 async function boot(){
@@ -93,6 +96,6 @@ function render(){if(!canOperate()&&state.page==='training'&&state.trainingMode=
 function emptyTeamDashboard(){return `<div class="card"><h2>Importa i dati Eburum</h2><p class="muted">Il database è pronto. Inserisci il codice monouso per caricare i 30 giocatori e lo storico degli allenamenti dal file Excel.</p><div class="field"><label>Codice importazione</label><input id="claimCode" autocomplete="off" placeholder="EBURUM-...."></div><button class="primary" id="claimSeed" style="width:100%;margin-top:12px">Importa rosa e storico</button></div>`;}
 async function bindDashboard(){const b=document.querySelector('#claimSeed');if(!b)return;b.onclick=async()=>{try{const code=document.querySelector('#claimCode').value.trim();if(!code)throw new Error('Inserisci il codice di importazione');b.disabled=true;b.textContent='Importazione in corso...';const {data,error}=await db.rpc('claim_eburum_seed',{p_code:code});if(error)throw error;toast(`Importati ${data.players} giocatori e ${data.attendance} registrazioni`);await refresh()}catch(e){b.disabled=false;b.textContent='Importa rosa e storico';fail(e)}}}
 
-export { db, app, ROLE_ORDER, TEAM_ARRAYS, state, refreshGeneration, authGeneration, sessionEpoch, clearTeamState, teamRequestGuard, esc, today, teamOwner, teamRole, isAdmin, canManage, canOperate, canTechnical, fmt, roleRank, sortPlayers, activePlayers, badge, toast, fail, boot, syncSession, renderLogin, login, fetchAllRows, refresh, showTeamLoadError, navBtn, shell, render, emptyTeamDashboard, bindDashboard };
+export { db, app, ROLE_ORDER, TEAM_ARRAYS, state, refreshGeneration, authGeneration, sessionEpoch, clearTeamState, teamRequestGuard, esc, today, teamOwner, teamRole, isAdmin, canManage, canOperate, canPlan, canViewExpiries, canTechnical, fmt, roleRank, sortPlayers, activePlayers, badge, toast, fail, boot, syncSession, renderLogin, login, fetchAllRows, refresh, showTeamLoadError, navBtn, shell, render, emptyTeamDashboard, bindDashboard };
 
 export { setPresentationAdapter };

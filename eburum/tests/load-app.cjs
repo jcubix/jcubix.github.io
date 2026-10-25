@@ -7,11 +7,18 @@ async function loadApp(dom){
  vm.runInContext(fs.readFileSync(path.join(root,'vendor/jspdf.umd.min.js'),'utf8'),context);
  const getModule=file=>{
   const absolute=path.resolve(root,file);if(cache.has(absolute))return cache.get(absolute);
-  let source=fs.readFileSync(absolute,'utf8');if(file==='app-main.js')source=source.replace(/boot\(\);\s*$/,'');
-  const mod=new vm.SourceTextModule(source,{context,identifier:absolute});cache.set(absolute,mod);return mod;
+  const source=fs.readFileSync(absolute,'utf8');
+  const mod=new vm.SourceTextModule(source,{context,identifier:absolute,importModuleDynamically:async(specifier,ref)=>{
+   const imported=linker(specifier,ref);
+   if(imported.status==='unlinked')await imported.link(linker);
+   if(imported.status==='linked')await imported.evaluate();
+   return imported;
+  }});cache.set(absolute,mod);return mod;
  };
- const main=getModule('app-main.js');
- await main.link((specifier,ref)=>getModule(path.relative(root,path.resolve(path.dirname(ref.identifier),specifier))));await main.evaluate();
+ const linker=(specifier,ref)=>getModule(path.relative(root,path.resolve(path.dirname(ref.identifier),specifier)));
+ const main=new vm.SourceTextModule("import {registerCommunications} from './app-communications.js';import {registerDiscipline} from './app-discipline.js';import {registerOperations} from './app-operations.js';import {registerWorkflows} from './app-workflows.js';registerOperations();registerWorkflows();registerDiscipline();registerCommunications();",{context,identifier:path.join(root,'test-entry.js')});
+ await main.link(linker);await main.evaluate();
+ for(const mod of cache.values())if(mod.namespace.setConfirmationPresenter)mod.namespace.setConfirmationPresenter(({message})=>dom.window.confirm(message));
  for(const mod of cache.values())for(const name of Object.keys(mod.namespace))context[name]=mod.namespace[name];
  return cache;
 }

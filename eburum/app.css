@@ -1,39 +1,39 @@
-/* Eburum club business interface. Brand: #010736 / #0D1C42 / #22396F / #FCF1D0. */
+/* Eburum club business interface. Brand: #010736 / #ffffff / #22396F / #FCF1D0. */
 :root {
-  color-scheme:dark;
-  --brand-blue:#22396f;
-  --brand-blue-deep:#010736;
-  --brand-cream:#fcf1d0;
-  --gold:#c5a462;
-  --bg:#080f25;
-  --panel:#0d1c42;
-  --panel2:#162849;
-  --text:#edf2fc;
-  --muted:#afbdd5;
-  --border:#304466;
-  --control-border:#7285a7;
-  --input-bg:#09162f;
-  --focus:#e0bf78;
-  --surface-hover:#1b3155;
+  color-scheme:light;
+  --brand-blue:var(--swatch-22396f);
+  --brand-blue-deep:var(--swatch-010736);
+  --brand-cream:var(--swatch-fcf1d0);
+  --gold:var(--swatch-89651d);
+  --bg:var(--swatch-f7f8fa);
+  --panel:var(--swatch-ffffff);
+  --panel2:var(--swatch-f2f5f9);
+  --text:var(--swatch-14213b);
+  --muted:var(--swatch-606a79);
+  --border:var(--swatch-dce1e8);
+  --control-border:var(--swatch-8292ab);
+  --input-bg:var(--swatch-ffffff);
+  --focus:var(--swatch-966715);
+  --surface-hover:var(--swatch-e4eaf1);
   --space-1:4px;
   --space-2:8px;
   --space-3:12px;
   --space-4:16px;
   --space-5:24px;
   --space-6:32px;
-  --sky:#afc5f2;
-  --sky-2:#c6d7f8;
-  --navy:#010736;
-  --navy-2:#0d1c42;
-  --blue:#afc5f2;
-  --green:#a3ddbd;
-  --red:#ffbcc5;
-  --yellow:#efce85;
-  --radius:16px;
+  --sky:var(--swatch-22396f);
+  --sky-2:var(--swatch-22396f);
+  --navy:var(--swatch-010736);
+  --navy-2:var(--swatch-0d1c42);
+  --blue:var(--swatch-22396f);
+  --green:var(--swatch-23654e);
+  --red:var(--swatch-983a45);
+  --yellow:var(--swatch-815709);
+  --radius:12px;
   --dialog-pad:24px;
   --sidebar-width:232px;
   --page-gutter:clamp(24px,3vw,56px);
-  --shadow:0 12px 32px rgba(0,0,0,.22)
+  --shadow:0 12px 32px var(--swatch-rgba13286612)
 }
 * {
   box-sizing:border-box
@@ -90,13 +90,13 @@ button,input,select,textarea {
 button,.btn {
   min-height:46px;
   min-width:0;
-  padding:11px 16px;
+  padding:12px 16px;
   background:var(--panel2);
   color:var(--text);
   border:1px solid var(--control-border);
-  border-radius:10px;
+  border-radius:8px;
   font-size:14px;
-  font-weight:600;
+  font-weight:500;
   line-height:1.35;
   cursor:pointer;
   touch-action:manipulation;
@@ -107,7 +107,7 @@ button:hover,.btn:hover {
   border-color:var(--sky)
 }
 button:active {
-  background:#2c477f
+  background:var(--swatch-e4eaf1)
 }
 button:disabled {
   opacity:.6;
@@ -118,23 +118,23 @@ button:focus-visible,summary:focus-visible,a:focus-visible,[tabindex]:focus-visi
   outline-offset:3px
 }
 button.primary,.btn.primary {
-  background:var(--brand-cream);
-  color:var(--brand-blue-deep);
-  border:1px solid var(--gold);
-  font-weight:700
+  background:var(--navy-2);
+  color:var(--swatch-ffffff);
+  border:1px solid var(--navy-2);
+  font-weight:500
 }
 button.primary:hover,.btn.primary:hover {
-  background:#fff9e9;
-  border-color:#ead3a5
+  background:var(--swatch-22396f);
+  border-color:var(--swatch-22396f)
 }
 .ghost {
   background:transparent;
   border-color:var(--border)
 }
 .danger {
-  background:#472534;
+  background:var(--swatch-faecee);
   color:var(--red);
-  border-color:#af697e
+  border-color:var(--swatch-d8acb4)
 }
 .wide {
   width:100%
@@ -147,7 +147,7 @@ button.primary:hover,.btn.primary:hover {
   line-height:1.6
 }
 .eyebrow {
-  font-size:10px;
+  font-size:13px;
   letter-spacing:.14em;
   font-weight:700;
   color:var(--gold);
@@ -158,7 +158,7 @@ button.primary:hover,.btn.primary:hover {
   min-width:0;
   width:100%;
   margin:0;
-  padding:28px 28px 120px
+  padding:24px 24px 120px
 }
 .topbar {
   display:flex;
@@ -194,7 +194,7 @@ button.primary:hover,.btn.primary:hover {
 .brand small {
   display:block;
   margin-top:4px;
-  font-size:12px;
+  font-size:13px;
   color:var(--muted);
   white-space:nowrap;
   overflow:hidden;
@@ -207,7 +207,7 @@ button.primary:hover,.btn.primary:hover {
 }
 .header-actions button {
   font-size:13px;
-  padding:9px 13px;
+  padding:8px 12px;
   min-height:44px
 }
 .section-title {
@@ -261,7 +261,7 @@ button.primary:hover,.btn.primary:hover {
   align-items:center;
   justify-content:space-between;
   gap:var(--space-4);
-  padding:18px
+  padding:16px
 }
 .row-main {
   min-width:0;
@@ -278,32 +278,32 @@ button.primary:hover,.btn.primary:hover {
   display:inline-flex;
   align-items:center;
   min-width:0;
-  padding:5px 9px;
+  padding:4px 8px;
   border:1px solid transparent;
   border-radius:6px;
-  font-size:12px;
+  font-size:13px;
   font-weight:600;
   line-height:1.4
 }
 .b-green {
-  background:#173d35;
+  background:var(--swatch-e7f3ec);
   color:var(--green);
-  border-color:#537968
+  border-color:var(--swatch-a6c8b4)
 }
 .b-red {
-  background:#472534;
+  background:var(--swatch-faecee);
   color:var(--red);
-  border-color:#af697e
+  border-color:var(--swatch-d8acb4)
 }
 .b-yellow {
-  background:#3b3225;
+  background:var(--swatch-f8eed5);
   color:var(--yellow);
-  border-color:#987d4a
+  border-color:var(--swatch-cfb77e)
 }
 .b-blue {
   background:var(--brand-blue);
-  color:var(--sky-2);
-  border-color:#6d85b5
+  color:var(--brand-cream);
+  border-color:var(--swatch-8292ab)
 }
 .b-gray {
   background:var(--panel2);
@@ -311,19 +311,19 @@ button.primary:hover,.btn.primary:hover {
   border-color:var(--border)
 }
 .role-group {
-  margin-bottom:28px
+  margin-bottom:24px
 }
 .role-head {
   display:flex;
   justify-content:space-between;
   align-items:center;
   gap:var(--space-3);
-  padding:10px 0;
+  padding:8px 0;
   margin-bottom:12px;
   border-bottom:1px solid var(--border)
 }
 .role-head h3 {
-  font-size:11px;
+  font-size:13px;
   text-transform:uppercase;
   letter-spacing:.1em;
   color:var(--muted);
@@ -333,7 +333,7 @@ button.primary:hover,.btn.primary:hover {
   margin-top:24px
 }
 .empty {
-  padding:28px 20px;
+  padding:24px 20px;
   text-align:center;
   color:var(--muted);
   font-size:14px
@@ -341,7 +341,7 @@ button.primary:hover,.btn.primary:hover {
 .notice {
   padding:var(--space-4);
   background:var(--panel2);
-  border:1px solid #7182a3;
+  border:1px solid var(--swatch-8292ab);
   border-left:1px solid var(--gold);
   border-radius:10px;
   color:var(--text);
@@ -359,16 +359,16 @@ button.primary:hover,.btn.primary:hover {
   color:var(--text)
 }
 .field small {
-  font-size:12px;
+  font-size:13px;
   color:var(--muted)
 }
 .field-space {
-  margin-top:18px
+  margin-top:16px
 }
 .form-grid {
   display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:18px
+  gap:16px
 }
 input,select,textarea {
   display:block;
@@ -378,7 +378,7 @@ input,select,textarea {
   min-height:48px;
   border:1px solid var(--control-border);
   border-radius:10px;
-  padding:12px 14px;
+  padding:12px 12px;
   background:var(--input-bg);
   color:var(--text);
   font-size:16px;
@@ -387,7 +387,7 @@ input,select,textarea {
   transition:border-color .18s ease-out,background .18s ease-out
 }
 input::placeholder,textarea::placeholder {
-  color:#a8b6cd;
+  color:var(--swatch-606a79);
   opacity:1
 }
 input:focus,select:focus,textarea:focus {
@@ -428,13 +428,13 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   display:flex;
   align-items:center;
   justify-content:center;
-  background:rgba(1,7,30,.82);
-  padding:var(--space-5);
+  background:var(--swatch-rgba173082);
+  padding:calc(var(--space-5) + var(--safe-area-top,env(safe-area-inset-top,0px))) calc(var(--space-5) + env(safe-area-inset-right,0px)) calc(var(--space-5) + env(safe-area-inset-bottom,0px)) calc(var(--space-5) + env(safe-area-inset-left,0px));
   z-index:50
 }
 .modal {
   width:min(100%,880px);
-  max-height:calc(var(--dialog-height,100dvh) - 48px);
+  max-height:calc(var(--dialog-height,100dvh) - 48px - var(--safe-area-top,env(safe-area-inset-top,0px)) - env(safe-area-inset-bottom,0px));
   overflow-y:auto;
   overscroll-behavior:contain;
   scrollbar-gutter:stable;
@@ -442,7 +442,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   background:var(--panel);
   border:1px solid var(--control-border);
   border-radius:18px;
-  box-shadow:0 24px 70px rgba(0,0,0,.3);
+  box-shadow:0 24px 70px var(--swatch-rgba0003);
   min-width:0
 }
 .modal-head {
@@ -453,7 +453,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   justify-content:space-between;
   gap:var(--space-4);
   margin:calc(-1 * var(--dialog-pad)) calc(-1 * var(--dialog-pad)) 24px;
-  padding:22px var(--dialog-pad);
+  padding:20px var(--dialog-pad);
   background:var(--panel);
   border-bottom:1px solid var(--border);
   z-index:3
@@ -484,6 +484,22 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   margin-top:24px;
   padding-top:20px;
   border-top:1px solid var(--border)
+}
+.confirm-back {
+  z-index:70
+}
+.confirm-modal {
+  max-width:440px
+}
+.confirm-modal :is(#confirmBody,#deleteUserDescription) {
+  margin:4px 0 20px;
+  overflow-wrap:anywhere
+}
+.confirm-actions {
+  justify-content:flex-end
+}
+.confirm-actions button {
+  min-height:44px
 }
 .modal-actions button {
   flex:1 1 150px;
@@ -525,7 +541,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   border-top:1px solid var(--border);
   padding-top:20px;
   color:var(--muted);
-  font-size:12px
+  font-size:13px
 }
 .nav {
   position:fixed;
@@ -537,7 +553,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   grid-template-columns:repeat(5,minmax(0,1fr));
   gap:var(--space-1);
   padding:var(--space-2);
-  background:#0a1732;
+  background:var(--swatch-f2f5f9);
   border:1px solid var(--border);
   border-radius:16px;
   z-index:20
@@ -550,10 +566,10 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  gap:6px;
+  gap:4px;
   min-height:56px;
   min-width:0;
-  padding:8px 2px;
+  padding:8px 0px;
   border:0;
   border-radius:10px;
   background:transparent;
@@ -574,7 +590,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   line-height:1
 }
 .nav button span {
-  font-size:11px;
+  font-size:13px;
   font-weight:600
 }
 .nav svg {
@@ -588,345 +604,11 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   stroke-linejoin:round
 }
 /* Dashboard: team indicators and operational priorities. */
-.dash-heading {
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:20px;
-  flex-wrap:wrap;
-  margin-bottom:24px
-}
-.dash-heading>div {
-  min-width:0
-}
-.dash-heading h2 {
-  font-size:34px;
-  margin:6px 0 8px
-}
-.dash-date {
-  margin:0;
-  font-size:12px;
-  color:var(--muted);
-  text-transform:capitalize;
-  letter-spacing:.02em
-}
-.dash-subtitle {
-  margin:0;
-  color:var(--muted);
-  font-size:14px;
-  max-width:68ch
-}
-.dash-role {
-  padding:7px 12px;
-  font-size:12px;
-  color:var(--muted);
-  border:1px solid var(--border);
-  border-radius:7px;
-  background:var(--panel)
-}
-.club-overview {
-  display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr));
-  gap:var(--space-3);
-  margin-bottom:24px
-}
-.club-metric {
-  display:grid;
-  gap:var(--space-2);
-  text-align:left;
-  padding:20px;
-  background:var(--panel);
-  border-color:var(--border);
-  border-radius:13px
-}
-.club-metric:before {
-  content:none
-}
-.club-metric b {
-  font-size:30px;
-  line-height:1.2;
-  font-weight:650;
-  font-variant-numeric:tabular-nums;
-  letter-spacing:-.03em
-}
-.club-metric span {
-  font-size:13px;
-  color:var(--text);
-  font-weight:500
-}
-.club-metric small {
-  font-size:12px;
-  color:var(--muted);
-  font-weight:400
-}
-.dash-layout {
-  display:grid;
-  grid-template-columns:minmax(0,1.6fr) minmax(300px,1fr);
-  gap:var(--space-5);
-  align-items:start
-}
-.dash-main,.dash-side {
-  display:grid;
-  gap:var(--space-5);
-  min-width:0
-}
-.next-activity,.ios-dashboard .dash-next {
-  background:var(--brand-blue);
-  border:1px solid #536b99;
-  border-radius:16px;
-  padding:28px;
-  margin:0;
-  min-width:0
-}
-.next-activity h2 {
-  font-size:32px
-}
-.dash-section-label {
-  display:flex;
-  align-items:center;
-  gap:var(--space-2);
-  font-size:13px;
-  color:#c6d4ee;
-  font-weight:500
-}
-.dash-section-label svg {
-  width:18px;
-  height:18px;
-  color:var(--gold);
-  flex-shrink:0
-}
-.dash-type {
-  margin-left:auto;
-  font-size:11px;
-  padding:5px 8px;
-  border-radius:6px;
-  background:#0d1c42;
-  border:1px solid #7182a3;
-  color:var(--text)
-}
-.ios-dashboard .dash-next h3 {
-  font-size:30px;
-  letter-spacing:-.025em;
-  margin:20px 0 16px;
-  max-width:28ch;
-  line-height:1.2
-}
-.dash-when {
-  display:flex;
-  gap:10px;
-  align-items:center;
-  flex-wrap:wrap;
-  font-size:16px;
-  font-variant-numeric:tabular-nums
-}
-.dash-location {
-  color:var(--muted);
-  font-size:14px;
-  margin:8px 0 0
-}
-.dash-meeting {
-  display:grid;
-  gap:var(--space-1);
-  margin-top:20px;
-  padding-top:18px;
-  border-top:1px solid #536b99;
-  font-size:13px
-}
-.dash-meeting>span {
-  color:var(--muted)
-}
-.dash-meeting>b {
-  font-weight:500
-}
-.ios-dashboard .dash-next button.primary {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:var(--space-3);
-  width:100%;
-  min-height:50px;
-  margin-top:24px
-}
-.dash-next button svg {
-  width:20px;
-  height:20px
-}
-.resume-session,.dash-resume {
-  padding:var(--space-5);
-  background:var(--panel);
-  border:1px solid var(--border);
-  border-radius:16px;
-  margin:0
-}
-.dash-resume h3 {
-  margin:12px 0 4px
-}
-.dash-resume-date {
-  margin:0;
-  font-size:13px;
-  color:var(--muted)
-}
-.dash-response {
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px 18px;
-  margin:18px 0;
-  color:var(--muted);
-  font-size:13px
-}
-.dash-response b {
-  color:var(--text)
-}
-.dash-resume button {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:10px;
-  width:100%
-}
-.dash-section-head {
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:var(--space-3);
-  margin-bottom:12px;
-  min-height:44px
-}
-.dash-section-head h3 {
-  margin:0
-}
-.dash-section-head button {
-  font-size:13px;
-  padding:8px 10px;
-  background:transparent;
-  border-color:transparent;
-  color:var(--sky-2)
-}
-.dash-agenda-list,.dash-tasks,.dash-stats {
-  background:var(--panel);
-  border:1px solid var(--border);
-  border-radius:14px;
-  overflow:hidden
-}
-.ios-dashboard .activity-card {
-  background:transparent;
-  border:0;
-  border-bottom:1px solid var(--border);
-  border-radius:0;
-  padding:20px;
-  grid-template-columns:44px minmax(0,1fr) 12px
-}
-.ios-dashboard .activity-card:last-child,.dash-task:last-child {
-  border-bottom:0
-}
-.dash-task {
-  display:grid;
-  grid-template-columns:36px minmax(0,1fr) 12px;
-  align-items:center;
-  gap:var(--space-3);
-  width:100%;
-  padding:18px;
-  text-align:left;
-  background:transparent;
-  border:0;
-  border-bottom:1px solid var(--border);
-  border-radius:0;
-  font-weight:500
-}
-.dash-task-value {
-  display:grid;
-  place-items:center;
-  min-height:36px;
-  background:var(--brand-blue);
-  border-radius:8px;
-  color:var(--brand-cream);
-  font-size:17px;
-  font-weight:650;
-  font-variant-numeric:tabular-nums
-}
-.dash-chevron {
-  color:var(--muted);
-  font-size:22px
-}
-.dash-empty {
-  padding:22px;
-  color:var(--muted);
-  font-size:14px;
-  margin:0
-}
-.dash-quick {
-  display:grid;
-  grid-template-columns:40px minmax(0,1fr) 12px;
-  gap:var(--space-3);
-  align-items:center;
-  padding:20px;
-  border-color:var(--border);
-  background:var(--panel);
-  text-align:left;
-  border-radius:14px
-}
-.dash-quick-icon {
-  display:grid;
-  place-items:center;
-  width:40px;
-  height:40px;
-  border:1px solid var(--border);
-  border-radius:9px;
-  background:transparent;
-  color:var(--gold)
-}
-.dash-quick-icon svg {
-  width:22px;
-  height:22px
-}
-.dash-quick b {
-  display:block;
-  font-size:15px
-}
-.dash-quick small {
-  display:block;
-  color:var(--muted);
-  font-size:12px;
-  margin-top:4px
-}
-.dash-summary {
-  padding:22px;
-  background:var(--panel);
-  border:1px solid var(--border);
-  border-radius:14px
-}
-.dash-summary .row-sub {
-  margin:0
-}
-.dash-stats {
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  padding:20px 0
-}
-.dash-stats>div {
-  padding:0 18px;
-  min-width:0
-}
-.dash-stats>div+div {
-  border-left:1px solid var(--border)
-}
-.dash-stats b {
-  display:block;
-  font-size:30px;
-  font-weight:650;
-  letter-spacing:-.03em
-}
-.dash-stats span {
-  display:block;
-  color:var(--muted);
-  font-size:12px;
-  margin-top:6px
-}
 .action-grid {
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));
   gap:var(--space-3);
-  margin:20px 0 28px
+  margin:20px 0 24px
 }
 .action-grid button,.tool-list>button,.expiry-row {
   display:grid;
@@ -956,7 +638,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   grid-template-columns:repeat(2,minmax(0,1fr))
 }
 .meeting-strip {
-  padding:14px;
+  padding:12px;
   border-left:1px solid var(--gold);
   background:var(--panel2);
   font-size:13px;
@@ -967,7 +649,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 .agenda-controls {
   display:grid;
   gap:var(--space-4);
-  padding:22px;
+  padding:20px;
   margin-bottom:20px
 }
 .activity-card {
@@ -976,7 +658,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   gap:var(--space-4);
   align-items:center;
   width:100%;
-  padding:18px;
+  padding:16px;
   text-align:left;
   background:var(--panel);
   border-color:var(--border);
@@ -984,12 +666,12 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 }
 .activity-date {
   display:grid;
-  gap:3px;
+  gap:4px;
   text-align:center;
-  padding:10px 4px;
+  padding:8px 4px;
   background:var(--brand-blue);
   border-radius:9px;
-  color:var(--text)
+  color:var(--brand-cream)
 }
 .activity-date b {
   font-size:22px;
@@ -997,13 +679,13 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   font-weight:650
 }
 .activity-date small {
-  font-size:10px;
+  font-size:13px;
   text-transform:uppercase;
   letter-spacing:.08em
 }
 .activity-main {
   display:grid;
-  gap:5px;
+  gap:4px;
   min-width:0
 }
 .activity-main strong {
@@ -1012,29 +694,29 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   overflow-wrap:anywhere
 }
 .activity-type {
-  font-size:11px;
+  font-size:13px;
   color:var(--sky);
   letter-spacing:.02em
 }
 .activity-main>span:not(.activity-type),.activity-main small {
-  font-size:12px;
+  font-size:13px;
   font-weight:400;
   color:var(--muted)
 }
 .workflow-switch,.report-tabs,.attendance-filters,.communication-filters {
   display:flex;
   gap:var(--space-1);
-  padding:5px;
+  padding:4px;
   background:var(--input-bg);
   border:1px solid var(--border);
   border-radius:11px;
   min-width:0;
-  margin-bottom:18px
+  margin-bottom:16px
 }
 .workflow-switch button,.report-tabs button,.attendance-filters button,.communication-filters button {
   flex:1;
   min-width:0;
-  padding:10px 8px;
+  padding:8px 8px;
   border:1px solid transparent;
   background:transparent;
   color:var(--muted);
@@ -1043,7 +725,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 .workflow-switch button[aria-pressed=true],.report-tabs button.active,.attendance-filters button.active,.communication-filters button[aria-pressed=true],.activity-tabs button[aria-selected=true],.status-grid .selected,.event-types .selected,.poll-quick button[aria-pressed=true],.roster-quick button[aria-pressed=true],.report-presets button[aria-pressed=true] {
   background:var(--brand-blue);
   border-color:var(--control-border);
-  color:var(--text);
+  color:var(--brand-cream);
   box-shadow:inset 0 -1px 0 var(--gold)
 }
 .activity-tabs {
@@ -1053,7 +735,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   margin:20px 0
 }
 .activity-tabs button {
-  padding:10px 8px;
+  padding:8px 8px;
   font-size:13px;
   background:var(--panel2);
   color:var(--muted)
@@ -1099,7 +781,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 }
 .match-settings summary .row-sub,.match-minutes summary .row-sub {
   display:block;
-  margin:var(--space-1) 0 0 18px
+  margin:var(--space-1) 0 0 16px
 }
 .match-save-row {
   display:flex;
@@ -1143,17 +825,17 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   border-radius:10px
 }
 .sheet-heading {
-  margin:28px 0 16px
+  margin:24px 0 16px
 }
 .training-controls {
   display:grid;
   gap:var(--space-4);
-  margin:24px 0 18px
+  margin:24px 0 16px
 }
 .attendance-counts,.session-summary {
   display:flex;
   flex-wrap:wrap;
-  gap:6px
+  gap:4px
 }
 .training-save {
   position:sticky;
@@ -1172,12 +854,12 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   display:block;
   text-align:center;
   margin-top:8px;
-  font-size:12px
+  font-size:13px
 }
 .attendance-row {
   display:grid;
   grid-template-columns:minmax(0,1fr) auto;
-  gap:10px;
+  gap:8px;
   align-items:start
 }
 .attendance-row .row-main {
@@ -1190,15 +872,15 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 .attendance-row>button {
   grid-column:2;
   grid-row:2;
-  font-size:12px;
+  font-size:13px;
   min-width:80px;
-  padding:10px
+  padding:8px
 }
 .attendance-note {
   font-size:13px;
   white-space:pre-wrap;
   overflow-wrap:anywhere;
-  margin-top:10px
+  margin-top:8px
 }
 .status-grid {
   display:grid;
@@ -1207,10 +889,10 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 }
 .status-grid button {
   min-width:0;
-  padding:11px 4px
+  padding:12px 4px
 }
 .poll-controls {
-  padding:14px 16px;
+  padding:12px 16px;
   background:var(--panel);
   border:1px solid var(--border);
   border-radius:12px;
@@ -1225,7 +907,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   list-style:none
 }
 .poll-controls summary:after {
-  content:'⌄';
+  content:'âŒ„';
   float:right;
   color:var(--muted)
 }
@@ -1235,13 +917,13 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 }
 .poll-controls summary span {
   display:block;
-  font-size:12px;
+  font-size:13px;
   margin-top:4px;
   color:var(--muted)
 }
 .poll-detail {
   display:grid;
-  gap:14px;
+  gap:12px;
   padding-top:16px
 }
 .poll-filters {
@@ -1257,14 +939,14 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 }
 .poll-quick {
   display:flex;
-  gap:6px;
+  gap:4px;
   flex-wrap:wrap
 }
 .poll-quick button {
   min-height:44px;
   min-width:44px;
-  font-size:12px;
-  padding:9px 11px
+  font-size:13px;
+  padding:8px 12px
 }
 .poll-actions,.phase-tools {
   display:flex;
@@ -1272,7 +954,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   flex-wrap:wrap
 }
 .poll-actions {
-  margin-top:14px
+  margin-top:12px
 }
 .poll-actions button,.phase-tools button {
   flex:1 1 130px;
@@ -1288,7 +970,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 .reminder-option {
   display:flex;
   align-items:center;
-  gap:10px;
+  gap:8px;
   font-size:13px;
   color:var(--muted)
 }
@@ -1306,12 +988,12 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   color:var(--muted)
 }
 .attendance-review h3 {
-  margin-top:28px;
+  margin-top:24px;
   font-size:17px
 }
 .history-field {
   display:grid;
-  gap:5px;
+  gap:4px;
   font-size:13px;
   padding-top:8px
 }
@@ -1327,7 +1009,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   color:var(--muted);
   font-size:13px;
   line-height:1.6;
-  margin:10px 0 16px;
+  margin:8px 0 16px;
   overflow-wrap:anywhere
 }
 .session-notes summary {
@@ -1347,7 +1029,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   display:block;
   margin-top:8px;
   color:var(--sky);
-  font-size:12px
+  font-size:13px
 }
 /* Match administration, lineups and events. */
 .match-list {
@@ -1362,7 +1044,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   gap:var(--space-3)
 }
 .match-meta {
-  font-size:12px;
+  font-size:13px;
   color:var(--muted)
 }
 .match-heading {
@@ -1380,7 +1062,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 }
 .match-score {
   font-size:32px;
-  color:var(--brand-cream);
+  color:var(--brand-blue);
   font-variant-numeric:tabular-nums;
   white-space:nowrap
 }
@@ -1398,26 +1080,17 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 .match-card-footer button {
   font-size:13px
 }
-.match-phases {
-  margin-bottom:14px
-}
-.match-phases .row-sub {
-  margin:6px 0
-}
-.match-phases .workflow-switch {
-  margin-bottom:10px
-}
 .roster-person {
   display:grid;
   grid-template-columns:minmax(0,1fr) auto;
-  gap:10px;
+  gap:8px;
   align-items:center;
   padding:var(--space-4)
 }
 .roster-person label {
   display:flex;
   align-items:center;
-  gap:10px;
+  gap:8px;
   min-width:0;
   min-height:44px
 }
@@ -1431,13 +1104,13 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   overflow-wrap:anywhere
 }
 .roster-person small {
-  font-size:12px;
+  font-size:13px;
   color:var(--muted)
 }
 .roster-person>button {
   font-size:13px;
   max-width:130px;
-  padding:10px
+  padding:8px
 }
 .roster-person>.row-sub {
   grid-column:1/-1
@@ -1450,9 +1123,9 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 }
 .roster-quick button {
   flex:1 1 90px;
-  font-size:12px;
+  font-size:13px;
   min-height:44px;
-  padding:9px;
+  padding:8px;
   max-width:none
 }
 .roster-filters .workflow-switch {
@@ -1464,10 +1137,10 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   align-content:space-around;
   padding:24px 16px;
   min-height:280px;
-  background:linear-gradient(135deg,#152b53,#0d1c42);
-  border:1px solid #7182a3;
+  background:var(--panel);
+  border:1px solid var(--swatch-8292ab);
   border-radius:14px;
-  margin-top:18px
+  margin-top:16px
 }
 .pitch-line {
   display:flex;
@@ -1478,7 +1151,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 }
 .pitch-player {
   display:grid;
-  gap:6px;
+  gap:4px;
   text-align:center;
   min-width:42px;
   max-width:86px
@@ -1496,16 +1169,16 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   font-size:13px
 }
 .pitch-player span {
-  font-size:11px;
+  font-size:13px;
   overflow-wrap:anywhere
 }
 .pitch-player small,.formation-preview .empty {
   color:var(--muted);
-  font-size:10px
+  font-size:13px
 }
 .callup-copy {
   display:grid;
-  gap:14px;
+  gap:12px;
   padding-top:20px;
   border-top:1px solid var(--border)
 }
@@ -1533,7 +1206,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 }
 .event-content {
   display:grid;
-  gap:7px;
+  gap:8px;
   min-width:0
 }
 .event-content>.badge {
@@ -1556,12 +1229,12 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   margin:0
 }
 .event-content small {
-  font-size:12px;
+  font-size:13px;
   color:var(--muted)
 }
 .event-item>button {
-  font-size:12px;
-  padding:9px
+  font-size:13px;
+  padding:8px
 }
 .event-types {
   display:flex;
@@ -1583,7 +1256,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   display:grid;
   grid-template-columns:44px minmax(0,1fr) 44px;
   align-items:center;
-  gap:10px;
+  gap:8px;
   margin-bottom:20px
 }
 .calendar-head>div {
@@ -1596,21 +1269,21 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 .calendar-week,.calendar-grid {
   display:grid;
   grid-template-columns:repeat(7,minmax(0,1fr));
-  gap:5px
+  gap:4px
 }
 .calendar-week {
-  margin-bottom:10px
+  margin-bottom:8px
 }
 .calendar-week span {
   text-align:center;
-  font-size:11px;
+  font-size:13px;
   color:var(--muted)
 }
 .calendar-day {
   aspect-ratio:1;
   min-height:40px;
   min-width:0;
-  padding:2px;
+  padding:0px;
   background:var(--panel);
   border-color:transparent;
   display:flex;
@@ -1618,31 +1291,47 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   align-items:center;
   justify-content:center;
   gap:var(--space-1);
-  font-size:13px
+  font-size:13px;
+  color:var(--text);
+  font-weight:600
 }
 .calendar-day.blank {
   background:transparent
 }
 .calendar-day.has-activity {
-  background:var(--brand-blue);
-  border-color:#7182a3
+  background:var(--swatch-e8eef8);
+  border-color:var(--swatch-a8b7d1);
+  color:var(--brand-blue-deep)
+}
+.calendar-day:hover {
+  background:var(--surface-hover);
+  color:var(--text)
+}
+.calendar-day.has-activity:hover {
+  background:var(--swatch-d8e2f3);
+  border-color:var(--brand-blue)
 }
 .calendar-day i {
-  width:4px;
-  height:4px;
+  width:5px;
+  height:5px;
   border-radius:50%;
   background:var(--gold)
 }
 .calendar-day.selected {
-  background:var(--brand-cream);
+  background:var(--brand-blue);
   border-color:var(--gold);
-  color:var(--bg)
+  color:var(--swatch-ffffff);
+  box-shadow:inset 0 0 0 1px var(--brand-cream)
+}
+.calendar-day.selected:hover {
+  background:var(--navy-2);
+  color:var(--swatch-ffffff)
 }
 .calendar-day.selected i {
-  background:var(--bg)
+  background:var(--brand-cream)
 }
 .session-detail {
-  margin-bottom:18px
+  margin-bottom:16px
 }
 .session-detail-head {
   display:flex;
@@ -1662,9 +1351,9 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:10px;
+  gap:8px;
   font-size:13px;
-  margin-bottom:14px
+  margin-bottom:12px
 }
 .register-people {
   display:grid;
@@ -1673,14 +1362,14 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 }
 .person-chip {
   display:grid;
-  gap:5px;
+  gap:4px;
   padding:var(--space-3);
   background:var(--panel2);
   border-radius:8px;
   font-size:13px
 }
 .person-chip small {
-  font-size:11px;
+  font-size:13px;
   color:var(--muted)
 }
 .session-tools {
@@ -1695,7 +1384,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 }
 .session-updated {
   margin-top:12px;
-  font-size:11px
+  font-size:13px
 }
 .player-kpis {
   display:grid;
@@ -1703,7 +1392,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   gap:var(--space-3)
 }
 .player-kpis>div {
-  padding:18px;
+  padding:16px;
   background:var(--panel2);
   border:1px solid var(--border);
   border-radius:12px;
@@ -1716,12 +1405,12 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   font-weight:650
 }
 .player-kpis span {
-  font-size:12px;
+  font-size:13px;
   color:var(--muted)
 }
 .report {
-  padding:18px;
-  background:#081534;
+  padding:16px;
+  background:var(--swatch-f2f5f9);
   border:1px solid var(--border);
   border-radius:10px;
   white-space:pre-wrap;
@@ -1738,7 +1427,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   border-top:1px solid var(--border)
 }
 .compact-row {
-  padding:14px
+  padding:12px
 }
 .attendance-trend {
   display:grid;
@@ -1747,7 +1436,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 .trend-row {
   display:grid;
   grid-template-columns:85px minmax(0,1fr) 44px;
-  gap:5px 10px;
+  gap:4px 8px;
   align-items:center;
   font-size:13px;
   margin-bottom:12px
@@ -1755,7 +1444,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 .trend-row small {
   grid-column:2/-1;
   color:var(--muted);
-  font-size:12px
+  font-size:13px
 }
 .trend-row meter {
   width:100%;
@@ -1773,11 +1462,11 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   font-size:13px
 }
 .report-section {
-  margin-top:28px
+  margin-top:24px
 }
 .report-section h3 {
   font-size:19px;
-  margin:0 0 14px
+  margin:0 0 12px
 }
 .report-metric {
   padding:20px;
@@ -1801,7 +1490,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 .report-metric small {
   display:block;
   margin-top:12px;
-  font-size:12px;
+  font-size:13px;
   color:var(--sky);
   font-weight:400
 }
@@ -1818,9 +1507,9 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:14px;
+  gap:12px;
   width:100%;
-  padding:18px;
+  padding:16px;
   text-align:left;
   background:var(--panel);
   border:1px solid var(--border);
@@ -1836,7 +1525,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 }
 .priority-row small,.report-player-row small {
   display:block;
-  margin-top:5px;
+  margin-top:4px;
   font-size:13px;
   color:var(--muted);
   font-weight:400;
@@ -1845,10 +1534,10 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 .player-charts {
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-  gap:18px
+  gap:16px
 }
 .chart-card h4 {
-  margin:0 0 22px;
+  margin:0 0 20px;
   font-size:16px
 }
 .chart-bar-row {
@@ -1856,7 +1545,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   grid-template-columns:minmax(85px,1fr) 2fr minmax(36px,auto);
   align-items:center;
   gap:var(--space-3);
-  margin:18px 0;
+  margin:16px 0;
   font-size:13px
 }
 .chart-bar-row b {
@@ -1866,7 +1555,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 .chart-track {
   height:9px;
   border-radius:5px;
-  background:#36476a;
+  background:var(--swatch-dce1e8);
   overflow:hidden
 }
 .chart-fill {
@@ -1883,7 +1572,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   justify-content:space-between;
   gap:var(--space-3);
   flex-wrap:wrap;
-  padding:18px
+  padding:16px
 }
 .user-row>div {
   min-width:0;
@@ -1895,7 +1584,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 .user-row small {
   display:block;
   color:var(--muted);
-  font-size:12px
+  font-size:13px
 }
 .user-row select {
   max-width:180px;
@@ -1914,31 +1603,17 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 .discipline-card .section-title {
   margin-bottom:16px
 }
-.discipline-count {
-  display:flex;
-  align-items:baseline;
-  gap:var(--space-3);
-  flex-wrap:wrap
-}
-.discipline-count strong {
-  font-size:34px;
-  font-variant-numeric:tabular-nums
-}
-.discipline-count span {
-  font-size:13px;
-  color:var(--muted)
-}
 .discipline-progress {
   display:grid;
   grid-template-columns:repeat(5,minmax(0,1fr));
-  gap:6px;
+  gap:4px;
   margin:16px 0;
   max-width:320px
 }
 .discipline-progress span {
   height:8px;
   border-radius:4px;
-  background:#36476a;
+  background:var(--swatch-dce1e8);
   border:1px solid var(--control-border)
 }
 .discipline-progress .filled {
@@ -1957,7 +1632,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   grid-template-columns:auto minmax(0,1fr);
   gap:var(--space-3);
   align-items:start;
-  padding:14px 0;
+  padding:12px 0;
   border-top:1px solid var(--border)
 }
 .discipline-event b {
@@ -1969,7 +1644,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 }
 .discipline-clearance {
   padding:var(--space-4);
-  margin:14px 0;
+  margin:12px 0;
   border:1px solid var(--border);
   border-radius:10px;
   background:var(--panel2)
@@ -2003,20 +1678,20 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 .communication-filters {
   width:fit-content;
   max-width:100%;
-  margin-bottom:22px
+  margin-bottom:20px
 }
 .communication-filters button {
   flex:0 1 auto;
-  padding:10px 14px;
+  padding:8px 12px;
   white-space:nowrap
 }
 .communication-search-grid {
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));
-  gap:18px
+  gap:16px
 }
 .communication-refresh {
-  margin:18px 0 8px
+  margin:16px 0 8px
 }
 .communication-refresh span {
   flex:1 1 180px
@@ -2049,7 +1724,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 .communication-identity {
   display:flex;
   align-items:center;
-  gap:10px;
+  gap:8px;
   min-width:0;
   flex:1 1 180px
 }
@@ -2060,10 +1735,10 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   height:36px;
   flex-shrink:0;
   background:var(--brand-blue);
-  border:1px solid #8296bd;
+  border:1px solid var(--swatch-8292ab);
   color:var(--brand-cream);
   border-radius:9px;
-  font-size:12px;
+  font-size:13px;
   font-weight:700;
   letter-spacing:.03em
 }
@@ -2077,18 +1752,18 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   display:inline-block;
   width:fit-content;
   padding:4px 8px;
-  background:#112244;
+  background:var(--swatch-ffffff);
   color:var(--muted);
   border:1px solid var(--border);
   border-radius:6px;
-  font-size:12px;
+  font-size:13px;
   font-weight:500;
   line-height:1.5
 }
 .communication-expiry.is-urgent {
-  background:#3b3225;
+  background:var(--swatch-f8eed5);
   color:var(--yellow);
-  border-color:#987d4a
+  border-color:var(--swatch-cfb77e)
 }
 .communication-card h3 {
   margin:0;
@@ -2117,7 +1792,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   display:grid;
   gap:var(--space-1);
   color:var(--muted);
-  font-size:12px;
+  font-size:13px;
   line-height:1.6;
   min-width:0;
   overflow-wrap:anywhere
@@ -2146,13 +1821,13 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 }
 .communication-actions button {
   margin-top:8px;
-  font-size:12px;
+  font-size:13px;
   max-width:160px;
   color:var(--red);
-  background:#472534
+  background:var(--swatch-faecee)
 }
 .communication-footnote {
-  font-size:12px;
+  font-size:13px;
   line-height:1.6;
   color:var(--muted);
   margin:20px 0 0
@@ -2166,7 +1841,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 }
 .dash-communications {
   min-width:0;
-  padding:22px;
+  padding:20px;
   background:var(--panel);
   border:1px solid var(--border);
   border-radius:14px
@@ -2186,7 +1861,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   flex-direction:column;
   align-items:flex-start;
   text-align:left;
-  gap:7px;
+  gap:8px;
   width:100%;
   min-width:0;
   padding:16px 0;
@@ -2246,7 +1921,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
     display:flex;
     flex-direction:column;
     gap:var(--space-2);
-    padding:22px 14px;
+    padding:20px 12px;
     border-radius:16px;
     overflow-y:auto;
     overscroll-behavior:contain;
@@ -2256,8 +1931,8 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
     display:flex;
     align-items:center;
     gap:var(--space-3);
-    padding:6px 8px 28px;
-    margin-bottom:14px;
+    padding:4px 8px 24px;
+    margin-bottom:12px;
     border-bottom:1px solid var(--border)
   }
   .nav-brand img {
@@ -2275,18 +1950,18 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   }
   .nav-brand small {
     color:var(--gold);
-    font-size:11px;
+    font-size:13px;
     font-weight:400;
     letter-spacing:.02em
   }
   .nav button {
     flex-direction:row;
     justify-content:flex-start;
-    gap:14px;
+    gap:12px;
     width:100%;
     min-height:52px;
     flex-shrink:0;
-    padding:14px 16px;
+    padding:12px 16px;
     text-align:left
   }
   .nav button span {
@@ -2308,19 +1983,6 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   }
 }
 @media(min-width:768px) and (max-width:1023px){
-  .dash-layout {
-    grid-template-columns:minmax(0,1.3fr) minmax(260px,1fr);
-    gap:20px
-  }
-  .dash-main,.dash-side {
-    gap:20px
-  }
-  .club-overview {
-    gap:10px
-  }
-  .club-metric {
-    padding:var(--space-4)
-  }
   .register-layout {
     grid-template-columns:minmax(0,1fr)
   }
@@ -2339,15 +2001,15 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   .shell,.dashboard-shell {
     width:100%;
     margin:0;
-    padding:calc(18px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) calc(114px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))
+    padding:calc(16px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) calc(114px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))
   }
   .topbar {
-    gap:10px;
+    gap:8px;
     margin-bottom:16px;
-    padding-bottom:14px
+    padding-bottom:12px
   }
   .brand {
-    gap:9px
+    gap:8px
   }
   .brand img {
     width:36px;
@@ -2358,14 +2020,14 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
     font-size:16px
   }
   .brand small {
-    font-size:11px
+    font-size:13px
   }
   .header-actions {
-    gap:6px
+    gap:4px
   }
   .header-actions button {
-    font-size:12px;
-    padding:9px 10px
+    font-size:13px;
+    padding:8px 8px
   }
   .section-title {
     gap:var(--space-3);
@@ -2378,10 +2040,10 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
     font-size:14px
   }
   .card,.chart-card,.discipline-card {
-    padding:18px
+    padding:16px
   }
   .row {
-    gap:10px;
+    gap:8px;
     flex-wrap:wrap;
     padding:var(--space-4)
   }
@@ -2404,111 +2066,19 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
     grid-template-columns:minmax(0,1fr);
     gap:var(--space-4)
   }
-  .club-overview {
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:10px;
-    margin-bottom:24px
-  }
-  .club-metric {
-    padding:var(--space-4);
-    gap:6px
-  }
-  .club-metric b {
-    font-size:28px
-  }
-  .club-metric span {
-    font-size:13px
-  }
-  .club-metric small {
-    font-size:12px
-  }
-  .dash-heading {
-    display:grid;
-    grid-template-columns:minmax(0,1fr) auto;
-    align-items:flex-start;
-    gap:8px 12px;
-    margin-bottom:20px
-  }
-  .dash-heading>div {
-    display:contents
-  }
-  .dash-date {
-    align-self:center
-  }
-  .dash-heading h2,.dash-subtitle {
-    grid-column:1/-1
-  }
-  .dash-heading h2 {
-    margin:2px 0 0
-  }
-  .dash-heading h2 {
-    font-size:30px
-  }
-  .dash-role {
-    grid-column:2;
-    grid-row:1;
-    padding:5px 8px;
-    font-size:11px
-  }
-  .dash-layout {
-    display:flex;
-    flex-direction:column;
-    gap:20px
-  }
-  .dash-main,.dash-side {
-    display:contents
-  }
-  .dash-next {
-    order:0;
-    width:100%
-  }
-  .dash-side>section[aria-labelledby=tasksTitle] {
-    order:1;
-    width:100%
-  }
   .dash-communications {
     order:2;
     width:100%
   }
-  .dash-resume {
-    order:3;
-    width:100%
-  }
-  .dash-quick {
-    order:4;
-    width:100%
-  }
-  .dash-agenda {
-    order:5;
-    width:100%
-  }
-  .dash-summary {
-    order:6;
-    width:100%
-  }
-  .ios-dashboard .dash-next {
-    padding:20px
-  }
-  .ios-dashboard .dash-next h3 {
-    font-size:26px;
-    margin-top:20px
-  }
-  .dash-resume,.dash-summary,.dash-communications {
-    padding:18px
-  }
-  .dash-response {
-    display:grid;
-    gap:7px
-  }
-  .dash-section-head {
-    margin-bottom:8px
+  .dash-communications {
+    padding:16px
   }
   .action-grid {
     grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:10px
+    gap:8px
   }
   .action-grid button,.tool-list>button {
-    padding:18px
+    padding:16px
   }
   .agenda-controls {
     padding:var(--space-4)
@@ -2531,7 +2101,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
     flex:1 1 90px
   }
   .workflow-switch button {
-    font-size:12px
+    font-size:13px
   }
   .attendance-row {
     display:grid;
@@ -2539,7 +2109,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   }
   .attendance-row>button {
     min-width:72px;
-    padding:10px 8px
+    padding:8px 8px
   }
   .training-save {
     bottom:calc(88px + env(safe-area-inset-bottom));
@@ -2567,7 +2137,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
     padding:var(--space-3)
   }
   .event-item>button {
-    font-size:11px;
+    font-size:13px;
     padding:var(--space-2)
   }
   .register-people {
@@ -2612,16 +2182,16 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
     grid-template-columns:minmax(0,1fr)
   }
   .modal-back {
-    padding:8px 8px max(8px,env(safe-area-inset-bottom))
+    padding:calc(8px + var(--safe-area-top,env(safe-area-inset-top,0px))) calc(8px + env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) calc(8px + env(safe-area-inset-left,0px))
   }
   .modal {
     width:100%;
-    max-height:calc(var(--dialog-height,100dvh) - 16px - env(safe-area-inset-bottom));
+    max-height:calc(var(--dialog-height,100dvh) - 16px - var(--safe-area-top,env(safe-area-inset-top,0px)) - env(safe-area-inset-bottom,0px));
     border-radius:16px
   }
   .modal-head {
-    padding-top:18px;
-    padding-bottom:18px
+    padding-top:16px;
+    padding-bottom:16px
   }
   .modal-head h2 {
     font-size:21px
@@ -2653,7 +2223,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
     min-height:56px
   }
   .nav button span {
-    font-size:11px
+    font-size:13px
   }
   .communication-toolbar {
     gap:var(--space-3);
@@ -2668,11 +2238,11 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   .communication-filters button {
     flex:1;
     font-size:13px;
-    padding:10px 6px;
+    padding:8px 4px;
     white-space:normal
   }
   .communication-card {
-    padding:18px
+    padding:16px
   }
   .communication-card h3 {
     font-size:19px
@@ -2702,14 +2272,11 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
     font-size:15px
   }
   .brand small {
-    font-size:9px
+    font-size:13px
   }
   .header-actions button {
     padding:var(--space-2);
-    font-size:11px
-  }
-  .dash-heading h2 {
-    font-size:28px
+    font-size:13px
   }
   .tool-list {
     grid-template-columns:minmax(0,1fr)
@@ -2722,7 +2289,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
     max-width:none
   }
   .communication-filters button {
-    font-size:12px
+    font-size:13px
   }
   .modal-actions button {
     flex-basis:100%
@@ -2771,7 +2338,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 }
 .season-picker .row-sub {
   margin:0;
-  font-size:12px
+  font-size:13px
 }
 .skip-link {
   position:fixed;
@@ -2804,13 +2371,6 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   }
 }
 @media(min-width:768px) and (max-width:1199px){
-  .dash-layout {
-    grid-template-columns:minmax(0,1fr)
-  }
-  .dash-side {
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    align-items:start
-  }
   .season-picker .row-sub {
     grid-column:1/-1
   }
@@ -2872,7 +2432,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 #pendingReplyFilter[aria-pressed="true"] {
   background:var(--brand-blue);
   border-color:var(--sky);
-  color:var(--text);
+  color:var(--brand-cream);
 }
 .attendance-quick { margin-top:12px; }
 .attendance-row { grid-template-columns:minmax(0,1fr) auto; }
@@ -2888,8 +2448,8 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 .attendance-actions > button { margin-left:auto; }
 .planned-reply { color:var(--muted); display:block; }
 @media (max-width:600px) {
-  .training-reply-row { align-items:stretch; flex-direction:column; gap:10px; }
-  .reply-choice button { flex:1; padding-inline:10px; }
+  .training-reply-row { align-items:stretch; flex-direction:column; gap:8px; }
+  .reply-choice button { flex:1; padding-inline:8px; }
   .training-actual-entry { grid-template-columns:1fr; gap:8px; }
   .training-actual-entry button { grid-column:1; grid-row:auto; justify-self:stretch; }
   .training-reply-controls > button { flex:1 1 130px; }
@@ -2898,4 +2458,4 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   .attendance-actions .attendance-quick > button { flex:1; padding-inline:8px; }
 }
 
-#trainingCounts { margin:0 0 18px; }
+#trainingCounts { margin:0 0 16px; }

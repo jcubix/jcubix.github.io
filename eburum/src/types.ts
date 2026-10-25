@@ -8,8 +8,17 @@ export type Page =
   | "register"
   | "meetings"
   | "more"
-  | "communications";
-export type TeamRole = "admin" | "manager" | "coach" | "secretary";
+  | "communications"
+  | "finance"
+  | "whiteboard";
+export type TeamRole =
+  | "admin"
+  | "manager"
+  | "coach"
+  | "secretary"
+  | "technical_assistant"
+  | "president"
+  | "treasurer";
 export type ActivityType = "Allenamento" | "Partita" | "Riunione";
 export interface Player {
   id: string;
@@ -63,18 +72,36 @@ export interface Communication {
   created_at: string;
   expires_at: string;
   retention_days: number;
+  requires_ack?: boolean;
+  kind?: "notice" | "meeting";
+  meeting_date?: string | null;
+  meeting_time?: string | null;
+  meeting_location?: string | null;
 }
 export interface TeamState {
+  pageScroll?: Partial<Record<Page, number>>;
   user: User | null;
-  team: { owner_id: string; role: TeamRole } | null;
+  team: {
+    owner_id: string;
+    role: TeamRole;
+    first_name?: string;
+    last_name?: string;
+  } | null;
   page: Page;
   players: Player[];
+  sessions: { id: string; session_date: string; session_type: string }[];
   activities: Activity[];
   matches: Match[];
   roster: RosterRow[];
   staff_communications: Communication[];
+  communication_receipts: {
+    communication_id: string;
+    reader_id: string;
+    reader_label: string;
+    acknowledged_at: string;
+  }[];
   trainingMode?: "hub" | "actual";
-  trainingDraft?: { saving: boolean } | null;
+  trainingDraft?: { saving: boolean; id?: string } | null;
   seasonYear?: number;
   earliestSport?: string;
   communicationRealtimeStatus?: string;
@@ -96,17 +123,27 @@ export interface Runtime {
   start: () => Promise<void>;
   navigate: (page: Page) => boolean;
   setNavigationGuard: (guard: (() => boolean) | null) => void;
+  requestGuard: () => () => boolean;
   render: () => void;
   featureHtml: (page: Page) => string;
   bindFeature: (page: Page, root: HTMLElement) => void;
+  syncDetail: (page: Page, search: string) => Promise<boolean>;
+  setDetailRouter: (
+    handler: ((detail: { page: Page; key: string } | null) => void) | null,
+  ) => void;
   actions: {
+    pollEntries: (activity: Activity) => { row: { availability: string } }[];
     newTraining: () => void;
-    newMeeting: () => void;
     openActivity: (id: string) => Promise<void>;
+    mountTrainingReplies: (
+      host: HTMLElement,
+      activity: Activity,
+    ) => { isDirty: () => boolean; isBusy: () => boolean; dispose: () => void };
     newMatch: () => void;
     openMatch: (match: Match) => void;
     users: () => void;
     expiries: () => void;
+    documentSummary: () => { review: number; expired: number | null };
     discipline: () => void;
     playerSheet: (id: string) => void;
     playerDiscipline: (id: string) => {
@@ -114,6 +151,7 @@ export interface Runtime {
       diffida: boolean;
       pending: unknown[];
       review: unknown[];
+      redAttention: boolean;
     };
     editPlayer: (player?: Player) => void;
     setPlayerActive: (player: Player, active: boolean) => Promise<void>;
@@ -131,7 +169,13 @@ export interface Runtime {
       body: string;
       retention_days: number;
       player_id: string | null;
+      requires_ack?: boolean;
+      kind?: "notice" | "meeting";
+      meeting_date?: string | null;
+      meeting_time?: string | null;
+      meeting_location?: string | null;
     }) => Promise<void>;
+    acknowledgeCommunication: (id: string) => Promise<void>;
     deleteCommunication: (id: string) => Promise<void>;
     changeSeason: (year: number) => Promise<void>;
     season: () => { year: number; from: string; to: string };

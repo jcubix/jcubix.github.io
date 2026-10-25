@@ -5,7 +5,7 @@ const {supabaseUrl:base,supabaseAnonKey:key}=scope.window.CONFIG;
 const email=process.env.AUTH_TEST_EMAIL,password=process.env.AUTH_TEST_PASSWORD;
 if(!email?.startsWith('codex-auth-e2e-')||!email.endsWith('@example.invalid')||!password)throw Error('Temporary test administrator credentials required');
 const cleanup={users:[],players:[]},checks=[];let adminToken;
-async function request(path,token,body,method='POST'){const response=await fetch(base+path,{method,headers:{apikey:key,'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{}),Prefer:'return=representation'},...(body===undefined?{}:{body:JSON.stringify(body)})});let data;try{data=await response.json()}catch{data=null}return {status:response.status,data}}
+async function request(path,token,body,method='POST'){const response=await fetch(base+path,{method,signal:AbortSignal.timeout(15000),headers:{apikey:key,'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{}),Prefer:'return=representation'},...(body===undefined?{}:{body:JSON.stringify(body)})});let data;try{data=await response.json()}catch{data=null}return {status:response.status,data}}
 const login=(mail,pw)=>request('/auth/v1/token?grant_type=password',null,{email:mail,password:pw});
 const staff=(token,body)=>request('/functions/v1/manage-users',token,body);
 (async()=>{
@@ -17,11 +17,11 @@ const staff=(token,body)=>request('/functions/v1/manage-users',token,body);
  const accounts=[];
  for(const role of ['admin','manager','coach','secretary']){
   const mail=`codex-auth-e2e-${crypto.randomUUID()}@example.invalid`,pw=crypto.randomBytes(32).toString('hex');
-  const created=await staff(adminToken,{action:'create',email:mail,password:pw,role});assert.equal(created.status,201,role+' real Auth creation');cleanup.users.push(created.data.user.id);
+  const created=await staff(adminToken,{action:'create',email:mail,password:pw,role,first_name:'Synthetic',last_name:'Verification'});assert.equal(created.status,201,role+' real Auth creation');cleanup.users.push(created.data.user.id);
   const signed=await login(mail,pw);assert.equal(signed.status,200,role+' login');const token=signed.data.access_token;
-  const ctx=await request('/rest/v1/rpc/team_context',token,{});assert.equal(ctx.status,200);assert.equal(ctx.data.role,role);assert.equal(ctx.data.owner_id,owner);
+  const ctx=await request('/rest/v1/rpc/team_context',token,{});assert.equal(ctx.status,200);assert.equal(ctx.data.role,role);assert.equal(ctx.data.owner_id,owner);assert.equal(ctx.data.first_name,'Synthetic');assert.equal(ctx.data.last_name,'Verification');
   accounts.push({role,mail,pw,token,id:created.data.user.id});checks.push(role+': create, login, shared team context');
-  if(role!=='admin')for(const action of ['list','create','role','password'])assert.equal((await staff(token,{action,userId:session.data.user.id,email:'forbidden@example.invalid',password:pw,role:'admin'})).status,403,role+' cannot '+action+' staff');
+  if(role!=='admin')for(const action of ['list','create','role','password','profile'])assert.equal((await staff(token,{action,userId:session.data.user.id,email:'forbidden@example.invalid',password:pw,role:'admin'})).status,403,role+' cannot '+action+' staff');
   const docs=await request('/rest/v1/player_administration?select=player_id&player_id=eq.'+pid,token,undefined,'GET');assert.equal(docs.status,200);assert.equal(docs.data.length,role==='coach'?0:1);
   const technical=await request('/rest/v1/activity_technical?select=activity_id&limit=1',token,undefined,'GET');assert.equal(technical.status,200);if(['manager','secretary'].includes(role))assert.equal(technical.data.length,0);
   if(role==='secretary'){
@@ -31,7 +31,7 @@ const staff=(token,body)=>request('/functions/v1/manage-users',token,body);
   }
  }
  assert.equal((await staff(adminToken,{action:'create',email:accounts[0].mail,password:accounts[0].pw,role:'coach'})).status,409,'duplicate email is explicit');checks.push('duplicate email, non-admin account management denial, administrative and technical RLS');
- assert.equal((await staff('invalid-token',{action:'list'})).status,401);
+ assert.equal((await staff('invalid-token',{action:'list'})).status,401);const profileTarget=accounts.find(a=>a.role==='coach');assert.equal((await staff(adminToken,{action:'profile',userId:profileTarget.id,first_name:'  Andrea  ',last_name:'Demo',role:'admin'})).status,200);const namedContext=await request('/rest/v1/rpc/team_context',profileTarget.token,{});assert.equal(namedContext.data.first_name,'Andrea');assert.equal(namedContext.data.last_name,'Demo');assert.equal(namedContext.data.role,'coach');assert.equal((await staff(adminToken,{action:'profile',userId:profileTarget.id,first_name:'x'.repeat(81)})).status,400);checks.push('admin profile update, normalization, live greeting context, role independence, invalid name and non-admin denial');
  const target=accounts.find(a=>a.role==='manager'),replacement=crypto.randomBytes(32).toString('hex');
  assert.equal((await staff(adminToken,{action:'password',userId:target.id,password:replacement})).status,200);const renewed=await login(target.mail,replacement);assert.equal(renewed.status,200);target.token=renewed.data.access_token;assert.equal((await login(target.mail,target.pw)).status,400);
  assert.equal((await staff(adminToken,{action:'role',userId:target.id,role:'secretary'})).status,200);assert.equal((await request('/rest/v1/rpc/team_context',target.token,{})).data.role,'secretary');assert.equal((await staff(target.token,{action:'list'})).status,403);checks.push('password reset and login, old password rejection, live role change on existing token');

@@ -32,6 +32,8 @@ Il cambio password usa `auth.admin.updateUserById` sul server e accetta soltanto
 
 # Flusso operativo
 
+L'estensione dei flussi quotidiani, delle conferme di lettura e della cronologia server è documentata in [DAILY_WORKFLOWS.md](../DAILY_WORKFLOWS.md), con migrazione e verifiche. Le fasi partita attuali sono Preparazione, Gara e Riepilogo; gli allenamenti separano Risposte WhatsApp, Presenze da confermare e Storico.
+
 Allenamenti registra le risposte al sondaggio esterno di WhatsApp: Sì, No o Non risposto. Ricerca e filtro mostrano rapidamente chi manca; Copia sollecito include tutti i nomi in attesa, anche se nascosti dalla ricerca. Il salvataggio usa `save_team_activity` e non crea presenze effettive.
 
 Il giorno dell’allenamento, o dopo, Verifica e conferma presenze apre una bozza: Sì precompila Presente, No precompila Assente, Non risposto resta Da confermare. Lo staff verifica e corregge Presente, Assente o Infortunato, aggiungendo una nota facoltativa. Finché rimangono giocatori da confermare il riepilogo è bloccato. Solo Conferma e salva registra tutta la sessione e aggiorna i report; la bozza conserva separatamente le risposte WhatsApp. Le attività annullate e future non consentono nuove presenze.
@@ -46,14 +48,7 @@ I report distinguono presenze effettive, disponibilità previste e impiego. Ogni
 
 ## Ruoli dello staff
 
-| Funzione | Amministratore | Team manager | Allenatore | Segretario |
-| --- | --- | --- | --- | --- |
-| Consultare allenamenti, presenze, partite e report | Si | Si | Si | Si |
-| Registrare presenze, convocati, risultati ed eventi | Si | Si | Si | No |
-| Creare e aggiornare rosa, tesseramenti e scadenze | Si | Si | No | Si |
-| Leggere e aggiornare note tecniche riservate | Si | No | Si | No |
-| Creare utenze, assegnare ruoli, cambiare password altrui | Si | No | No | No |
-| Eliminare definitivamente dati sportivi | Si | No | No | No |
+La matrice aggiornata dei sei ruoli e i relativi test sono descritti in [STAFF_ROLES.md](../STAFF_ROLES.md). Collaboratore tecnico e presidente sono selezionabili sia alla creazione sia sulle utenze esistenti. Il collaboratore registra dati sportivi e osservazioni, senza cambiare convocazioni e modulo; il presidente consulta i dati sportivi e una proiezione sintetica delle scadenze e può pubblicare comunicazioni. Il ruolo presidente non attribuisce privilegi amministrativi.
 
 Le autorizzazioni usano la membership nel database, non i metadati modificabili dall'utente. Il ruolo Segretario e selezionabile da Gestione utenti sia in creazione sia sulle utenze esistenti. Nessuna utenza esistente viene riassegnata automaticamente. Le scadenze compaiono nella Dashboard e in Altro > Scadenze e tesseramenti. I dati amministrativi sono modificabili dalla scheda del giocatore. Le modifiche sportive sono bloccate dalle policy RLS anche per chiamate API dirette.
 

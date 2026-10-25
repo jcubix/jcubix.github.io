@@ -1,4 +1,5 @@
 import { db, fetchAllRows, state, teamOwner, teamRequestGuard } from './app-part1.js';
+import { loadDismissalSnapshot } from './app-data.js';
 
 // Preview only: the database validates and persists the same timeline atomically.
 function calculateMatchMinutes(duration, roster, events, started=true) {
@@ -29,15 +30,16 @@ function calculateMatchMinutes(duration, roster, events, started=true) {
 
 async function refreshMatchTimeline(matchId){
  const current=teamRequestGuard(),owner=teamOwner();
- const [match,activity,events]=await Promise.all([
+ const [match,activity,events,dismissals]=await Promise.all([
   db.from('matches').select('*').eq('id',matchId).eq('user_id',owner).single(),
   db.from('activities').select('*').eq('match_id',matchId).eq('user_id',owner).single(),
-  fetchAllRows(()=>db.from('match_events').select('*').eq('match_id',matchId).eq('user_id',owner).order('id'))
+  fetchAllRows(()=>db.from('match_events').select('*').eq('match_id',matchId).eq('user_id',owner).order('id')),loadDismissalSnapshot()
  ]);
  if(!current())return null;
  for(const result of [match,activity,events])if(result.error)throw result.error;
  const roster=await fetchAllRows(()=>db.from('activity_roster').select('*').eq('activity_id',activity.data.id).eq('user_id',owner).order('id'));
  if(!current())return null;if(roster.error)throw roster.error;
+ Object.assign(state,dismissals);
  state.matches=state.matches.filter(m=>m.id!==matchId).concat(match.data);
  state.activities=state.activities.filter(a=>a.id!==activity.data.id).concat(activity.data);
  state.events=state.events.filter(e=>e.match_id!==matchId).concat(events.data);

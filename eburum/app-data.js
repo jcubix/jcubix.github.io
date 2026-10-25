@@ -1,4 +1,4 @@
-import { db, fetchAllRows, refresh, state, teamOwner, today } from './app-part1.js';
+import { db, fetchAllRows, refresh, state, teamRole, teamOwner, today } from './app-part1.js';
 
 // Load sporting history by period; shared reference data stays available to every page.
 const DATE_TABLES=[['sessions','session_date'],['matches','match_date'],['activities','activity_date']];
@@ -6,7 +6,7 @@ function sportSeason(){const year=state.seasonYear||Number(String(window.CONFIG.
 async function rowsOrThrow(build){const result=await fetchAllRows(build);if(result.error)throw result.error;return result.data}
 async function childRows(table,column,ids,owner,player=null){
  const unique=[...new Set(ids)],data=[];
- for(let offset=0;offset<unique.length;offset+=100){const batch=unique.slice(offset,offset+100);data.push(...await rowsOrThrow(()=>{let q=db.from(table).select('*').eq('user_id',owner).in(column,batch).order(table==='activity_technical'?'activity_id':'id');if(player)q=q.eq('player_id',player);return q}))}
+ for(let offset=0;offset<unique.length;offset+=100){const batch=unique.slice(offset,offset+100);data.push(...await rowsOrThrow(()=>{let q=db.from(table).select('*').eq('user_id',owner).in(column,batch).order(table==='activity_technical'?'activity_id':table==='communication_receipts'?'reader_id':'id');if(player)q=q.eq('player_id',player);return q}))}
  return data;
 }
 async function loadSportPeriod(from,to,owner,player=null,withTechnical=false){
@@ -28,16 +28,18 @@ async function earliestSportDate(owner=teamOwner()){
 }
 async function loadTeamData(owner){
  const season=sportSeason();
- const [sport,players,administration,disciplinary_clearances,staff_communications,earliest]=await Promise.all([
+ const [sport,players,administration,disciplinary_clearances,staff_communications,earliest,dismissals]=await Promise.all([
   loadSportPeriod(season.from,season.to,owner,null,true),
   rowsOrThrow(()=>db.from('players').select('*').eq('user_id',owner).order('id')),
-  rowsOrThrow(()=>db.from('player_administration').select('*').eq('user_id',owner).order('player_id')),
+  teamRole()==='president'?db.rpc('team_administration_summary').then(r=>{if(r.error)throw r.error;return r.data||[]}):rowsOrThrow(()=>db.from('player_administration').select('*').eq('user_id',owner).order('player_id')),
   rowsOrThrow(()=>db.from('disciplinary_clearances').select('*').eq('user_id',owner).eq('season_start',season.from).order('id')),
   rowsOrThrow(()=>db.from('staff_communications').select('*').eq('user_id',owner).gt('expires_at',new Date().toISOString()).order('id')),
-  earliestSportDate(owner)
+  earliestSportDate(owner),loadDismissalSnapshot()
  ]);
- return {...sport,players,administration,disciplinary_clearances,staff_communications,dataRange:season,earliestSport:earliest};
+ const communication_receipts=await childRows('communication_receipts','communication_id',staff_communications.filter(m=>m.requires_ack).map(m=>m.id),owner);
+ return {...sport,...dismissals,players,administration,disciplinary_clearances,staff_communications,communication_receipts,dataRange:season,earliestSport:earliest};
 }
+async function loadDismissalSnapshot(){const {data,error}=await db.rpc('disciplinary_dismissal_snapshot');if(error)throw error;return {dismissals:data?.dismissals||[],dismissal_sanctions:data?.dismissal_sanctions||[],dismissal_clearances:data?.dismissal_clearances||[]}}
 function seasonPicker(){
  if(!['dashboard','agenda','matches','register','players'].includes(state.page))return '';
  const selected=sportSeason().year,configured=Number(String(window.CONFIG.season).match(/20\d{2}/)?.[0])||selected,first=state.earliestSport||today(),earliest=Number(first.slice(0,4))-(first.slice(5,7)<'07'?1:0),years=[];
@@ -46,4 +48,4 @@ function seasonPicker(){
 }
 function bindSeasonPicker(){const select=document.querySelector('#sportSeason');if(!select)return;select.onchange=async()=>{select.disabled=true;state.seasonYear=Number(select.value);delete state.registerDate;await refresh()}}
 
-export { DATE_TABLES, sportSeason, rowsOrThrow, childRows, loadSportPeriod, earliestSportDate, loadTeamData, seasonPicker, bindSeasonPicker };
+export { DATE_TABLES, sportSeason, rowsOrThrow, childRows, loadSportPeriod, earliestSportDate, loadTeamData, loadDismissalSnapshot, seasonPicker, bindSeasonPicker };

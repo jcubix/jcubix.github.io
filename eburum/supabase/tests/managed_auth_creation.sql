@@ -1,7 +1,7 @@
 begin;
 do $$declare owner uuid; uid uuid; role_name text; blocked boolean;begin
  select claimed_by into owner from private_import.bootstrap_state where singleton;
- foreach role_name in array array['admin','manager','coach','secretary'] loop
+ foreach role_name in array array['admin','manager','coach','secretary','technical_assistant','president','treasurer'] loop
   uid:=gen_random_uuid();
   -- Reproduce GoTrue: app_metadata is not populated during INSERT.
   insert into auth.users(id,raw_app_meta_data) values(uid,'{"provider":"email"}');
