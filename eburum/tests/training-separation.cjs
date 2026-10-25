@@ -38,3 +38,14 @@ test('historical attendance date corrections preserve the existing session and c
  assert.equal(w.fixtureRpcCalls.at(-1).p_activity_id,undefined);
  assert.equal(w.fixtureData.sessions.length,1);
 });
+
+for(const code of ['40001','PT409'])test(`activity conflict ${code} keeps the draft and offers reload without retry`,async t=>{
+ const {w,run,$}=await app(t);run("state.page='matches';render()");$('#addMatch').click();
+ $('#activityName').value='Bozza da conservare';w.fixtureSaveError={code,message:'Attività modificata nel frattempo. Riaprila.'};
+ const before=w.fixtureData.activities.length;
+ await $('#activityForm').onsubmit({preventDefault(){},target:$('#activityForm')});
+ assert.equal(w.fixtureTeamCalls.length,1);assert.equal(w.fixtureData.activities.length,before);
+ assert.equal($('#activityName').value,'Bozza da conservare');
+ assert.equal($('#activityFeedback button').textContent,'Ricarica partite');
+ assert.equal($('#activityForm button[type=submit]').disabled,false);
+});
