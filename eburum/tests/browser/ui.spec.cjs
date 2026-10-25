@@ -61,3 +61,36 @@ test('styled deletion cancels safely before removing a shared message',async({pa
  await remove.click();await expect(page.getByRole('alertdialog')).toBeVisible();await page.locator('.confirm-actions [data-confirm-cancel]').click();await expect(remove).toBeVisible();
  await remove.click();await page.locator('[data-confirm-accept]').click();await expect(remove).toHaveCount(0);expect(await page.evaluate(()=>window.fixtureData.staff_communications.some(m=>m.id==='review-message'))).toBe(false);
 });
+
+
+test('searches have one focus ring and message filters keep a quiet, reachable selection',async({page})=>{
+ const searches=[];
+ for(const [route,selector] of [['players','.sc-search'],['communications','.communication-search']]){
+  await open(page,route);const search=page.locator(selector),input=search.locator('input');await input.focus();
+  const style=await search.evaluate(el=>{const outer=getComputedStyle(el),field=getComputedStyle(el.querySelector('input'));return {radius:outer.borderRadius,background:outer.backgroundColor,outerFocus:outer.outlineStyle,innerFocus:field.outlineStyle,innerBorder:field.borderWidth,innerBackground:field.backgroundColor,font:field.fontFamily};});
+  expect(style.outerFocus).toBe('solid');expect(style.innerFocus).toBe('none');expect(style.innerBorder).toBe('0px');expect(style.innerBackground).toBe('rgba(0, 0, 0, 0)');searches.push(style);
+  if(route==='players'){
+   await input.fill('nessun-giocatore-con-questo-nome');await expect(page.locator('.sc-directory-row')).toHaveCount(0);
+  }
+ }
+ expect(searches[0]).toEqual(searches[1]);
+ const filters=page.getByRole('group',{name:'Filtra comunicazioni'}),buttons=filters.getByRole('button');
+ await expect(buttons).toHaveCount(6);
+ for(const button of await buttons.all())await expect(button).toBeInViewport();
+ expect(await filters.evaluate(el=>el.scrollWidth>el.clientWidth)).toBe(false);
+ await buttons.filter({hasText:'Riunioni'}).click();await expect(buttons.filter({hasText:'Riunioni'})).toHaveAttribute('aria-pressed','true');
+ const selected=await filters.locator('[aria-pressed=true]').evaluate(el=>{const style=getComputedStyle(el),probe=document.createElement('span');probe.style.color='var(--ink)';probe.style.background='var(--surface)';document.body.append(probe);const expected=getComputedStyle(probe),result={color:style.color,background:style.backgroundColor,radius:style.borderRadius,expectedColor:expected.color,expectedBackground:expected.backgroundColor};probe.remove();return result;});
+ expect(selected.color).toBe(selected.expectedColor);expect(selected.background).toBe(selected.expectedBackground);expect(selected.radius).toBe('999px');
+});
+
+test('dashboard cards share surfaces, compact badges and consistent header actions',async({page})=>{
+ await open(page,'dashboard');
+ const styles=await page.evaluate(()=>{
+  const sample=document.createElement('span');sample.style.background='var(--surface)';document.body.append(sample);const surface=getComputedStyle(sample).backgroundColor;sample.remove();
+  return {surface,cards:[...document.querySelectorAll('.sc-home-tasks .sc-rows,.sc-last-training,.sc-communication-preview,.sc-home-availability')].map(el=>({background:getComputedStyle(el).backgroundColor,radius:getComputedStyle(el).borderRadius})),badges:[...document.querySelectorAll('.sc-home-tasks .sc-small-count')].map(el=>({width:el.getBoundingClientRect().width,parentWidth:el.parentElement.getBoundingClientRect().width})),icons:[...document.querySelectorAll('.header-actions>button,.header-settings>summary')].map(el=>{const s=getComputedStyle(el),r=el.getBoundingClientRect();return {radius:s.borderRadius,width:r.width,height:r.height};})};
+ });
+ expect(styles.cards.length).toBeGreaterThan(2);
+ for(const card of styles.cards){expect(card.background).toBe(styles.surface);expect(card.radius).toBe('16px');}
+ for(const badge of styles.badges){expect(badge.width).toBeLessThan(130);expect(badge.width).toBeLessThan(badge.parentWidth);}
+ for(const icon of styles.icons){expect(icon.radius).toBe('999px');expect(icon.width).toBe(44);expect(icon.height).toBe(44);}
+});

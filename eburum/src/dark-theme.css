@@ -1,40 +1,5 @@
 /* Dark palette: navy surfaces, legible cool text and restrained gold. */
-html[data-theme="dark"] {
-  --bg: var(--swatch-0b1220);
-  --panel: var(--swatch-141e30);
-  --panel2: var(--swatch-202c42);
-  --input-bg: var(--swatch-141e30);
-  --match-action-bg: var(--swatch-141e30);
-  --text: var(--swatch-edf2fa);
-  --muted: var(--swatch-abb8cd);
-  --border: var(--swatch-34435c);
-  --control-border: var(--swatch-60718c);
-  --surface-hover: var(--swatch-26364f);
-  --gold: var(--swatch-dec17c);
-  --focus: var(--swatch-dec17c);
-  --green: var(--swatch-9bdbbd);
-  --red: var(--swatch-ffb7c2);
-  --yellow: var(--swatch-e5c987);
-  --color-background: var(--swatch-0b1220);
-  --color-foreground: var(--swatch-edf2fa);
-  --color-primary-foreground: var(--swatch-fff);
-  --color-secondary: var(--swatch-202c42);
-  --color-secondary-foreground: var(--swatch-edf2fa);
-  --color-muted-foreground: var(--swatch-abb8cd);
-  --color-border: var(--swatch-34435c);
-  --color-input: var(--swatch-141e30);
-  --color-ring: var(--swatch-dec17c);
-  --color-gold: var(--swatch-dec17c);
-  --color-popover: var(--swatch-141e30);
-  --color-destructive: var(--swatch-ffb7c2);
-}
-html[data-theme="dark"] .soft-club {
-  --navy: var(--swatch-e5ecfa);
-  --ink: var(--swatch-edf2fa);
-  --line: var(--swatch-34435c);
-  --cream: var(--swatch-3c321c);
-  --ground: var(--swatch-0b1220);
-}
+/* Palette values are owned by design-system.css; these are legacy layout adapters. */
 .theme-picker {
   display: grid;
   gap: 8px;
@@ -43,262 +8,263 @@ html[data-theme="dark"] .soft-club {
 }
 
 html[data-theme="dark"] button:active {
-  background: var(--swatch-202c42);
+  background: var(--surface-muted);
 }
 html[data-theme="dark"] .nav {
-  background: var(--swatch-202c42);
+  background: var(--surface-muted);
 }
 html[data-theme="dark"] .report {
-  background: var(--swatch-202c42);
+  background: var(--surface-muted);
 }
 html[data-theme="dark"] .chart-track {
-  background: var(--swatch-34435c);
+  background: var(--border);
 }
 html[data-theme="dark"] .discipline-progress span {
-  background: var(--swatch-34435c);
+  background: var(--border);
 }
 html[data-theme="dark"] .communication-expiry {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .app-header {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .segmented {
-  background: var(--swatch-202c42);
+  background: var(--surface-muted);
 }
 html[data-theme="dark"] .native-tool-list > a:hover,
 html[data-theme="dark"] .native-tool-list > button:hover {
-  background: var(--swatch-202c42);
+  background: var(--surface-muted);
 }
 html[data-theme="dark"] .auth-panel {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .native-message {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .office-status {
-  background: var(--swatch-202c42);
+  background: var(--surface-muted);
 }
 html[data-theme="dark"] .office-text-action:hover {
-  color: var(--swatch-edf2fa);
+  color: var(--ink);
 }
 html[data-theme="dark"] .header-settings > summary {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .header-settings-panel {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .reply-choice button {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .player-directory-entry .player-initials {
-  color: var(--swatch-edf2fa);
+  color: var(--ink);
 }
 html[data-theme="dark"] .player-management .toolbar {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .native-message-top time {
-  background: var(--swatch-202c42);
+  background: var(--surface-muted);
 }
 html[data-theme="dark"] .report-document {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .match-live-side {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .match-event-actions button:not([aria-pressed="true"]) {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .match-save-row {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .header-settings-panel button {
-  color: var(--swatch-edf2fa);
+  color: var(--ink);
 }
 html[data-theme="dark"] .header-settings-panel select {
-  color: var(--swatch-edf2fa);
+  color: var(--ink);
 }
 html[data-theme="dark"] .training-work-panel {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .workspace-editor .modal-actions,
 html[data-theme="dark"] .match-save-row,
 html[data-theme="dark"] .app-workspace .training-save {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .report-controls select {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .match-live-main {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .match-live-side > .match-settings,
 html[data-theme="dark"] .match-live-side > .match-minutes {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] input::placeholder,
 html[data-theme="dark"] textarea::placeholder {
-  color: var(--swatch-abb8cd);
+  color: var(--ink-3);
 }
 html[data-theme="dark"] .header-actions > a,
 html[data-theme="dark"] .header-actions > button,
 html[data-theme="dark"] .header-settings > summary {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .account-initials {
-  color: var(--swatch-edf2fa);
+  color: var(--ink);
 }
 html[data-theme="dark"] .communication-nav-count {
-  border: 2px solid var(--swatch-202c42);
+  border: 2px solid var(--surface-muted);
 }
 html[data-theme="dark"] .app-mobile-nav {
-  color: var(--swatch-abb8cd);
+  color: var(--ink-3);
 }
 html[data-theme="dark"] .app-mobile-nav .app-nav-item:hover {
-  color: var(--swatch-edf2fa);
+  color: var(--ink);
 }
 html[data-theme="dark"] .pwa-status {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .page-controls > input[type="search"] {
-  background: var(--swatch-202c42);
+  background: var(--surface-muted);
 }
 html[data-theme="dark"] .segmented button[aria-pressed="true"] {
-  background: var(--swatch-141e30);
-  color: var(--swatch-edf2fa);
+  background: var(--surface);
+  color: var(--ink);
 }
 html[data-theme="dark"] .activity-card.native-activity {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .activity-date {
-  color: var(--swatch-abb8cd);
+  color: var(--ink-3);
 }
 html[data-theme="dark"] .activity-date b {
-  color: var(--swatch-edf2fa);
+  color: var(--ink);
 }
 html[data-theme="dark"] .native-tool-list {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .match-list .match-card {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .match-heading .match-score {
-  color: var(--swatch-edf2fa);
+  color: var(--ink);
 }
 html[data-theme="dark"] .native-player {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .native-message-top strong {
-  color: var(--swatch-abb8cd);
+  color: var(--ink-3);
 }
 html[data-theme="dark"] .training-work-panel,
 html[data-theme="dark"] .match-technical-card,
 html[data-theme="dark"] .match-results-card {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .page-heading > button {
-  background: var(--swatch-141e30);
-  color: var(--swatch-edf2fa);
+  background: var(--surface);
+  color: var(--ink);
 }
 html[data-theme="dark"] .sc-surface button.sc-primary {
-  background: var(--swatch-294477);
+  background: var(--primary);
 }
 html[data-theme="dark"] .sc-surface button.sc-secondary {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .sc-light-button {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .sc-rows,
 html[data-theme="dark"] .sc-tool-list {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .sc-small-count {
-  color: var(--swatch-abb8cd);
+  color: var(--ink-3);
 }
 html[data-theme="dark"] .sc-communication-preview {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .sc-fixture-preview {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .sc-club-symbol.sc-opponent {
-  background: var(--swatch-202c42);
+  background: var(--surface-muted);
 }
 html[data-theme="dark"] .sc-date-tile {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .sc-segmented button.sc-active {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .sc-player-list {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .sc-training-aside {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .sc-secondary {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .sc-search {
-  background: var(--swatch-202c42);
+  background: var(--surface-muted);
 }
 html[data-theme="dark"] .sc-directory {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .sc-match-preview {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .sc-surface .sc-training-focus .sc-light-button {
-  background: var(--swatch-141e30);
+  background: var(--hero-text);
+  color: var(--hero);
 }
 html[data-theme="dark"] .sc-surface .sc-list-row,
 html[data-theme="dark"] .sc-surface .sc-communication-preview,
 html[data-theme="dark"] .sc-surface .sc-fixture-preview,
 html[data-theme="dark"] .sc-surface .sc-match-preview {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .sc-surface .sc-directory-row {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .sc-directory .player-management .toolbar {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .sc-inline-training .planning-details {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"]
   .sc-inline-training
   .sc-segmented
   button[aria-pressed="true"] {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .sc-inline-training .training-actual-entry {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .sc-training-picker select {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .sc-surface .sc-page-heading > button {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .sc-inline-training #savePlanning {
-  background: var(--swatch-294477);
+  background: var(--primary);
 }
 html[data-theme="dark"] .sc-surface .sc-list-row {
-  border-bottom: 1px solid var(--swatch-34435c);
+  border-bottom: 1px solid var(--border);
 }
 html[data-theme="dark"] .app-header .communication-nav-count {
-  border: 1px solid var(--swatch-141e30);
+  border: 1px solid var(--surface);
 }
 html[data-theme="dark"] .page-heading > button:has(.page-add-label) {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .sc-player-management {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .sc-segmented .club-nav-highlight {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"]
   :is(
@@ -307,7 +273,7 @@ html[data-theme="dark"]
     .communication-filters > .segmented
   )
   > button:is([aria-current="page"], [aria-pressed="true"]) {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"]
   :is(
@@ -316,16 +282,16 @@ html[data-theme="dark"]
     .communication-filters > .segmented
   )
   .club-nav-highlight {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .report-chart-region .trend-row meter {
-  background: var(--swatch-34435c);
+  background: var(--border);
 }
 html[data-theme="dark"]
   .report-chart-region
   .trend-row
   meter::-webkit-meter-bar {
-  background: var(--swatch-34435c);
+  background: var(--border);
 }
 html[data-theme="dark"]
   :is(.soft-club, .modal, .modern-dialog, .startup-screen, .login-screen)
@@ -335,68 +301,68 @@ html[data-theme="dark"]
       ),
     select,
     textarea
-  ) {
-  background: var(--swatch-141e30);
-  color: var(--swatch-edf2fa);
+  ):not(:where(.sc-search input, .communication-search input)) {
+  background: var(--surface);
+  color: var(--ink);
 }
 html[data-theme="dark"] .modern-dialog label {
-  color: var(--swatch-edf2fa);
+  color: var(--ink);
 }
 html[data-theme="dark"]
   :is(.activity-tabs, .workflow-switch, .report-tabs, .attendance-filters)
   > button {
-  color: var(--swatch-abb8cd);
+  color: var(--ink-3);
 }
 html[data-theme="dark"]
   :is(.activity-tabs, .workflow-switch, .report-tabs, .attendance-filters)
   > button:is([aria-selected="true"], [aria-pressed="true"], .active) {
-  color: var(--swatch-edf2fa);
-  background: var(--swatch-141e30);
+  color: var(--ink);
+  background: var(--surface);
 }
 html[data-theme="dark"]
   :is(.activity-tabs, .workflow-switch, .report-tabs, .attendance-filters)
   .club-nav-highlight {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .user-guide {
-  color: var(--navy, var(--swatch-edf2fa));
+  color: var(--navy, var(--ink));
 }
 html[data-theme="dark"] .guide-search {
-  background: var(--swatch-202c42);
+  background: var(--surface-muted);
 }
 html[data-theme="dark"] .guide-result {
-  color: var(--swatch-abb8cd);
+  color: var(--ink-3);
 }
 html[data-theme="dark"] .guide-topic {
-  border-top: 1px solid var(--swatch-34435c);
+  border-top: 1px solid var(--border);
 }
 html[data-theme="dark"] :is(input, select, textarea) {
-  background-color: var(--swatch-141e30);
-  color: var(--swatch-edf2fa);
-  border-color: var(--swatch-60718c);
+  background-color: var(--surface);
+  color: var(--ink);
+  border-color: var(--control-border);
 }
 html[data-theme="dark"] :is(input, textarea)::placeholder {
-  color: var(--swatch-abb8cd);
+  color: var(--ink-3);
 }
 html[data-theme="dark"]
   :is(.modern-dialog, .dialog, .modal, .header-settings-panel) {
-  background: var(--swatch-141e30);
-  color: var(--swatch-edf2fa);
+  background: var(--surface);
+  color: var(--ink);
 }
 html[data-theme="dark"] .sc-primary {
-  background: var(--swatch-294477);
+  background: var(--primary);
   color: var(--swatch-fff);
 }
 html[data-theme="dark"] .guide-search input[type="search"] {
   background: transparent;
 }
 html[data-theme="dark"] ::selection {
-  background: var(--swatch-dec17c);
-  color: var(--swatch-0b1220);
+  background: var(--accent);
+  color: var(--bg);
 }
 html[data-theme="dark"] {
-  --navy: var(--swatch-edf2fa);
-  --ink: var(--swatch-edf2fa);
+  --navy: var(--ink);
+  --ink: var(--ink);
   --brand-blue: var(--swatch-aec7ff);
 }
 html[data-theme="dark"]
@@ -411,7 +377,7 @@ html[data-theme="dark"]
     .sc-row-copy,
     .sc-list-row strong
   ) {
-  color: var(--swatch-edf2fa);
+  color: var(--ink);
 }
 html[data-theme="dark"]
   :is(
@@ -420,7 +386,7 @@ html[data-theme="dark"]
     .mobile-brand strong,
     .guide-topic summary
   ) {
-  color: var(--swatch-edf2fa);
+  color: var(--ink);
 }
 html[data-theme="dark"]
   :is(
@@ -430,34 +396,34 @@ html[data-theme="dark"]
     .mobile-brand small,
     .mobile-brand span
   ) {
-  color: var(--swatch-abb8cd);
+  color: var(--ink-3);
 }
 html[data-theme="dark"] .app-mobile-nav .app-nav-item.is-active {
-  color: var(--swatch-edf2fa);
+  color: var(--ink);
 }
 html[data-theme="dark"] .modern-dialog-viewport {
-  color: var(--swatch-edf2fa);
+  color: var(--ink);
 }
 html[data-theme="dark"] .modern-dialog {
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .modern-dialog-viewport + * {
   color: inherit;
 }
 /* Shared dark states: navigation tracks, moving markers and response controls. */
 html[data-theme="dark"] .app-mobile-nav {
-  --text: var(--swatch-edf2fa);
-  --muted: var(--swatch-b6c2d6);
+  --text: var(--ink);
+  --muted: var(--ink-2);
   box-shadow: 0 8px 32px var(--swatch-rgba000032);
 }
 html[data-theme="dark"] .app-mobile-nav .app-nav-item {
-  color: var(--swatch-b6c2d6);
+  color: var(--ink-2);
 }
 html[data-theme="dark"] .app-mobile-nav .app-nav-item:is(.is-active, :hover) {
-  color: var(--swatch-f2f6ff);
+  color: var(--ink);
 }
 html[data-theme="dark"] .app-mobile-nav .club-nav-highlight {
-  background: var(--swatch-2d4368);
+  background: var(--primary-soft);
 }
 html[data-theme="dark"]
   :is(
@@ -470,9 +436,9 @@ html[data-theme="dark"]
     .attendance-filters,
     .communication-filters > .segmented
   ) {
-  background: var(--swatch-202c42);
-  color: var(--swatch-b6c2d6);
-  border-color: var(--swatch-34435c);
+  background: var(--surface-muted);
+  color: var(--ink-2);
+  border-color: var(--border);
 }
 html[data-theme="dark"]
   :is(
@@ -486,7 +452,7 @@ html[data-theme="dark"]
     .communication-filters > .segmented
   )
   > button {
-  color: var(--swatch-b6c2d6);
+  color: var(--ink-2);
   background: transparent;
 }
 html[data-theme="dark"]
@@ -507,7 +473,7 @@ html[data-theme="dark"]
     [aria-selected="true"],
     [aria-current="page"]
   ) {
-  color: var(--swatch-f2f6ff);
+  color: var(--ink);
 }
 html[data-theme="dark"]
   .soft-club
@@ -522,11 +488,11 @@ html[data-theme="dark"]
     .communication-filters > .segmented
   )
   .club-nav-highlight {
-  background: var(--swatch-2d4368);
+  background: var(--primary-soft);
 }
 html[data-theme="dark"] .sc-training-focus {
   background: var(--swatch-21385c);
-  color: var(--swatch-f2f6ff);
+  color: var(--ink);
 }
 html[data-theme="dark"]
   .sc-training-focus
@@ -552,7 +518,7 @@ html[data-theme="dark"]
     .chip,
     .pill
   ) {
-  background: var(--swatch-26364f);
+  background: var(--surface-muted);
   color: var(--swatch-dbe6fa);
 }
 html[data-theme="dark"] .sc-inline-training .sc-reply-buttons button,
@@ -577,19 +543,19 @@ html[data-theme="dark"] .sc-reply-buttons .sc-pending {
 }
 html[data-theme="dark"]
   :is(.sc-helper, .row-sub, .sc-page-heading p, .guide-result) {
-  color: var(--swatch-b6c2d6);
+  color: var(--ink-2);
 }
 html[data-theme="dark"]
   :is(.sc-surface, .modern-dialog, .dialog, .modal)
   :is(input, select, textarea) {
-  color: var(--swatch-edf2fa);
-  background-color: var(--swatch-141e30);
-  border-color: var(--swatch-60718c);
+  color: var(--ink);
+  background-color: var(--surface);
+  border-color: var(--control-border);
 }
 html[data-theme="dark"]
   :is(.sc-surface, .modern-dialog, .dialog, .modal)
   :is(input, textarea)::placeholder {
-  color: var(--swatch-b6c2d6);
+  color: var(--ink-2);
 }
 html[data-theme="dark"]
   :is(.sc-surface, .modern-dialog, .dialog, .modal)
@@ -599,7 +565,7 @@ html[data-theme="dark"]
 html[data-theme="dark"]
   :is(.sc-surface, .modern-dialog, .dialog, .modal)
   :is(.status, .activity-status, .sc-status, .sc-tag) {
-  background: var(--swatch-26364f);
+  background: var(--surface-muted);
   color: var(--swatch-dbe6fa);
 }
 html[data-theme="dark"] :is(.finance-negative, .error, .text-destructive) {
@@ -610,10 +576,10 @@ html[data-theme="dark"] :is(.chart-track, .report-bar-track) {
 }
 html[data-theme="dark"] .sc-club-symbol {
   color: var(--swatch-f5d994);
-  background: var(--swatch-2d4368);
+  background: var(--primary-soft);
 }
 html[data-theme="dark"] .sc-segmented button span {
-  background: var(--swatch-34435c);
+  background: var(--border);
   color: var(--swatch-e1eaf8);
 }
 html[data-theme="dark"]
@@ -624,25 +590,12 @@ html[data-theme="dark"]
   outline-offset: 3px;
 }
 html[data-theme="dark"] .sc-surface :is(.sc-secondary, .sc-icon-button) {
-  color: var(--swatch-edf2fa);
-}
-html[data-theme="dark"]
-  .soft-club
-  .sc-search
-  input[type="search"]:not([type="checkbox"]):not([type="hidden"]) {
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-  color: var(--swatch-edf2fa);
-}
-html[data-theme="dark"] .soft-club .sc-search:focus-within {
-  outline: 2px solid var(--swatch-dec17c);
-  outline-offset: 3px;
+  color: var(--ink);
 }
 /* Opaque surfaces prevent tinted halos and detached editor rectangles. */
 html[data-theme="dark"]
   :is(body, .app-layout, .app-workspace, .workspace-content) {
-  background: var(--swatch-0b1220);
+  background: var(--bg);
   background-image: none;
 }
 html[data-theme="dark"]
@@ -657,11 +610,11 @@ html[data-theme="dark"]
   box-shadow: none;
 }
 html[data-theme="dark"] .app-mobile-nav {
-  background: var(--swatch-141e30);
-  border: 1px solid var(--swatch-34435c);
+  background: var(--surface);
+  border: 1px solid var(--border);
 }
 html[data-theme="dark"] .header-settings-panel {
-  border: 1px solid var(--swatch-34435c);
+  border: 1px solid var(--border);
 }
 html[data-theme="dark"] .workspace-editor > .modal,
 html[data-theme="dark"] .workspace-editor .modal-head {
@@ -684,35 +637,17 @@ html[data-theme="dark"]
 }
 html[data-theme="dark"] .workspace-editor .modal-actions {
   box-shadow: none;
-  background: var(--swatch-141e30);
+  background: var(--surface);
 }
 html[data-theme="dark"] .workspace-editor .modal-head > button {
-  background: var(--swatch-202c42);
-  color: var(--swatch-edf2fa);
+  background: var(--surface-muted);
+  color: var(--ink);
 }
 
 /* Softer daylight palette without changing layout or brand accents. */
-html[data-theme="light"] {
-  --bg: var(--swatch-e9edf3);
-  --panel: var(--swatch-f2f4f8);
-  --panel2: var(--swatch-e1e6ee);
-  --input-bg: var(--swatch-f2f4f8);
-  --border: var(--swatch-c9d2df);
-  --control-border: var(--swatch-8899af);
-  --surface-hover: var(--swatch-dce3ed);
-  --color-background: var(--swatch-e9edf3);
-  --color-popover: var(--swatch-f2f4f8);
-  --color-input: var(--swatch-f2f4f8);
-  --color-secondary: var(--swatch-e1e6ee);
-  --color-border: var(--swatch-c9d2df);
-}
-html[data-theme="light"] .soft-club {
-  --ground: var(--swatch-e9edf3);
-  --line: var(--swatch-c9d2df);
-}
 html[data-theme="light"]
   :is(body, .app-layout, .app-workspace, .workspace-content) {
-  background: var(--swatch-e9edf3);
+  background: var(--bg);
 }
 html[data-theme="light"]
   :is(
@@ -731,19 +666,13 @@ html[data-theme="light"]
     .activity-card,
     .player-sheet
   ) {
-  background-color: var(--swatch-f2f4f8);
+  background-color: var(--surface);
 }
 html[data-theme="light"] :is(input, select, textarea) {
-  background-color: var(--swatch-f2f4f8);
-}
-html[data-theme="light"]
-  .soft-club
-  .sc-search
-  input[type="search"]:not([type="checkbox"]):not([type="hidden"]) {
-  background: transparent;
+  background-color: var(--surface);
 }
 html[data-theme="light"] .app-mobile-nav {
-  background: var(--swatch-f2f4f8);
+  background: var(--surface);
 }
 html[data-theme="light"] .workspace-editor > .modal,
 html[data-theme="light"] .workspace-editor .modal-head {
@@ -775,11 +704,11 @@ html[data-theme="light"]
     .report-tabs,
     .attendance-filters
   ) {
-  background: var(--swatch-dce3ed);
-  border: 1px solid var(--swatch-c5cedc);
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
 }
 html[data-theme="light"] .soft-club :is(.sc-rows, .sc-tool-list) {
-  background: var(--swatch-f2f4f8);
+  background: var(--surface);
   overflow: hidden;
 }
 html[data-theme="light"] .soft-club :is(.sc-rows, .sc-tool-list) .sc-list-row {
@@ -789,10 +718,10 @@ html[data-theme="dark"] .soft-club :is(.sc-rows, .sc-tool-list) .sc-list-row {
   background: transparent;
 }
 html[data-theme="light"] .soft-club .sc-list-row {
-  border-bottom-color: var(--swatch-c9d2df);
+  border-bottom-color: var(--border);
 }
 html[data-theme="dark"] .soft-club .sc-list-row {
-  border-bottom-color: var(--swatch-34435c);
+  border-bottom-color: var(--border);
 }
 @media (min-width: 641px) {
   .app-layout .workspace-editor .match-save-row {
@@ -980,39 +909,6 @@ html[data-theme="dark"] .sc-surface .sc-status.status-cancelled {
 .soft-club :is(.sc-date-tile, .sc-status) {
   border-radius: var(--radius-sm);
 }
-/* Search icon participates in layout, preventing overlap with text. */
-.soft-club .communication-search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 12px;
-  border: 1px solid var(--control-border);
-  border-radius: var(--radius-md);
-  background: var(--panel);
-}
-.soft-club .communication-search > svg {
-  position: static;
-  flex: none;
-  width: 18px;
-  height: 18px;
-  pointer-events: none;
-}
-.soft-club
-  .communication-search
-  input[type="search"]:not([type="checkbox"]):not([type="hidden"]) {
-  flex: 1;
-  min-width: 0;
-  width: 100%;
-  padding: 12px 0;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-  border-radius: 0;
-}
-.soft-club .communication-search:focus-within {
-  outline: 2px solid var(--gold);
-  outline-offset: 3px;
-}
 .soft-club .sc-inline-training .sc-segmented {
   border-radius: 999px;
   padding: 4px;
@@ -1062,6 +958,6 @@ html[data-theme="dark"] .sc-surface .sc-status.status-cancelled {
   margin: 0;
 }
 html[data-theme="dark"] .register-training-card .sc-status {
-  background: var(--swatch-26364f);
+  background: var(--surface-muted);
   color: var(--swatch-dbe6fa);
 }

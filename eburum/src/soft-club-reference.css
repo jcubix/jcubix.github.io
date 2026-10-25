@@ -1211,7 +1211,7 @@
 }
 .sc-home-secondary .sc-communication-preview {
   font-weight: 400;
-  line-height: normal;
+  line-height: 1.45;
 }
 .sc-surface .sc-list-row {
   border-bottom: 1px solid var(--swatch-dce1e8);
@@ -2050,7 +2050,7 @@
       ),
     select,
     textarea
-  ) {
+  ):not(:where(.sc-search input, .communication-search input)) {
   border-radius: var(--club-field-radius);
   border: 1px solid var(--swatch-cbd2de);
   background: white;
@@ -2164,26 +2164,6 @@
   }
 }
 
-/* Search is one surface, with no second border around its text field. */
-.soft-club
-  .sc-search
-  input[type="search"]:not([type="checkbox"]):not([type="hidden"]) {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  padding: 12px 0;
-}
-.soft-club .sc-search:focus-within {
-  outline: 2px solid var(--swatch-b9944d);
-  outline-offset: 2px;
-}
-.soft-club .sc-search input:focus-visible {
-  outline: none;
-}
-.soft-club .sc-search > svg {
-  flex: 0 0 auto;
-}
 .workspace-editor .match-creation-venue,
 .workspace-editor .match-result-venue {
   margin: 0 0 24px;
