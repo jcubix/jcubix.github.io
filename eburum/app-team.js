@@ -403,7 +403,7 @@ function activityModal(a = {}, savedRows = [], technical = {}, preferredTab = "d
       }
     } catch (error) {
       $("#activityFeedback").textContent = error.message;
-      if(error.code==='40001'){
+      if(['40001','PT409'].includes(error.code)){
         const reopen=document.createElement('button');reopen.type='button';reopen.className='ghost wide field-space';reopen.textContent='Ricarica partite';
         $("#activityFeedback").appendChild(reopen);reopen.onclick=async()=>{if(!(await confirmDialog({message:'Scartare questa bozza e caricare le partite aggiornate?',confirmLabel:'Scarta'})))return;root.remove();state.page='matches';await refresh()};
       }

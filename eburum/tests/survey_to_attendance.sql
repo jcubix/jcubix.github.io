@@ -19,7 +19,7 @@ begin
  if not exists(select 1 from public.attendance where session_id=sid and player_id=pid and status='Presente' and notified=true) then raise exception 'Actual attendance not saved independently';end if;
  if not exists(select 1 from public.activities where id=aid and session_id=sid and status='Concluso') then raise exception 'Planned activity not linked and concluded';end if;
  if (select count(*) from public.activities where user_id=private_access.team_owner() and activity_date='2300-04-01' and activity_type='Allenamento')<>1 then raise exception 'Duplicate activity';end if;
- blocked:=false;begin perform public.save_team_activity(planned,rows,aid,(planned->>'revision')::integer);exception when serialization_failure then blocked:=true;end;
+ blocked:=false;begin perform public.save_team_activity(planned,rows,aid,(planned->>'revision')::integer);exception when sqlstate 'PT409' then blocked:=true;end;
  if not blocked then raise exception 'Stale poll revision overwrote completed attendance';end if;
 end $$;
 rollback;
