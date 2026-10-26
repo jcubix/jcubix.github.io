@@ -183,7 +183,8 @@
   --overlay: rgba(15, 27, 61, 0.38);
   --focus-soft: rgba(233, 196, 106, 0.3);
   --card-shadow:
-    0 1px 2px rgba(15, 27, 61, 0.04), 0 4px 16px rgba(15, 27, 61, 0.05);
+    0 1px 2px rgba(15, 27, 61, 0.05), 0 6px 20px rgba(15, 27, 61, 0.07);
+  --card-hairline: rgba(15, 27, 61, 0.06);
   --dock-shadow: 0 8px 30px rgba(15, 27, 61, 0.12);
   --radius-card: 16px;
   --radius-control: 10px;
@@ -244,6 +245,7 @@ html[data-theme="dark"] {
   --neutral-soft: #273951;
   --overlay: rgba(3, 9, 20, 0.65);
   --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 4px 16px rgba(0, 0, 0, 0.12);
+  --card-hairline: rgba(255, 255, 255, 0.06);
   --dock-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
   --panel: var(--surface);
   --panel2: var(--surface-muted);
@@ -374,9 +376,15 @@ html[data-theme="dark"] :is(button.primary, .sc-primary, .bg-primary) {
 }
 button.ghost,
 .sc-secondary {
-  background: var(--surface);
+  background: var(--surface-muted);
   color: var(--ink);
-  border-color: var(--border);
+  border-color: var(--control-border);
+}
+@media (hover: hover) and (pointer: fine) {
+  button.ghost:hover,
+  .sc-secondary:hover {
+    background: var(--primary-soft);
+  }
 }
 .danger,
 html[data-theme="dark"] .danger {
@@ -756,18 +764,51 @@ html[data-theme] :is(.badge.b-gray, .tone-neutral) {
   border-radius: var(--radius-card);
   box-shadow: var(--card-shadow);
 }
-.availability-counts {
+.home-stat-grid {
   display: grid;
-  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
   margin-block: 16px;
 }
-.availability-counts > span {
-  display: flex;
-  align-items: center;
+.home-stat-grid > div {
+  display: grid;
+  align-content: start;
   gap: 8px;
+  padding: 12px 8px;
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+  min-width: 0;
 }
-.availability-counts b {
-  margin-left: auto;
+.home-stat-grid dd {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.home-stat-grid dt {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+.home-stat-grid [data-tone="success"] dd {
+  color: var(--success);
+}
+.home-stat-grid [data-tone="danger"] dd {
+  color: var(--danger);
+}
+.home-stat-grid [data-tone="warning"] dd {
+  color: var(--warning);
+}
+.home-stat-grid [data-tone="neutral"] dd {
+  color: var(--ink);
+}
+@media (max-width: 380px) {
+  .home-stat-grid dd {
+    font-size: 24px;
+  }
 }
 .status-dot {
   display: inline-block;
@@ -1259,11 +1300,13 @@ html[data-theme] .soft-club .communication-filters > .segmented > button {
   }
   .sc-home-main,
   .sc-home-secondary {
-    display: block;
+    display: grid;
+    gap: 32px;
+    align-content: start;
     min-width: 0;
   }
   .sc-home-secondary > * + * {
-    margin-top: 32px;
+    margin-top: 0;
   }
   .toast {
     bottom: 24px;
@@ -1546,7 +1589,7 @@ html[data-theme]
   ) {
   background: var(--surface);
   border-radius: var(--radius-card);
-  border: 0;
+  border: 1px solid var(--card-hairline);
   box-shadow: var(--card-shadow);
 }
 .workspace-content:focus-visible {
@@ -1618,7 +1661,7 @@ html[data-theme] .sc-mini-avatar {
   justify-content: center;
   align-items: center;
   gap: 8px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--control-border);
   padding: 12px 16px;
 }
 .training-whiteboard-link {
@@ -1647,7 +1690,7 @@ html[data-theme] .sc-mini-avatar {
 }
 
 html[data-theme] .native-message.is-unread {
-  border-left: 1px solid var(--accent);
+  border-inline-start: 3px solid var(--accent);
 }
 html[data-theme] .sc-match-preview.is-today {
   border: 2px solid var(--accent);
@@ -1722,15 +1765,6 @@ html[data-theme] .sc-last-training :is(h2, b, span) {
 }
 html[data-theme] .sc-last-training p {
   color: var(--ink-2);
-}
-.sc-home-availability .availability-counts > span {
-  align-items: flex-start;
-}
-.sc-home-availability .status-dot {
-  margin-top: 6px;
-}
-.sc-home-availability .availability-counts b {
-  white-space: nowrap;
 }
 .route-feedback {
   display: flex;
@@ -2400,5 +2434,196 @@ html[data-theme] .soft-club :is(.sc-search, .communication-search) > svg {
     left: calc(50% + 120px);
     width: calc(100% - 280px);
     bottom: 24px;
+  }
+}
+/* Report previews and editable events use the same chronological reading axis. */
+.match-timeline .event-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: start;
+  padding: 16px 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+.match-timeline .event-item::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 43px;
+  width: 1px;
+  background: var(--border);
+}
+.match-timeline .event-content::before {
+  content: "";
+  position: absolute;
+  left: 40px;
+  top: 23px;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-pill);
+  background: var(--neutral);
+}
+.match-timeline [data-event-type="Gol"]::before {
+  background: var(--success);
+}
+.match-timeline
+  :is(.opponent-goal .event-content, [data-event-type="Espulsione"])::before {
+  background: var(--danger);
+}
+.match-timeline [data-event-type="Ammonizione"]::before {
+  background: var(--warning);
+}
+.match-timeline .event-minute {
+  color: var(--ink-2);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+.match-timeline .opponent-goal .event-minute {
+  color: var(--danger);
+}
+.match-timeline .event-content {
+  padding-left: 8px;
+}
+.match-timeline .event-content p {
+  color: var(--ink);
+}
+.match-timeline .event-content .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.match-timeline .event-edit {
+  display: inline-grid;
+  place-items: center;
+  min-width: 44px;
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+}
+.match-report-score {
+  padding-block: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+}
+.match-report-score p {
+  color: var(--ink-2);
+  font-size: 13px;
+}
+.match-report-score > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin-block: 16px;
+}
+.match-report-score span {
+  display: grid;
+  gap: 12px;
+  overflow-wrap: anywhere;
+}
+.match-report-score b {
+  font-size: 36px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.match-report-columns {
+  display: grid;
+  gap: 24px;
+  padding-block: 24px;
+}
+.match-report-columns h3 {
+  margin: 0 0 16px;
+  font-size: 17px;
+}
+.match-report-lineup {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.match-report-document .event-item {
+  grid-template-columns: 36px minmax(0, 1fr);
+}
+.match-report-modal .modal-actions {
+  gap: 12px;
+}
+.match-report-preview[hidden] {
+  display: none;
+}
+.communication-overview {
+  margin-block: 16px;
+}
+.communication-overview > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-block: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.communication-overview dd {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.communications-aside .communication-help-heading {
+  margin-top: 32px;
+}
+.user-row .row-main {
+  min-width: 0;
+  max-width: 100%;
+}
+.user-email {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+html[data-theme] .sc-person-avatar[data-role="Portiere"] {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+html[data-theme] .sc-person-avatar[data-role="Difensore"] {
+  background: var(--primary-soft);
+  color: var(--ink);
+}
+html[data-theme] .sc-person-avatar[data-role="Centrocampista"] {
+  background: var(--success-soft);
+  color: var(--success);
+}
+html[data-theme] .sc-person-avatar[data-role="Attaccante"] {
+  background: var(--neutral-soft);
+  color: var(--neutral);
+}
+@media (min-width: 1024px) {
+  .match-report-modal {
+    max-width: 880px;
+  }
+  .match-workspace .match-live-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(240px, 1fr);
+    gap: 24px 32px;
+    align-items: start;
+  }
+  .match-workspace
+    .match-live-main
+    > :is(.match-events-heading, .match-event-composer) {
+    grid-column: 1 / -1;
+    margin: 0;
+  }
+  .match-workspace .match-event-composer:empty {
+    display: none;
+  }
+  .match-workspace .match-game-notes {
+    margin: 0;
+  }
+  .match-report-columns {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+    gap: 32px;
   }
 }

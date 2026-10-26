@@ -7,6 +7,8 @@ const paths = {
   arrowUp: '<path d="M7 17 17 7M7 7h10v10"/>',
   close: '<path d="m6 6 12 12M18 6 6 18"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
+  edit: '<path d="m16 3 5 5M4 20l4-1L21 6a2.8 2.8 0 0 0-4-4L4 15z"/>',
+  trophy: '<path d="M8 3h8v6a4 4 0 0 1-8 0V3ZM8 5H4v2a4 4 0 0 0 4 4m8-6h4v2a4 4 0 0 1-4 4m-4 2v5m-4 3h8m-6-3h4l1 3H9z"/>',
   substitution: '<path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4"/>',
   ball: '<circle cx="12" cy="12" r="9"/><path d="m12 7 5 4-2 6H9l-2-6 5-4Zm0-4v4M3 12l4-1M6 20l3-3m9 3-3-3m6-5-4-1"/>',
   card: '<rect x="6" y="3" width="12" height="18" rx="2"/>',

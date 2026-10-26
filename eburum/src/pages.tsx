@@ -596,7 +596,11 @@ function PlayerRow({ runtime, player }: { runtime: Runtime; player: Player }) {
         onClick={() => runtime.actions.playerSheet(player.id)}
         aria-label={`Scheda di ${player.surname} ${player.name}`}
       >
-        <span className="sc-person-avatar" aria-hidden="true">
+        <span
+          className="sc-person-avatar"
+          data-role={player.role}
+          aria-hidden="true"
+        >
           {player.name.slice(0, 1)}
           {player.surname.slice(0, 1)}
         </span>

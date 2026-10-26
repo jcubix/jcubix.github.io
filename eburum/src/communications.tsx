@@ -73,34 +73,43 @@ export function CommunicationsPage({
     const timer = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(timer);
   }, []);
-  const rows = runtime.actions
+  const active = runtime.actions
     .activeCommunications()
-    .filter(
-      (message) =>
-        Date.parse(message.expires_at) > now &&
-        (filter !== "meetings" || message.kind === "meeting") &&
-        (filter !== "general" || !message.player_id) &&
-        (filter !== "unread" ||
-          (message.requires_ack &&
-            !(runtime.state.communication_receipts || []).some(
-              (r) =>
-                r.communication_id === message.id &&
-                r.reader_id === runtime.state.user?.id,
-            ))) &&
-        (filter !== "players" ||
-          (message.player_id && (!player || message.player_id === player))) &&
-        (filter !== "expiring" ||
-          Date.parse(message.expires_at) - now <= 86400000) &&
-        [
-          message.title,
-          message.body,
-          message.author_label,
-          runtime.actions.communicationAudience(message),
-        ]
-          .join(" ")
-          .toLocaleLowerCase("it")
-          .includes(search),
-    );
+    .filter((message) => Date.parse(message.expires_at) > now);
+  const unread = active.filter(
+    (message) =>
+      message.requires_ack &&
+      !(runtime.state.communication_receipts || []).some(
+        (receipt) =>
+          receipt.communication_id === message.id &&
+          receipt.reader_id === runtime.state.user?.id,
+      ),
+  ).length;
+  const rows = active.filter(
+    (message) =>
+      (filter !== "meetings" || message.kind === "meeting") &&
+      (filter !== "general" || !message.player_id) &&
+      (filter !== "unread" ||
+        (message.requires_ack &&
+          !(runtime.state.communication_receipts || []).some(
+            (r) =>
+              r.communication_id === message.id &&
+              r.reader_id === runtime.state.user?.id,
+          ))) &&
+      (filter !== "players" ||
+        (message.player_id && (!player || message.player_id === player))) &&
+      (filter !== "expiring" ||
+        Date.parse(message.expires_at) - now <= 86400000) &&
+      [
+        message.title,
+        message.body,
+        message.author_label,
+        runtime.actions.communicationAudience(message),
+      ]
+        .join(" ")
+        .toLocaleLowerCase("it")
+        .includes(search),
+  );
   void revision;
   return (
     <>
@@ -312,7 +321,31 @@ export function CommunicationsPage({
           ) : null}
         </div>
         <aside className="communications-aside">
-          <h3>Uno spazio condiviso</h3>
+          <h3>Da tenere d’occhio</h3>
+          <dl className="communication-overview">
+            <div>
+              <dt>Messaggi attivi</dt>
+              <dd>{active.length}</dd>
+            </div>
+            <div>
+              <dt>Letture da confermare</dt>
+              <dd>{unread}</dd>
+            </div>
+            <div>
+              <dt>Inviti a riunioni</dt>
+              <dd>
+                {active.filter((message) => message.kind === "meeting").length}
+              </dd>
+            </div>
+          </dl>
+          <Button
+            variant="secondary"
+            onClick={() => setFilter("unread")}
+            disabled={!unread}
+          >
+            Mostra da confermare
+          </Button>
+          <h3 className="communication-help-heading">Uno spazio condiviso</h3>
           <p>
             Gli aggiornamenti sono visibili a tutti gli utenti dello staff,
             anche quando riguardano un singolo giocatore.
@@ -323,8 +356,8 @@ export function CommunicationsPage({
             l’appuntamento. Alla scadenza vengono eliminati automaticamente.
           </p>
           <p>
-            Le nuove comunicazioni arrivano in tempo reale. Apri Gestisci
-            aggiornamenti per ripristinare una connessione interrotta.
+            Le nuove comunicazioni arrivano in tempo reale. Usa il pulsante
+            Aggiorna messaggi per ripristinare una connessione interrotta.
           </p>
         </aside>
       </div>
