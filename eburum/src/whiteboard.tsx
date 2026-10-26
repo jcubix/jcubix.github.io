@@ -738,6 +738,38 @@ export function WhiteboardPage({ runtime }: { runtime: Runtime }) {
           </details>
           <div className="wb-workspace">
             <div className="wb-controls">
+              <div className="wb-save">
+                <p role="status">
+                  {busy
+                    ? "Operazione in corso…"
+                    : dirty
+                      ? "Modifiche da salvare"
+                      : board.updated_at
+                        ? "Tutte le modifiche sono salvate"
+                        : "Bozza vuota · non ancora salvata"}
+                </p>
+                <div>
+                  <Button
+                    variant="secondary"
+                    aria-label="Esporta immagine"
+                    disabled={busy}
+                    onClick={exportPng}
+                  >
+                    <Download />
+                    <span className="wb-export-label">Esporta immagine</span>
+                  </Button>
+                  <Button
+                    disabled={
+                      busy || (!dirty && !!board.updated_at) || !title.trim()
+                    }
+                    aria-label="Salva lavagna"
+                    onClick={save}
+                  >
+                    <Save />
+                    Salva<span className="wb-save-long-label"> lavagna</span>
+                  </Button>
+                </div>
+              </div>
               <div
                 className="wb-toolbar"
                 role="group"
@@ -1051,32 +1083,6 @@ export function WhiteboardPage({ runtime }: { runtime: Runtime }) {
               ))}
             </div>
           </details>
-          <div className="wb-save">
-            <p role="status">
-              {busy
-                ? "Operazione in corso…"
-                : dirty
-                  ? "Modifiche da salvare"
-                  : board.updated_at
-                    ? "Tutte le modifiche sono salvate"
-                    : "Bozza vuota · non ancora salvata"}
-            </p>
-            <div>
-              <Button variant="secondary" disabled={busy} onClick={exportPng}>
-                <Download />
-                Esporta immagine
-              </Button>
-              <Button
-                disabled={
-                  busy || (!dirty && !!board.updated_at) || !title.trim()
-                }
-                onClick={save}
-              >
-                <Save />
-                Salva lavagna
-              </Button>
-            </div>
-          </div>
           <div className="wb-close">
             <Button
               variant="ghost"
