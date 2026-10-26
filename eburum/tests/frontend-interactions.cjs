@@ -620,7 +620,7 @@ test("Direct training replies preserve failed drafts, guard season changes and s
  w.confirm=()=>false;assert.equal(runtime.navigate("players"),false);await runtime.actions.changeSeason(season-1);assert.equal(runtime.actions.season().year,season);
  w.fixtureSaveError={message:"Errore di rete simulato"};$("#savePlanning").click();await until(()=>$("#planningFeedback").textContent.includes("simulato"));
  assert.equal($("#savePlanning").disabled,false);assert.equal(w.fixtureData.attendance.length,attendanceBefore);
- w.fixtureSaveError=null;$("#savePlanning").click();$("#savePlanning").click();await until(()=>w.fixtureData.activity_roster.some(r=>r.activity_id==="inline-training")&&!$("#savePlanning").disabled);
+ w.fixtureSaveError=null;$("#savePlanning").click();$("#savePlanning").click();await until(()=>w.fixtureData.activity_roster.some(r=>r.activity_id==="inline-training")&&$("#planningChanges").hidden);
  assert.equal(w.fixtureData.activity_roster.filter(r=>r.activity_id==="inline-training").length,2);
  assert.equal(w.fixtureData.activity_roster.find(r=>r.activity_id==="inline-training"&&r.player_id==="player-1").availability,"Indisponibile");
  assert.equal(w.fixtureData.attendance.length,attendanceBefore);assert.equal(w.fixtureTeamCalls.length,2,'one failed attempt, one successful save despite duplicate clicks');

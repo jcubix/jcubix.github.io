@@ -123,3 +123,27 @@ test('match notes are visible without opening a disclosure and save with the res
  await page.locator('#saveMatchResult').click();await expect(page.locator('#saveMatchResult')).toBeEnabled();
  await expect.poll(()=>page.evaluate(()=>fixtureData.matches.find(m=>m.id==='future-match').note)).toBe('Nota gara sintetica sempre visibile');
 });
+
+test('training replies keep save and a reversible pending counter in one floating bar',async({page})=>{
+ await open(page,'training');
+ const bar=page.locator('.planning-save'),save=bar.locator('#savePlanning'),counter=bar.locator('#planningChanges');
+ await expect(save).toBeVisible();await expect(save).toHaveText('Salva');await expect(save).toBeDisabled();await expect(counter).toBeHidden();
+ expect(await page.locator('.sc-training-aside #savePlanning').count()).toBe(0);
+ const reply=(player,value)=>page.locator(`[data-training-player="${player}"][data-training-reply="${value}"]`);
+ await reply('player-1','Disponibile').click();await expect(counter).toHaveText('1');await expect(counter).toHaveAccessibleName('1 risposta da salvare');await expect(save).toBeEnabled();
+ await reply('player-1','Indisponibile').click();await expect(counter).toHaveText('1');
+ await reply('player-2','Disponibile').click();await expect(counter).toHaveText('2');
+ await reply('player-1','In attesa').click();await expect(counter).toHaveText('1');
+ await reply('player-2','In attesa').click();await expect(counter).toBeHidden();await expect(save).toBeDisabled();
+ await reply('player-1','Disponibile').click();
+ await page.evaluate(()=>{document.documentElement.style.setProperty('--safe-area-bottom','34px')});
+ await page.locator('.sc-training-aside').scrollIntoViewIfNeeded();
+ const geometry=await bar.evaluate(el=>{const r=el.getBoundingClientRect(),nav=document.querySelector('.app-mobile-nav'),n=nav.getBoundingClientRect();return {position:getComputedStyle(el).position,x:r.x,right:r.right,bottom:r.bottom,top:r.top,height:r.height,navVisible:n.height>0&&getComputedStyle(nav).display!=='none',navTop:n.top,navRight:n.right,overflow:document.documentElement.scrollWidth>innerWidth}});
+ expect(geometry.position).toBe('fixed');expect(geometry.x).toBeGreaterThanOrEqual(0);expect(geometry.right).toBeLessThanOrEqual(page.viewportSize().width);expect(geometry.bottom).toBeLessThanOrEqual(page.viewportSize().height-24);expect(geometry.height).toBeLessThan(100);expect(geometry.overflow).toBe(false);
+ if(geometry.navVisible&&geometry.navRight>geometry.x)expect(geometry.bottom).toBeLessThanOrEqual(geometry.navTop);
+ await expect(page.locator('#planningFeedback')).toBeEmpty();
+ await page.evaluate(()=>window.fixtureSaveError={message:'Connessione interrotta. Riprova.'});await save.click();await expect(bar.locator('#planningFeedback')).toContainText('Connessione interrotta');await expect(counter).toHaveText('1');await expect(save).toBeEnabled();expect(await bar.locator('#planningFeedback').evaluate(el=>getComputedStyle(el).position)).toBe('static');
+ await page.evaluate(()=>delete window.fixtureSaveError);await save.click();await expect(save).toBeDisabled();await expect(counter).toBeHidden();
+ expect(await page.evaluate(()=>fixtureData.activity_roster.find(r=>r.activity_id==='review-training'&&r.player_id==='player-1').availability)).toBe('Disponibile');
+ await page.locator('[data-training-phase=actual]').click();await expect(bar).toBeHidden();await page.locator('[data-training-phase=replies]').click();await expect(save).toBeVisible();
+});
