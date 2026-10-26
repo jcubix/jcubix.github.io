@@ -134,11 +134,19 @@ function planningModal(a = {}, savedRows = [], mount = null) {
   const requestId = crypto.randomUUID();
   $("#planningName").required = true;
   $("#planningDate").required = true;
-  if (training && a.id) {
-    const aside = $(".sc-training-aside");
-    aside.append($("#savePlanning"));
-    aside.append($("#planningFeedback"));
-    if (mount) $("#cancelPlanning").closest(".modal-actions").hidden = true;
+  if (training) {
+    const actions = $("#planningForm > .modal-actions");
+    actions.classList.add('planning-save');
+    const counter = document.createElement('span');
+    counter.id = 'planningChanges';
+    counter.className = 'badge tone-neutral planning-change-count';
+    counter.setAttribute('role', 'status');
+    counter.setAttribute('aria-live', 'polite');
+    counter.hidden = true;
+    actions.insertBefore(counter, $("#savePlanning"));
+    actions.append($("#planningFeedback"));
+    $("#savePlanning").textContent = a.id ? 'Salva' : 'Crea allenamento';
+    if (mount) $("#cancelPlanning").hidden = true;
   }
   if (training && a.id) {
     const organization = $(".planning-details");
@@ -156,8 +164,20 @@ function planningModal(a = {}, savedRows = [], mount = null) {
   $("#cancelPlanning").onclick = close;
   if (!mount) {root.dataset.detail="activity:"+(a.id||"new");root.dataset.page=training?(state.page==="register"?"register":"training"):"meetings";bindDialog(root, close);}
   const signature=()=>JSON.stringify({fields:['planningName','planningDate','planningStart','planningEnd','planningLocation','planningState','planningNote'].map(id=>$('#'+id).value),replies:[...entries.values()].map(r=>[r.player_id,r.availability,r.response_note])});
-  const baseline=signature();
-  const updateDirty=()=>{dirty=signature()!==baseline;root.dataset.dirty=String(dirty);if(dirty)$('#savePlanning').hidden=false;};
+  const baseline=signature(), originalReplies=new Map([...entries].map(([id,row])=>[id,row.availability]));
+  const updateDirty=()=>{
+    dirty=signature()!==baseline;
+    root.dataset.dirty=String(dirty);
+    if (training) {
+      const count=[...entries].filter(([id,row])=>row.availability!==originalReplies.get(id)).length;
+      const counter=$('#planningChanges');
+      counter.textContent=String(count);
+      counter.hidden=count===0;
+      counter.title=count===1?'1 risposta da salvare':`${count} risposte da salvare`;
+      counter.setAttribute('aria-label',counter.title);
+      $('#savePlanning').disabled=busy||!canOperate()||!!a.id&&!dirty;
+    } else if(dirty) $('#savePlanning').hidden=false;
+  };
   const timeError=document.createElement('p');timeError.id='planningTimeError';timeError.setAttribute('role','status');timeError.className='field-error';$('.planning-details .form-grid').after(timeError);
   const validateTimes=()=>{const start=$('#planningStart').value,end=$('#planningEnd').value,invalid=!!start&&!!end&&end<=start;timeError.textContent=invalid?'La fine deve essere successiva all’inizio.':'';for(const id of ['planningStart','planningEnd']){$('#'+id).setAttribute('aria-invalid',String(invalid));$('#'+id).setAttribute('aria-describedby','planningTimeError')}};
   root.addEventListener('input',event=>{if(event.target.id!=='replySearch'){updateDirty();validateTimes()}});
@@ -251,8 +271,7 @@ function planningModal(a = {}, savedRows = [], mount = null) {
       entries.get(b.dataset.trainingPlayer).availability =
         b.dataset.trainingReply;
       updateDirty();
-      $("#savePlanning").hidden = false;
-      $("#planningFeedback").textContent = "Risposte modificate · Da salvare";
+      $("#planningFeedback").textContent = "";
       $("#trainingReminderStatus").textContent = "";
       paintReplies();
     };
@@ -301,7 +320,7 @@ function planningModal(a = {}, savedRows = [], mount = null) {
     };
   }
   if (mount) {
-    $("#savePlanning").hidden = true;
+    if (!training) $("#savePlanning").hidden = true;
     if (!canPlan())
       root
         .querySelectorAll(
@@ -376,8 +395,10 @@ function planningModal(a = {}, savedRows = [], mount = null) {
     } finally {
       busy = false;
       setBusyControls(root, false);
+      if (root.isConnected) updateDirty();
     }
   };
+  updateDirty();
   if (training && a.session_id) {
     $('#copyActualAttendance').onclick=()=>copyOperationalText(attendanceMessage(a,state.attendance.filter(r=>r.session_id===a.session_id),state.players,fmt),$('#actualCopyStatus'),$('.training-actual-entry'));
     $('#actualHistory').onclick=()=>sessionHistoryModal(a.session_id);

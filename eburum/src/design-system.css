@@ -2374,3 +2374,68 @@ html[data-theme] .soft-club :is(.sc-search, .communication-search) > svg {
     background: var(--surface-muted);
   }
 }
+
+/* Training replies share one floating save bar, including pending changes and errors. */
+.app-layout .planning-save {
+  position: fixed;
+  inset: auto;
+  left: 50%;
+  bottom: var(--dock-clearance);
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  width: calc(100% - 40px - var(--safe-area-left) - var(--safe-area-right));
+  max-width: 1120px;
+  margin: 0;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 0;
+  border-radius: var(--radius-card);
+  box-shadow: 0 6px 24px var(--swatch-rgba132866008);
+  z-index: 20;
+}
+.app-layout .planning-save #savePlanning {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 44px;
+  margin: 0;
+  padding: 12px 20px;
+}
+.planning-save #cancelPlanning {
+  margin-inline-end: auto;
+}
+.planning-save .planning-change-count {
+  flex: none;
+  min-width: 28px;
+  margin-inline-start: auto;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+}
+.planning-save .planning-change-count[hidden],
+.planning-save #cancelPlanning[hidden],
+.app-layout #planningForm[hidden] {
+  display: none;
+}
+.app-layout .planning-save #planningFeedback:not(:empty) {
+  position: static;
+  inset: auto;
+  transform: none;
+  flex-basis: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+@media (min-width: 1024px) {
+  .app-layout .planning-save {
+    left: calc(50% + 120px);
+    width: calc(100% - 280px);
+    bottom: 24px;
+  }
+}
