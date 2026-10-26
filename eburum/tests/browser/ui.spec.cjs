@@ -98,6 +98,35 @@ test('dashboard cards share surfaces, compact badges and consistent header actio
  for(const icon of styles.icons){expect(icon.radius).toBe('999px');expect(icon.width).toBe(44);expect(icon.height).toBe(44);}
 });
 
+test('visual handoff keeps home stats readable and match reports formatted without changing exports',async({page},info)=>{
+ await open(page,'dashboard');
+ const stats=page.locator('.home-stat-grid');await expect(stats).toHaveCount(2);
+ for(const grid of await stats.all()){
+  await expect(grid.locator('dd')).toHaveCount(3);
+  const boxes=await grid.locator('dd').evaluateAll(es=>es.map(e=>({top:Math.round(e.getBoundingClientRect().top),font:parseFloat(getComputedStyle(e).fontSize)})));
+  expect(new Set(boxes.map(b=>b.top)).size).toBe(1);expect(boxes.every(b=>b.font>=24)).toBe(true);
+ }
+ await info.attach('home-uplift',{body:await page.screenshot({fullPage:true}),contentType:'image/png'});
+ await page.getByRole('link',{name:/Messaggi/}).click();await expect(page.locator('.communication-overview dd').nth(1)).toHaveText('1');
+ if(page.viewportSize().width>=1024){await page.getByRole('button',{name:'Mostra da confermare'}).click();await expect(page.getByRole('button',{name:'Da confermare',exact:true})).toHaveAttribute('aria-pressed','true');}
+ await page.getByRole('link',{name:/Partite/}).click();await page.locator('.sc-match-preview').filter({hasText:'Squadra ospite'}).click();await page.locator('[data-activity-tab=results]').click();
+ const edits=page.locator('.match-timeline .event-edit');await expect(edits.first()).toBeVisible();
+ if(page.viewportSize().width>=1024){const timeline=await page.locator('#matchEventList').boundingBox(),notes=await page.locator('.match-game-notes').boundingBox();expect(notes.x).toBeGreaterThanOrEqual(timeline.x+timeline.width);}
+ const target=await edits.first().boundingBox();expect(target.width).toBeGreaterThanOrEqual(44);expect(target.height).toBeGreaterThanOrEqual(44);
+ await edits.first().click();await expect(page.locator('#eventForm')).toBeVisible();await page.getByRole('button',{name:'Chiudi evento',exact:true}).click();
+ await page.locator('.match-report-trigger').click();const preview=page.locator('#matchReportPreview');await expect(preview).toBeVisible();await expect(page.locator('#matchReportText')).toBeHidden();
+ await expect(preview.locator('.match-report-score b').first()).toHaveText('2');await expect(preview).toContainText('Conclusione dal limite');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+ const a11y=await new AxeBuilder({page}).include('.match-report-modal').withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(a11y.violations).toEqual([]);
+ await info.attach('formatted-match-report',{body:await page.screenshot({fullPage:true}),contentType:'image/png'});
+ await page.getByRole('button',{name:'Chiudi tabellino',exact:true}).click();await page.getByRole('button',{name:'Chiudi attività',exact:true}).click();
+ await page.getByRole('link',{name:'Altro',exact:true}).click();
+ const email='allenatore.'+'squadra.'.repeat(20)+'prova@example.test';
+ await page.evaluate(email=>{const db=window.fixtureMount.runtime.db,invoke=db.functions.invoke;db.functions.invoke=async(fn,options)=>{const result=await invoke(fn,options);if(options.body.action==='list')result.data.users[0].email=email;return result}},email);
+ await page.getByRole('button',{name:/Gestione utenti/}).click();const address=page.locator('.user-email').first();await expect(address).toHaveAttribute('title',email);
+ expect(await address.evaluate(el=>el.scrollWidth>el.clientWidth)).toBe(true);expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+});
+
 
 test('registered meetings use one disclosure icon and unboxed list rows; refresh is a direct icon action',async({page})=>{
  await open(page,'communications');await page.waitForFunction(()=>window.fixtureMount?.runtime);

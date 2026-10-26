@@ -2,7 +2,7 @@ import { bindDialog } from './app-dialogs.js';
 import { icon } from './app-icons.js';
 import { isAwayMatch } from './app-match-display.js';
 import { ensureJsPdf } from './app-pdf-loader.js';
-import { fmt, sortPlayers, state, teamRequestGuard, today } from './app-part1.js';
+import { esc, fmt, sortPlayers, teamRequestGuard, today } from './app-part1.js';
 
 const line = value => String(value ?? '').replace(/[\r\n\t]+/g, ' ').trim();
 const key = value => line(value).normalize('NFKC').toLocaleLowerCase('it');
@@ -37,7 +37,7 @@ function matchReportModel({match, activity, roster = [], events = [], players = 
  const ordered = sortPlayers(starters.map(r => players.find(p => p.id === r.player_id) || {id:r.player_id}));
  const opponent = line(match.opponent) || 'Avversario da indicare';
  const title = isAwayMatch(match) ? `${opponent} - EBURUM` : `EBURUM - ${opponent}`;
- const eventLines = timeline.map(e => {
+ const eventEntries = timeline.map(e => {
   const detail = line(e.detail), penalty = /^(?:\(?rig\.?\)?|(?:su |calcio di )?rigore)$/i.test(detail);
   const annotation = detail ? ` (${penalty && e.event_type === 'Gol' ? 'RIG' : detail})` : '';
   const person = e.player_id ? name(e.player_id) : '(giocatore non indicato)';
@@ -46,8 +46,9 @@ function matchReportModel({match, activity, roster = [], events = [], players = 
    e.event_type === 'Espulsione' ? `Espulso ${person}` :
    e.event_type === 'Sostituzione' ? `Esce ${name(e.outgoing_player_id)} entra ${name(e.player_id)}` :
    e.event_type === 'Nota' ? `Nota${e.player_id ? ' ' + person : ''}` : `${line(e.event_type)}${e.player_id ? ' ' + person : ''}`;
-  return `${e.minute == null ? 'Minuto non indicato' : e.minute + '’'} - ${action}${annotation}`;
+  return {minute:e.minute, type:e.event_type, opponent:e.event_type==='Gol'&&!e.player_id, action:action+annotation};
  });
+ const eventLines = eventEntries.map(e=>`${e.minute == null ? 'Minuto non indicato' : e.minute + '’'} - ${e.action}`);
  const scored = match.goals_for != null && match.goals_against != null;
  const scores = isAwayMatch(match) ? [match.goals_against, match.goals_for] : [match.goals_for, match.goals_against];
  const cancelled = activity?.status === 'Annullato';
@@ -58,7 +59,8 @@ function matchReportModel({match, activity, roster = [], events = [], players = 
   ...(eventLines.length ? eventLines : ['Nessun evento registrato.']), '', result].join('\n');
  const filename = ['Eburum-tabellino', opponent, match.match_date].filter(Boolean).join('-').normalize('NFD')
   .replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9-]+/g, '-').slice(0, 160);
- return {title, date:fmt(match.match_date), starters:ordered.map(p => name(p.id)), events:eventLines, result, text, filename};
+ return {title, date:fmt(match.match_date), starters:ordered.map(p => name(p.id)), events:eventLines, result, text, filename,
+  teams:isAwayMatch(match)?[opponent,'EBURUM']:['EBURUM',opponent], scores:scored?scores:null, cancelled, eventEntries};
 }
 
 function createMatchReportPdf(model) {
@@ -91,14 +93,16 @@ function createMatchReportPdf(model) {
 function matchReportModal(snapshot, routed = false) {
  const current = teamRequestGuard(); if (!current()) return;
  const model = matchReportModel(snapshot), root = document.createElement('div'); root.className = 'modal-back match-report-back';if(routed){root.dataset.detail='report-match:'+snapshot.match.id;root.dataset.page='reports';}
- root.innerHTML = `<section class="modal match-report-modal" role="dialog" aria-modal="true" aria-labelledby="matchReportTitle"><div class="modal-head"><h2 id="matchReportTitle">Tabellino gara</h2><button type="button" aria-label="Chiudi tabellino">${icon('close')}</button></div><p class="row-sub">Dati salvati della partita. Copia il testo per condividerlo oppure scarica il PDF.</p><label for="matchReportText">Anteprima del tabellino</label><textarea id="matchReportText" class="match-report-preview" rows="16" readonly spellcheck="false"></textarea><div class="modal-actions"><button type="button" id="copyMatchReport">${icon('copy',18)}<span>Copia testo</span></button><button type="button" class="primary" id="downloadMatchReport">${icon('file',18)}<span>Scarica PDF</span></button></div><p id="matchReportStatus" class="row-sub" role="status" aria-live="polite"></p></section>`;
+ const eventSymbol = type => type==='Gol'?'ball':type==='Sostituzione'?'substitution':type==='Nota'?'message':'card';
+ const eventTone = e => e.opponent||e.type==='Espulsione'?'b-red':e.type==='Gol'?'b-green':e.type==='Ammonizione'?'b-yellow':'b-neutral';
+ root.innerHTML = `<section class="modal match-report-modal" role="dialog" aria-modal="true" aria-labelledby="matchReportTitle"><div class="modal-head"><h2 id="matchReportTitle">Tabellino gara</h2><button type="button" aria-label="Chiudi tabellino">${icon('close')}</button></div><p class="row-sub">Dati salvati della partita. Copia il testo per condividerlo oppure scarica il PDF.</p><div id="matchReportPreview" class="match-report-document"><header class="match-report-score"><p>${esc(model.date)}${model.cancelled?' · Partita annullata':''}</p><div>${model.teams.map((team,i)=>`<span>${esc(team)}<b>${model.scores?esc(model.scores[i]):'—'}</b></span>`).join('')}</div><p>${esc(model.result)}</p></header><div class="match-report-columns"><section><h3>Formazione titolare</h3>${model.starters.length?`<ul class="match-report-lineup">${model.starters.map(name=>`<li>${esc(name)}</li>`).join('')}</ul>`:'<p class="row-sub">Formazione non registrata.</p>'}</section><section><h3>Eventi della gara</h3><div class="match-timeline">${model.eventEntries.map(e=>`<article class="event-item${e.opponent?' opponent-goal':''}"><div class="event-minute"${e.minute==null?' aria-label="Minuto non indicato"':''}>${e.minute==null?'—':esc(e.minute)+'′'}</div><div class="event-content" data-event-type="${esc(e.type)}"><span class="badge ${eventTone(e)}">${icon(eventSymbol(e.type),16)}${esc(e.opponent?'Gol avversario':e.type)}</span><p>${esc(e.action)}</p></div></article>`).join('')||'<p class="row-sub">Nessun evento registrato.</p>'}</div></section></div></div><label for="matchReportText" hidden>Testo del tabellino da copiare</label><textarea id="matchReportText" class="match-report-preview" rows="16" readonly spellcheck="false" hidden></textarea><div class="modal-actions"><button type="button" class="ghost" id="copyMatchReport">${icon('copy',18)}<span>Copia testo</span></button><button type="button" class="primary" id="downloadMatchReport">${icon('file',18)}<span>Scarica PDF</span></button></div><p id="matchReportStatus" class="row-sub" role="status" aria-live="polite"></p></section>`;
  const $ = selector => root.querySelector(selector), area = $('#matchReportText'), status = $('#matchReportStatus');
  area.value = model.text;
  document.body.append(root); bindDialog(root, () => root.remove()); $('.modal-head button').onclick = () => root.remove();
  $('#copyMatchReport').onclick = async () => {
   if (!current() || !root.isConnected) return;
   try { await navigator.clipboard.writeText(model.text); if (current() && root.isConnected) status.textContent = 'Tabellino copiato. Puoi incollarlo su WhatsApp.'; }
-  catch { if (current() && root.isConnected) { area.focus(); area.select(); status.textContent = 'Copia manualmente il testo selezionato.'; } }
+  catch { if (current() && root.isConnected) { area.hidden=false;root.querySelector('label[for="matchReportText"]').hidden=false;area.focus(); area.select(); status.textContent = 'Copia manualmente il testo selezionato.'; } }
  };
  let pending = false;
  $('#downloadMatchReport').onclick = async () => {

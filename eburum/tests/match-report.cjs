@@ -61,6 +61,16 @@ test('only this match and its called starters enter the report; partial scores a
  assert.equal(run('matchReportModel(sample).starters.length'),10);assert.equal(run('matchReportModel(sample).events.length'),9);
  sample.activity.status='Programmato';sample.match.match_date='2099-10-10';assert.equal(run('matchReportModel(sample).result'),'Risultato registrato: 3-2');
 });
+
+test('formatted preview escapes source content and retains exact clipboard text and fallback',async t=>{
+ const {w,run,$}=await app(t);w.sample=example();w.sample.events.push({id:'opponent',match_id:'match-1',minute:0,event_type:'Gol',player_id:null,detail:'<img src=x onerror=alert(1)>'});
+ w.sample.match.opponent='<script>Squadra</script>';const model=run('matchReportModel(sample)');run('matchReportModal(sample)');
+ assert.equal($('#matchReportText').hidden,true);assert.equal($('#matchReportPreview img, #matchReportPreview script'),null);
+ assert.ok($('#matchReportPreview').textContent.includes('<script>Squadra</script>'));assert.equal(w.document.querySelectorAll('.match-report-lineup li').length,11);
+ assert.equal($('.match-report-document .opponent-goal .badge').textContent,'Gol avversario');assert.equal($('.match-report-document .opponent-goal .event-minute').textContent,'0′');
+ let copied;Object.defineProperty(w.navigator,'clipboard',{configurable:true,value:{writeText:async value=>{copied=value}}});await $('#copyMatchReport').onclick();assert.equal(copied,model.text);assert.equal($('#matchReportText').hidden,true);
+ w.navigator.clipboard.writeText=async()=>{throw Error('denied')};await $('#copyMatchReport').onclick();assert.equal($('#matchReportText').hidden,false);assert.equal($('#matchReportText').selectionEnd,model.text.length);
+});
 test('PDF exports all events across pages with long content and safe filenames',async t=>{
  const {w,run}=await app(t);const sample=example();w.sample=sample;
  sample.events=Array.from({length:100},(_,i)=>({id:'e'+i,match_id:'match-1',minute:i,event_type:'Nota',detail:'Controllo tabellino multipagina '+i+' '+('testo lungo '.repeat(8))}));sample.match.opponent='../Pellezzano / Èlite';

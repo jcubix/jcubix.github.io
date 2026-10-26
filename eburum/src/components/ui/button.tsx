@@ -11,7 +11,7 @@ const buttonVariants = cva(
         default:
           "border border-primary bg-primary text-primary-foreground hover:bg-primary/90",
         secondary:
-          "border border-[var(--border)] bg-[var(--panel)] text-[var(--text)] hover:bg-[var(--surface-hover)]",
+          "border border-[var(--control-border)] bg-[var(--surface-muted)] text-[var(--text)] hover:bg-[var(--surface-hover)]",
         ghost:
           "border border-transparent bg-transparent text-[var(--text)] hover:bg-[var(--surface-hover)]",
         destructive:
