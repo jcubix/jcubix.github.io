@@ -1782,8 +1782,7 @@ html[data-theme] .sc-last-training p {
   }
   .workspace-editor .modal-actions,
   .workspace-editor .match-save-row,
-  .app-workspace .training-save,
-  .wb-editor .wb-save {
+  .app-workspace .training-save {
     position: sticky;
     inset: auto;
     bottom: calc(12px + var(--safe-area-bottom));
@@ -1851,17 +1850,6 @@ html[data-theme] .sc-last-training p {
 @media (max-width: 1023px) {
   .workspace-editor.workspace-view {
     padding-bottom: calc(112px + var(--safe-area-bottom));
-  }
-  .wb-toolbar button {
-    min-width: 44px;
-    padding: 8px;
-  }
-  .wb-toolbar button span {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
   }
 }
 
@@ -2030,31 +2018,6 @@ html[data-theme] .sc-last-training p {
   .app-header .app-brand span {
     max-width: 100px;
     white-space: normal;
-  }
-  .wb-toolbar {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(44px, 1fr));
-    gap: 8px;
-    padding: 8px;
-    border-radius: var(--radius-card);
-  }
-  .wb-colors button {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    border: 1px solid var(--control-border);
-  }
-  .wb-options {
-    gap: 8px;
-    min-height: 0;
-    margin-bottom: 12px;
-  }
-  .wb-options > p {
-    flex-basis: 100%;
-    margin: 0;
-  }
-  .wb-controls {
-    min-width: 0;
   }
   .report-controls {
     gap: 12px;

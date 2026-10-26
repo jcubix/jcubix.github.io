@@ -147,3 +147,27 @@ test('training replies keep save and a reversible pending counter in one floatin
  expect(await page.evaluate(()=>fixtureData.activity_roster.find(r=>r.activity_id==='review-training'&&r.player_id==='player-1').availability)).toBe('Disponibile');
  await page.locator('[data-training-phase=actual]').click();await expect(bar).toBeHidden();await page.locator('[data-training-phase=replies]').click();await expect(save).toBeVisible();
 });
+
+test('whiteboard tools stay compact and the field can draw, undo, save and export',async({page},info)=>{
+ await open(page,'whiteboard');await page.getByRole('button',{name:'Nuova lavagna',exact:true}).click();
+ const controls=page.locator('.wb-controls'),toolbar=page.getByRole('group',{name:'Strumenti di disegno'}),stage=page.locator('.wb-stage'),svg=stage.locator('svg').first(),actions=controls.locator('.wb-save');
+ if(page.viewportSize().width>=1024)await expect(page.locator('.app-mobile-nav')).toBeVisible();else await expect(page.locator('.app-mobile-nav')).toBeHidden();
+ await expect(toolbar.getByRole('button')).toHaveCount(8);await expect(actions.getByRole('button',{name:'Salva lavagna',exact:true})).toBeVisible();
+ const geometry=await toolbar.evaluate(el=>({height:el.getBoundingClientRect().height,rows:new Set([...el.children].map(b=>Math.round(b.getBoundingClientRect().top))).size,targets:[...el.children].map(b=>({width:b.getBoundingClientRect().width,height:b.getBoundingClientRect().height})),overflow:document.documentElement.scrollWidth>innerWidth}));
+ expect(geometry.overflow).toBe(false);for(const target of geometry.targets){expect(target.width).toBeGreaterThanOrEqual(44);expect(target.height).toBeGreaterThanOrEqual(44);}
+ if(page.viewportSize().width<=1023){expect(geometry.rows).toBe(2);expect(geometry.height).toBeLessThanOrEqual(120);expect(await controls.evaluate(e=>e.getBoundingClientRect().height)).toBeLessThan(300);}
+ expect(await actions.evaluate(e=>getComputedStyle(e).position)).toBe('static');
+ expect(await actions.evaluate(e=>e.getBoundingClientRect().bottom<=document.querySelector('.wb-stage').getBoundingClientRect().top)).toBe(true);
+ await info.attach('whiteboard-editor',{body:await page.screenshot(),contentType:'image/png'});
+ await toolbar.getByRole('button',{name:'Freccia',exact:true}).click();await svg.scrollIntoViewIfNeeded();
+ const box=await svg.boundingBox(),c=await controls.boundingBox(),y=Math.max(box.y+50,c.y+c.height+24),x=box.x+box.width*.3;
+ expect(y+60).toBeLessThan(Math.min(box.y+box.height,page.viewportSize().height));
+ await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x+60,y+60,{steps:5});await page.mouse.up();await expect(svg.locator('[data-mark]')).toHaveCount(1);
+ await page.getByRole('button',{name:'Annulla ultima modifica',exact:true}).click();await expect(svg.locator('[data-mark]')).toHaveCount(0);await page.getByRole('button',{name:'Ripristina modifica',exact:true}).click();await expect(svg.locator('[data-mark]')).toHaveCount(1);
+ await actions.getByRole('button',{name:'Salva lavagna',exact:true}).click();await expect(page.locator('.wb-feedback [role=status]')).toContainText('Lavagna salvata');
+ expect(await page.evaluate(()=>fixtureData.tactical_boards[0].document.marks[0].kind)).toBe('arrow');
+ const download=page.waitForEvent('download');await actions.getByRole('button',{name:'Esporta immagine',exact:true}).click();expect((await download).suggestedFilename()).toMatch(/\.png$/);await expect(page.locator('.wb-feedback [role=status]')).toContainText('Immagine esportata');
+ const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=40;c.height=80;const ctx=c.getContext('2d');ctx.fillStyle='#17483e';ctx.fillRect(0,0,40,80);return c.toDataURL('image/png').split(',')[1]});
+ await page.locator('input[type=file]').setInputFiles({name:'foto-prova.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});await expect(svg.locator('image')).toHaveCount(1);await expect(stage).toHaveAttribute('data-portrait','false');
+ await page.getByRole('button',{name:'Usa campo',exact:true}).click();await expect(svg.locator('image')).toHaveCount(0);await expect(svg.locator('[data-mark]')).toHaveCount(1);
+});

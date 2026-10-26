@@ -1,9 +1,6 @@
 .wb-page {
   max-width: 1120px;
 }
-.app-layout:has(.wb-editor) .app-mobile-nav {
-  display: none;
-}
 .wb-feedback:empty {
   display: none;
 }
@@ -80,8 +77,8 @@
 }
 .wb-toolbar {
   padding: 8px;
-  border-radius: 24px;
-  background: var(--panel2);
+  border-radius: var(--radius-card);
+  background: var(--surface-muted);
   margin-bottom: 16px;
 }
 .wb-toolbar > button {
@@ -177,10 +174,12 @@
 }
 .wb-save {
   justify-content: space-between;
-  gap: 16px;
-  background: var(--panel);
-  padding: 16px;
-  border-radius: 16px;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.wb-save > p {
+  flex: 1;
+  min-width: 0;
 }
 .wb-save p {
   margin: 0;
@@ -209,7 +208,7 @@
 .wb-library .sc-section-heading h3 {
   margin: 0;
 }
-@media (max-width: 640px) {
+@media (max-width: 1023px) {
   .wb-page:has(.wb-editor) .sc-page-heading {
     margin-bottom: 16px;
   }
@@ -225,7 +224,7 @@
   }
   .wb-controls {
     position: sticky;
-    top: env(safe-area-inset-top, 0px);
+    top: var(--safe-area-top);
     z-index: 5;
     padding: 8px 0;
     margin-bottom: 8px;
@@ -237,15 +236,14 @@
   }
   .wb-toolbar {
     display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 8px;
     padding: 8px;
     margin-bottom: 8px;
   }
   .wb-toolbar > button {
-    grid-column: span 3;
     min-width: 0;
-    min-height: 52px;
+    min-height: 44px;
     padding: 4px;
     flex-direction: column;
     gap: 4px;
@@ -264,15 +262,31 @@
   .wb-label {
     flex-basis: 100%;
   }
+  .wb-toolbar button span,
+  .wb-export-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
   .wb-save {
-    align-items: stretch;
+    flex-wrap: nowrap;
+    padding: 0;
+    background: transparent;
   }
   .wb-save > div {
-    width: 100%;
+    flex-wrap: nowrap;
   }
   .wb-save > div > button {
-    flex: 1;
-    padding-inline: 8px;
+    padding: 8px 12px;
+  }
+  .wb-save button[aria-label="Esporta immagine"] {
+    width: 44px;
+    padding: 0;
+  }
+  .wb-save-long-label {
+    display: none;
   }
   .wb-page .sc-page-heading {
     align-items: flex-start;
@@ -283,5 +297,11 @@
   .wb-library .sc-section-heading {
     flex-wrap: wrap;
     gap: 8px;
+  }
+}
+
+@media (max-width: 1023px) and (max-height: 600px) {
+  .wb-controls {
+    position: static;
   }
 }
