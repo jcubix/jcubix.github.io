@@ -43,7 +43,7 @@ test('built entry starts login without a pre-injected legacy client',()=>{
   await import(${JSON.stringify(pathToFileURL(path.join(root,entry.replace(/^\//,''))).href)});
   const deadline=Date.now()+3000;
   while(![...document.querySelectorAll('button')].some(b=>b.textContent==='Accedi')&&Date.now()<deadline)await new Promise(r=>setTimeout(r,20));
-  assert.equal(typeof window.supabase.createClient,'function');
+  assert.equal(window.supabase,undefined,'production must not expose the old client global');
   assert.ok([...document.querySelectorAll('button')].some(b=>b.textContent==='Accedi'),'real built entry must reach login');
   dom.window.close();process.exit(0);
  `;

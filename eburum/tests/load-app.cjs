@@ -1,25 +1,16 @@
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
-// Only the test harness exposes module exports to legacy test expressions.
-// Production retains lexical module scope and never publishes globals.
+let compiled;
+async function source(){
+ if(!compiled)compiled=(async()=>{const {build}=await import('vite');const result=await build({root:path.resolve(__dirname,'..'),configFile:false,logLevel:'silent',define:{'process.env.NODE_ENV':'"production"'},build:{write:false,minify:false,lib:{entry:path.join(__dirname,'fixtures/domain-entry.ts'),name:'EburumDomainTests',formats:['iife']}}});return (Array.isArray(result)?result[0]:result).output.find(item=>item.type==='chunk'&&item.isEntry).code;})();
+ return compiled;
+}
+// Domain tests run the production modules; all UI interactions live in the React suite.
 async function loadApp(dom){
- dom.window.TextEncoder=TextEncoder;dom.window.TextDecoder=TextDecoder;
- const root=path.join(__dirname,'..'),context=dom.getInternalVMContext(),cache=new Map();
- vm.runInContext(fs.readFileSync(path.join(root,'vendor/jspdf.umd.min.js'),'utf8'),context);
- const getModule=file=>{
-  const absolute=path.resolve(root,file);if(cache.has(absolute))return cache.get(absolute);
-  const source=fs.readFileSync(absolute,'utf8');
-  const mod=new vm.SourceTextModule(source,{context,identifier:absolute,importModuleDynamically:async(specifier,ref)=>{
-   const imported=linker(specifier,ref);
-   if(imported.status==='unlinked')await imported.link(linker);
-   if(imported.status==='linked')await imported.evaluate();
-   return imported;
-  }});cache.set(absolute,mod);return mod;
- };
- const linker=(specifier,ref)=>getModule(path.relative(root,path.resolve(path.dirname(ref.identifier),specifier)));
- const main=new vm.SourceTextModule("import {registerCommunications} from './app-communications.js';import {registerDiscipline} from './app-discipline.js';import {registerOperations} from './app-operations.js';import {registerWorkflows} from './app-workflows.js';registerOperations();registerWorkflows();registerDiscipline();registerCommunications();",{context,identifier:path.join(root,'test-entry.js')});
- await main.link(linker);await main.evaluate();
- for(const mod of cache.values())if(mod.namespace.setConfirmationPresenter)mod.namespace.setConfirmationPresenter(({message})=>dom.window.confirm(message));
- for(const mod of cache.values())for(const name of Object.keys(mod.namespace))context[name]=mod.namespace[name];
- return cache;
+ const w=dom.window,context=dom.getInternalVMContext();
+ for(const key of ['fetch','Headers','Request','Response','TextEncoder','TextDecoder'])w[key]=globalThis[key];
+ vm.runInContext(fs.readFileSync(path.join(__dirname,'../vendor/jspdf.umd.min.js'),'utf8'),context);
+ vm.runInContext(await source(),context);
+ Object.assign(w,w.EburumDomainTests.domain);
+ return w.EburumDomainTests.domain;
 }
 module.exports={loadApp};

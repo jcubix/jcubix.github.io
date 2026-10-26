@@ -1,3 +1,10 @@
+import { ui } from "./ui-service";
+import { OperationalSurfaces } from "./operational-surfaces";
+import { Toast } from "./operational-ui";
+import { Dashboard } from "./dashboard";
+import { Reports, Register } from "./report-pages";
+import { TrainingScreen } from "./training-editors";
+import { ConfirmationDialog } from "./components/ui/confirmation-dialog";
 import {
   detailPath,
   detailListPath,
@@ -37,13 +44,7 @@ import {
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { Tooltip, TooltipProvider } from "./components/ui/tooltip";
-import {
-  TrainingPage,
-  MatchesPage,
-  PlayersPage,
-  ToolsPage,
-  FeatureSurface,
-} from "./pages";
+import { MatchesPage, PlayersPage, ToolsPage } from "./pages";
 import { CommunicationsPage } from "./communications";
 import { ThemePicker } from "./theme";
 import { UserGuide } from "./user-guide";
@@ -128,14 +129,17 @@ export function App({ runtime }: { runtime: Runtime }) {
         return;
       }
       const page = pageFromPath(location.pathname);
-      if (page !== snapshot.page && !runtime.navigate(page))
-        navigate(previousUrl.current, { replace: true });
-      else previousUrl.current = location.pathname + location.search;
+      const requested = location.pathname + location.search;
+      void runtime.navigate(page).then((allowed) => {
+        if (window.location.hash.slice(1) !== requested) return;
+        if (!allowed) navigate(previousUrl.current, { replace: true });
+        else previousUrl.current = requested;
+      });
     } else if (location.pathname !== "/" + snapshot.page) {
       const detail =
-        [
-          ...document.querySelectorAll<HTMLElement>(".modal-back[data-detail]"),
-        ].some((root) => root.dataset.page === snapshot.page) ||
+        ui
+          .getSnapshot()
+          .surfaces.some((surface) => surface.page === snapshot.page) ||
         (snapshot.page === "training" &&
           runtime.state.trainingMode === "actual" &&
           !!runtime.state.trainingDraft?.id);
@@ -167,6 +171,17 @@ export function App({ runtime }: { runtime: Runtime }) {
           <StatusPage runtime={runtime} snapshot={snapshot} />
         )}
         <PwaStatus runtime={runtime} />
+        <ConfirmationDialog
+          key={
+            snapshot.status === "ready"
+              ? runtime.state.user?.id +
+                ":" +
+                runtime.state.team?.owner_id +
+                ":" +
+                snapshot.role
+              : "signed-out"
+          }
+        />
       </TooltipProvider>
     </ErrorBoundary>
   );
@@ -483,6 +498,7 @@ function Workspace({
   runtime: Runtime;
   snapshot: RuntimeSnapshot;
 }) {
+  const operational = useSyncExternalStore(ui.subscribe, ui.getSnapshot);
   const [actionError, setActionError] = useState("");
   const [offline, setOffline] = useState(!navigator.onLine),
     [checkingNetwork, setCheckingNetwork] = useState(false);
@@ -773,10 +789,16 @@ function Workspace({
           tabIndex={-1}
           className="workspace-content"
         >
-          <PageContent runtime={runtime} snapshot={snapshot} />
+          {!operational.surfaces.some((s) => s.workspace) ? (
+            <PageContent runtime={runtime} snapshot={snapshot} />
+          ) : null}
         </main>
-        <div id="workspaceEditor" className="workspace-editor-host" />
+        <div id="workspaceEditor" className="workspace-editor-host">
+          <OperationalSurfaces runtime={runtime} workspace />
+        </div>
       </div>
+      <OperationalSurfaces runtime={runtime} />
+      <Toast />
       <nav className="app-mobile-nav" aria-label="Navigazione principale">
         <div className="nav-brand">
           <Brand />
@@ -809,22 +831,14 @@ function PageContent({
           home
         />
       ) : (
-        <FeatureSurface
-          runtime={runtime}
-          page="dashboard"
-          revision={snapshot.revision + snapshot.communicationRevision}
-        />
+        <Dashboard runtime={runtime} />
       );
     case "training":
-      return runtime.state.trainingMode === "actual" ? (
-        <FeatureSurface
-          runtime={runtime}
-          page="training"
-          revision={snapshot.revision}
-        />
-      ) : (
-        <TrainingPage runtime={runtime} revision={snapshot.revision} />
-      );
+      return <TrainingScreen runtime={runtime} />;
+    case "reports":
+      return <Reports runtime={runtime} />;
+    case "register":
+      return <Register runtime={runtime} />;
     case "matches":
       return <MatchesPage runtime={runtime} />;
     case "players":
@@ -861,12 +875,6 @@ function PageContent({
         />
       );
     default:
-      return (
-        <FeatureSurface
-          runtime={runtime}
-          page={snapshot.page}
-          revision={snapshot.revision}
-        />
-      );
+      return <Dashboard runtime={runtime} />;
   }
 }

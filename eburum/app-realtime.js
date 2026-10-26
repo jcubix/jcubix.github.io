@@ -1,4 +1,4 @@
-import { activeCommunications, communicationCount, fetchCommunications } from './app-communications.js';
+import { activeCommunications, fetchCommunications } from './app-communications.js';
 import { db, state, teamOwner, teamRequestGuard, teamRole } from './app-part1.js';
 
 // One private subscription per signed-in team. Broadcasts contain no message contents.
@@ -6,7 +6,7 @@ let channel=null,channelKey='',realtimeGeneration=0,reloadTimer=null,expiryTimer
 const communicationListeners=new Set();
 function onCommunicationsChanged(listener){communicationListeners.add(listener);return ()=>communicationListeners.delete(listener)}
 function notifyCommunications(){
- communicationCount();for(const listener of communicationListeners)listener();
+ for(const listener of communicationListeners)listener();
  clearTimeout(expiryTimer);const next=Math.min(...activeCommunications().map(m=>Date.parse(m.expires_at)));
  if(state.user&&Number.isFinite(next))expiryTimer=setTimeout(notifyCommunications,Math.max(1,Math.min(2147483647,next-Date.now()+20)));
 }
@@ -20,7 +20,7 @@ function scheduleCommunicationReload(){
  reloadTimer=setTimeout(async()=>{
   if(generation!==realtimeGeneration||!current())return;
   if(refreshInFlight){refreshAgain=true;return}refreshInFlight=true;
-  try{await fetchCommunications()}catch(error){if(current())document.querySelectorAll('[data-realtime-status]').forEach(el=>el.textContent='Aggiornamento non riuscito. Premi Aggiorna o torna online.')}
+  try{await fetchCommunications()}catch(error){if(current()){state.communicationRealtimeStatus='CHANNEL_ERROR';notifyCommunications()}}
   finally{if(generation===realtimeGeneration){refreshInFlight=false;if(refreshAgain){refreshAgain=false;scheduleCommunicationReload()}}}
  },80);
 }
@@ -33,7 +33,6 @@ function syncCommunicationsRealtime(){
   .subscribe(status=>{
    if(generation!==realtimeGeneration)return;
    state.communicationRealtimeStatus=status;notifyCommunications();
-   document.querySelectorAll('[data-realtime-status]').forEach(el=>el.textContent=status==='SUBSCRIBED'?'Aggiornamenti in tempo reale attivi':'Connessione in corso. Puoi aggiornare manualmente.');
    if(status==='SUBSCRIBED')scheduleCommunicationReload();
   });
 }

@@ -596,7 +596,8 @@ html[data-theme] .soft-club .page-heading > button {
 .sc-chevron {
   color: var(--ink-3);
 }
-html[data-theme] :is(.sc-small-count, .badge.b-yellow, .tone-warning) {
+html[data-theme]
+  :is(.sc-small-count, .sc-warning, .badge.b-yellow, .tone-warning) {
   color: var(--warning);
   background: var(--warning-soft);
   border-radius: var(--radius-pill);
@@ -2373,7 +2374,7 @@ html[data-theme] .soft-club :is(.sc-search, .communication-search) > svg {
 }
 
 /* Training replies share one floating save bar, including pending changes and errors. */
-.app-layout .planning-save {
+.app-layout :is(.planning-save, .workspace-editor .workspace-save) {
   position: fixed;
   inset: auto;
   left: 50%;
@@ -2430,7 +2431,7 @@ html[data-theme] .soft-club :is(.sc-search, .communication-search) > svg {
   overflow-wrap: anywhere;
 }
 @media (min-width: 1024px) {
-  .app-layout .planning-save {
+  .app-layout :is(.planning-save, .workspace-editor .workspace-save) {
     left: calc(50% + 120px);
     width: calc(100% - 280px);
     bottom: 24px;
@@ -2626,4 +2627,29 @@ html[data-theme] .sc-person-avatar[data-role="Attaccante"] {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
     gap: 32px;
   }
+}
+
+/* Reserve the same dock clearance for match actions and the navigation. */
+.workspace-editor.workspace-view:has(.workspace-save) {
+  padding-bottom: calc(var(--dock-clearance) + 104px);
+}
+.workspace-save #matchResultStatus:empty {
+  display: none;
+}
+.workspace-save #matchResultStatus:not(:empty) {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 13px;
+}
+
+.match-workspace .match-score-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: end;
+  width: 100%;
+}
+.match-score-separator {
+  line-height: 62px;
+  font-size: 24px;
+  color: var(--ink-3);
 }

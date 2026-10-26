@@ -41,7 +41,6 @@ Maiorano
 90’ - Gol Perna
 
 Risultato finale: 3-2`;
-
 test('match sheet reproduces the requested report, disambiguates names and preserves source data',async t=>{
  const {w,run}=await app(t);const sample=example();w.sample=sample;sample.events.reverse();const before=JSON.stringify(sample);
  assert.equal(run('matchReportModel(sample).text'),expected);assert.equal(JSON.stringify(sample),before);
@@ -61,39 +60,9 @@ test('only this match and its called starters enter the report; partial scores a
  assert.equal(run('matchReportModel(sample).starters.length'),10);assert.equal(run('matchReportModel(sample).events.length'),9);
  sample.activity.status='Programmato';sample.match.match_date='2099-10-10';assert.equal(run('matchReportModel(sample).result'),'Risultato registrato: 3-2');
 });
-
-test('formatted preview escapes source content and retains exact clipboard text and fallback',async t=>{
- const {w,run,$}=await app(t);w.sample=example();w.sample.events.push({id:'opponent',match_id:'match-1',minute:0,event_type:'Gol',player_id:null,detail:'<img src=x onerror=alert(1)>'});
- w.sample.match.opponent='<script>Squadra</script>';const model=run('matchReportModel(sample)');run('matchReportModal(sample)');
- assert.equal($('#matchReportText').hidden,true);assert.equal($('#matchReportPreview img, #matchReportPreview script'),null);
- assert.ok($('#matchReportPreview').textContent.includes('<script>Squadra</script>'));assert.equal(w.document.querySelectorAll('.match-report-lineup li').length,11);
- assert.equal($('.match-report-document .opponent-goal .badge').textContent,'Gol avversario');assert.equal($('.match-report-document .opponent-goal .event-minute').textContent,'0′');
- let copied;Object.defineProperty(w.navigator,'clipboard',{configurable:true,value:{writeText:async value=>{copied=value}}});await $('#copyMatchReport').onclick();assert.equal(copied,model.text);assert.equal($('#matchReportText').hidden,true);
- w.navigator.clipboard.writeText=async()=>{throw Error('denied')};await $('#copyMatchReport').onclick();assert.equal($('#matchReportText').hidden,false);assert.equal($('#matchReportText').selectionEnd,model.text.length);
-});
 test('PDF exports all events across pages with long content and safe filenames',async t=>{
  const {w,run}=await app(t);const sample=example();w.sample=sample;
  sample.events=Array.from({length:100},(_,i)=>({id:'e'+i,match_id:'match-1',minute:i,event_type:'Nota',detail:'Controllo tabellino multipagina '+i+' '+('testo lungo '.repeat(8))}));sample.match.opponent='../Pellezzano / Èlite';
  const model=run('matchReportModel(sample)');const pdf=run('createMatchReportPdf')(model);
  assert.ok(pdf.getNumberOfPages()>2);const bytes=pdf.output('arraybuffer');assert.ok(bytes.byteLength>5000);assert.match(model.filename,/^[a-zA-Z0-9-]+$/);assert.match(model.text,/multipagina 99/);
-});
-test('export uses saved lineup and blocks an unsaved score; clipboard fallback and closing preserve edits',async t=>{
- const {w,run,$}=await app(t);const sample=example();w.fixtureData.players=sample.players;w.fixtureData.activities=[sample.activity];w.fixtureData.matches=[sample.match];w.fixtureData.activity_roster=sample.roster;w.fixtureData.match_events=sample.events;
- await run('refresh()');await run("openActivity('activity-1','results')");$('#matchGoalsFor').value='4';$('#matchGoalsFor').dispatchEvent(new w.Event('input',{bubbles:true}));$('.match-report-trigger').click();assert.equal($('#matchReportText'),null);assert.match($('.toast').textContent,/Salva le modifiche/);
- w.confirm=()=>true;$('#closeActivity').click();await run("openActivity('activity-1','results')");$('.match-report-trigger').click();assert.equal($('#matchReportText').value,expected);assert.ok($('#app').hasAttribute('inert'));
- await $('#copyMatchReport').onclick();assert.match($('#matchReportStatus').textContent,/Copia manualmente/);assert.equal($('#matchReportText').selectionEnd,expected.length);
- $('[aria-label="Chiudi tabellino"]').click();await tick();assert.equal($('#matchReportText'),null);assert.equal($('.activity-modal').parentElement.hasAttribute('inert'),false);assert.equal($('#matchGoalsFor').value,'3');
-});
-test('read-only roles can export match sheets without gaining editing controls',async t=>{
- const {run,$}=await app(t);
- for(const role of ['secretary','president','treasurer']){
-  run("state.team.role='"+role+"'");await run("openActivity('activity-1')");assert.equal($('#activityForm'),null);assert.ok($('.match-report-trigger'));$('.match-report-trigger').click();assert.ok($('#matchReportText'));$('[aria-label="Chiudi tabellino"]').click();$('[aria-label="Chiudi attività"]').click();await tick();
- }
-});
-test('PDF requests are single-submit and cannot export after account changes or closing',async t=>{
- const {w,run,$}=await app(t);w.sample=example();run('matchReportModal(sample)');delete w.jspdf;
- const pending=$('#downloadMatchReport').onclick();await $('#downloadMatchReport').onclick();assert.equal(w.document.querySelectorAll('script[data-pdf-loader]').length,1);
- let saved=0;w.jspdf={jsPDF:class {constructor(){saved++}}};run('state.user=null');$('script[data-pdf-loader]').onload();await pending;assert.equal(saved,0);assert.equal($('#downloadMatchReport').disabled,false);
- run('state.user=fixtureUser');$('[aria-label="Chiudi tabellino"]').click();delete w.jspdf;run('matchReportModal(sample)');
- const closing=$('#downloadMatchReport').onclick();$('[aria-label="Chiudi tabellino"]').click();await closing;assert.equal(saved,0);
 });

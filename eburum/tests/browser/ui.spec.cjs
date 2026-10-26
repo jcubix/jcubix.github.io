@@ -200,3 +200,26 @@ test('whiteboard tools stay compact and the field can draw, undo, save and expor
  await page.locator('input[type=file]').setInputFiles({name:'foto-prova.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});await expect(svg.locator('image')).toHaveCount(1);await expect(stage).toHaveAttribute('data-portrait','false');
  await page.getByRole('button',{name:'Usa campo',exact:true}).click();await expect(svg.locator('image')).toHaveCount(0);await expect(svg.locator('[data-mark]')).toHaveCount(1);
 });
+
+
+test('React editors retain rounded controls, readable contrast and accessible form names',async({page},info)=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await open(page,'matches');await page.locator('.sc-match-preview').filter({hasText:'Atletico Battipaglia 2018'}).click();await expect(page.locator('#activityForm')).toBeVisible();
+ const check=async name=>{const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(result.violations,name).toEqual([]);const folder=path.resolve(__dirname,'../../output/react-review');fs.mkdirSync(folder,{recursive:true});await info.attach(name,{body:await page.screenshot({path:path.join(folder,info.project.name+'-'+name+'.png'),fullPage:true}),contentType:'image/png'});expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);};
+ const saveBar=page.locator('#activityForm .workspace-save');await expect(saveBar).toBeVisible();
+ const dock=await saveBar.evaluate(el=>({bar:el.getBoundingClientRect().toJSON(),nav:document.querySelector('.app-mobile-nav').getBoundingClientRect().toJSON()}));if(dock.nav.height>300)expect(dock.bar.x).toBeGreaterThanOrEqual(dock.nav.right);else expect(dock.bar.bottom).toBeLessThanOrEqual(dock.nav.top);expect(dock.bar.x).toBeGreaterThanOrEqual(0);expect(dock.bar.right).toBeLessThanOrEqual(page.viewportSize().width);
+ await check('match-roster-react');await page.locator('[data-activity-tab=results]').click();const widths=await page.locator('.match-score-fields input').evaluateAll(inputs=>inputs.map(input=>input.getBoundingClientRect().width));expect(Math.abs(widths[0]-widths[1])).toBeLessThanOrEqual(1);expect(Math.min(...widths)).toBeGreaterThan(100);await page.locator('#addOpponentGoal').click();await check('event-react');await page.locator('#close').click();await page.locator('#closeActivity').click();
+ await page.locator('.app-mobile-nav a[href="#/more"]').click();await page.locator('.sc-tool-list a[href="#/players"]').click();await page.locator('.player-directory-entry, .roster-table td button').first().click();await expect(page.locator('#playerSheetTitle')).toBeVisible();await check('player-react');await page.getByRole('button',{name:'Chiudi scheda',exact:true}).click();
+ await page.locator('.header-settings > summary').click();await page.getByRole('button',{name:'Gestione utenti',exact:true}).click();await expect(page.locator('#usersTitle')).toBeVisible();await check('users-react');
+ expect(errors).toEqual([]);
+});
+
+
+test('React Register correction returns to its selected day after confirming an unsaved draft',async({page})=>{
+ await open(page,'register');const date=await page.evaluate(()=>fixtureData.sessions[0].session_date);
+ await page.evaluate(day=>{location.hash='/register?date='+day+'&month='+day.slice(0,7)},date);
+ await page.locator('[data-edit-session="session-1"]').click();await expect(page.locator('#trainList')).toBeVisible();
+ await page.locator('[data-presence-player="player-1"][data-presence="Assente"]').click();await page.locator('#backToTrainings').click();
+ const confirmation=page.getByRole('alertdialog');await expect(confirmation).toBeVisible();await confirmation.getByRole('button',{name:'Esci dalle presenze',exact:true}).click();
+ await expect(page.locator('#registerDetail')).toHaveAttribute('data-selected',date);await expect(page).toHaveURL(new RegExp('date='+date));
+});

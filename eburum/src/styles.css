@@ -2500,3 +2500,13 @@
     padding: 16px;
   }
 }
+
+/* Fieldsets group React controls without adding browser default spacing. */
+.workspace-editor fieldset,
+.modern-dialog fieldset,
+.sc-inline-training fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}

@@ -1,3 +1,18 @@
+import * as core from "../app-part1.js";
+import * as team from "../app-team.js";
+import * as training from "../app-training-planning.js";
+import * as parts2 from "../app-part2.js";
+import * as parts3 from "../app-part3.js";
+import * as parts4 from "../app-part4.js";
+import * as communications from "../app-communications.js";
+import * as realtime from "../app-realtime.js";
+import * as discipline from "../app-discipline.js";
+import * as workflows from "../app-workflows.js";
+import * as admin from "../app-admin.js";
+import * as data from "../app-data.js";
+import * as dialogs from "../app-dialogs.js";
+import { ui } from "./ui-service";
+import { confirmDialog } from "../app-confirm.js";
 import { routeDetail } from "../app-presentation.js";
 import type { Runtime, RuntimeSnapshot, TeamState, Page } from "./types";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -22,41 +37,6 @@ export function pageFromHash(): Page {
 // Existing domain modules retain atomic writes, audit and role checks. React owns
 // the application root; the explicit presentation port replaces DOM-root writes.
 export async function createRuntime(): Promise<Runtime> {
-  const [
-    core,
-    team,
-    training,
-    parts2,
-    parts3,
-    parts4,
-    reports,
-    ops,
-    access,
-    communications,
-    realtime,
-    discipline,
-    workflows,
-    admin,
-    data,
-    dialogs,
-  ] = await Promise.all([
-    import("../app-part1.js"),
-    import("../app-team.js"),
-    import("../app-training-planning.js"),
-    import("../app-part2.js"),
-    import("../app-part3.js"),
-    import("../app-part4.js"),
-    import("../app-part5.js"),
-    import("../app-operations.js"),
-    import("../app-access.js"),
-    import("../app-communications.js"),
-    import("../app-realtime.js"),
-    import("../app-discipline.js"),
-    import("../app-workflows.js"),
-    import("../app-admin.js"),
-    import("../app-data.js"),
-    import("../app-dialogs.js"),
-  ]);
   const state = core.state as unknown as TeamState,
     db = core.db as SupabaseClient;
   const listeners = new Set<() => void>();
@@ -70,7 +50,8 @@ export async function createRuntime(): Promise<Runtime> {
     error: "",
   };
   let firstReady = true;
-  let navigationGuard: (() => boolean) | null = null;
+  let navigationGuard: (() => boolean | Promise<boolean>) | null = null;
+  let navigationRevision = 0;
   const emit = (values: Partial<RuntimeSnapshot>) => {
     snapshot = { ...snapshot, ...values };
     for (const fn of listeners) fn();
@@ -136,55 +117,27 @@ export async function createRuntime(): Promise<Runtime> {
     state.pageScroll ??= {};
     state.pageScroll[state.page] = window.scrollY;
   };
-  dialogs.setDialogDetailPresenter((root: HTMLElement) => {
-    const page = root.dataset.page as Page,
-      key = root.dataset.detail!;
-    if (page !== state.page) {
+  ui.setDetailPresenter((surface) => {
+    if (surface?.page && surface.page !== state.page) {
       rememberScroll();
-      state.page = page;
+      state.page = surface.page;
       core.render();
     }
-    if (
-      routeDetail(page, window.location.hash.split("?")[1] || "")?.key !== key
-    )
-      detailRouter?.({ page, key });
-    const observer = new MutationObserver(() => {
-      if (root.isConnected) return;
-      observer.disconnect();
-      queueMicrotask(() => {
-        if (!detailRouter) return;
-        if (
-          !root.dataset.keepRoute &&
-          state.page === page &&
-          routeDetail(page, window.location.hash.split("?")[1] || "")?.key ===
-            key &&
-          ![...document.querySelectorAll<HTMLElement>("[data-detail]")].some(
-            (r) => r.dataset.detail === key,
-          )
-        )
-          detailRouter?.(null);
-      });
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
+    if (surface?.page && surface.detail)
+      detailRouter?.({ page: surface.page, key: surface.detail });
+    else if (!surface) detailRouter?.(null);
   });
   const syncDetail = async (page: Page, search: string) => {
+    const revision = ++navigationRevision;
+    const current = core.teamRequestGuard();
     const detail = routeDetail(page, search);
     if (
       detail?.key === "session:" + state.trainingDraft?.id &&
       state.trainingMode === "actual"
     )
       return true;
-    if (
-      detail &&
-      [...document.querySelectorAll<HTMLElement>("[data-detail]")].some(
-        (root) => root.dataset.detail === detail.key,
-      )
-    )
-      return true;
-    const roots = [
-      ...document.querySelectorAll<HTMLElement>(".modal-back[data-detail]"),
-    ];
-    if (detail && roots.some((r) => r.dataset.detail === detail.key))
+    const roots = ui.getSnapshot().surfaces;
+    if (detail && roots.some((surface) => surface.detail === detail.key))
       return true;
     if (
       !detail &&
@@ -193,13 +146,23 @@ export async function createRuntime(): Promise<Runtime> {
       state.trainingMode === "actual" &&
       !!state.trainingDraft?.id
     ) {
-      if (!canLeaveAttendance()) return false;
+      if (
+        !(await canLeaveAttendance()) ||
+        revision !== navigationRevision ||
+        !current()
+      )
+        return false;
       state.trainingMode = "hub";
       core.render();
     }
     if (!detail && !roots.length) return true;
-    if (navigationGuard && !navigationGuard()) return false;
-    if (!dialogs.closeWorkspaceEditors()) return false;
+    if (navigationGuard && !(await navigationGuard())) return false;
+    if (
+      !(await dialogs.closeWorkspaceEditors()) ||
+      revision !== navigationRevision ||
+      !current()
+    )
+      return false;
     if (!detail) return true;
     const split = detail.key.indexOf(":"),
       kind = detail.key.slice(0, split),
@@ -217,14 +180,14 @@ export async function createRuntime(): Promise<Runtime> {
       if (id === "new") {
         if (!core.canPlan())
           throw Error("Creazione riservata allo staff autorizzato.");
-        parts4.matchModal();
-      } else if (match) parts4.matchModal(match);
+        await parts4.matchModal();
+      } else if (match) await parts4.matchModal(match);
       else throw Error("Partita non disponibile nella stagione selezionata.");
     } else if (kind === "activity") {
       if (id === "new") {
         if (!core.canPlan())
           throw Error("Creazione riservata allo staff autorizzato.");
-        training.planningModal({
+        await training.planningModal({
           activity_type: page === "meetings" ? "Riunione" : "Allenamento",
         });
       } else if (state.activities.some((a) => a.id === id))
@@ -235,88 +198,64 @@ export async function createRuntime(): Promise<Runtime> {
         throw Error("Correzione riservata allo staff autorizzato.");
       if (!state.sessions.some((s) => s.id === id))
         throw Error("Sessione non disponibile nella stagione selezionata.");
-      parts3.editAttendanceSession(id);
+      await parts3.editAttendanceSession(id);
     } else if (kind === "discipline") discipline.disciplineModal(id);
     else if (kind === "tool") {
       if (id === "users" && core.isAdmin()) admin.usersModal();
-      else if (id === "expiries" && core.canViewExpiries()) team.expiryModal();
+      else if (id === "expiries" && core.canViewExpiries())
+        await team.expiryModal();
       else if (id === "discipline") discipline.disciplineModal();
       else throw Error("Sezione non disponibile per il tuo ruolo.");
     }
     return true;
   };
-  function canLeaveAttendance() {
+  async function canLeaveAttendance() {
     return (
       state.trainingMode !== "actual" ||
       !state.trainingDraft ||
       !parts3.draftChanged(state.trainingDraft) ||
-      window.confirm(
-        "Uscire dalle presenze non salvate? La bozza resta disponibile in questa sessione.",
-      )
+      (await confirmDialog({
+        message:
+          "Uscire dalle presenze non salvate? La bozza resta disponibile in questa sessione.",
+        confirmLabel: "Esci dalle presenze",
+      }))
     );
   }
-  const navigate = (page: Page) => {
+  async function canLeaveWorkspace() {
+    const current = core.teamRequestGuard();
     if (
       state.trainingDraft?.saving ||
-      !canLeaveAttendance() ||
-      (navigationGuard && !navigationGuard()) ||
-      !dialogs.closeWorkspaceEditors()
+      !(await canLeaveAttendance()) ||
+      (navigationGuard && !(await navigationGuard())) ||
+      !(await dialogs.closeWorkspaceEditors())
     )
       return false;
-    const changed = state.page !== page;
-    if (changed) rememberScroll();
-    state.page = page;
-    if (changed && page === "training") state.trainingMode = "hub";
-    core.render();
-    return true;
+    return current() && !state.trainingDraft?.saving;
+  }
+  const navigate = async (page: Page) => {
+    const revision = ++navigationRevision;
+    if (page === state.page) return true;
+    try {
+      if (!(await canLeaveWorkspace()) || revision !== navigationRevision)
+        return false;
+      rememberScroll();
+      state.page = page;
+      if (page === "training") state.trainingMode = "hub";
+      core.render();
+      return true;
+    } catch (error) {
+      core.fail(error);
+      return false;
+    }
   };
-  communications.setCommunicationsPresenter(() => navigate("communications"));
-  dialogs.setWorkspaceEditorPresenter((root: HTMLElement) => {
-    const host = document.getElementById("workspaceEditor");
-    if (!host) return false;
-    host.append(root);
-    const page: Page =
-      (root.dataset.page as Page) ||
-      (root.querySelector("#activityForm")
-        ? "matches"
-        : root.querySelector(".training-replies")
-          ? state.page === "register"
-            ? "register"
-            : "training"
-          : "meetings");
-    if (state.page !== page) rememberScroll();
-    state.page = page;
-    core.render();
-    return true;
-  });
+  realtime.initCommunicationsLifecycle();
   realtime.onCommunicationsChanged(() =>
     emit({ communicationRevision: snapshot.communicationRevision + 1 }),
   );
-  ops.registerOperations();
-  workflows.registerWorkflows();
-  discipline.registerDiscipline();
-  communications.registerCommunications();
-  const features: Partial<Record<Page, () => string>> = {
-    dashboard: ops.dashboard,
-    training: workflows.trainingPage,
-    reports: reports.reportsPage,
-    register: parts4.registerPage,
-  };
-  const binders: Partial<Record<Page, () => void>> = {
-    dashboard: core.bindDashboard,
-    training: workflows.bindTraining,
-    reports: reports.bindReports,
-    register: parts4.bindRegister,
-  };
   const scoped = core.teamRequestGuard;
   const changeSeason = async (year: number) => {
-    if (
-      state.trainingDraft?.saving ||
-      !canLeaveAttendance() ||
-      (navigationGuard && !navigationGuard()) ||
-      !dialogs.closeWorkspaceEditors()
-    )
-      return;
+    const revision = ++navigationRevision;
+    if (!(await canLeaveWorkspace()) || revision !== navigationRevision) return;
     state.seasonYear = year;
     await core.refresh();
   };
@@ -337,51 +276,21 @@ export async function createRuntime(): Promise<Runtime> {
     setNavigationGuard: (guard) => {
       navigationGuard = guard;
     },
+    canLeaveInline: async () =>
+      navigationGuard ? !!(await navigationGuard()) : true,
     requestGuard: core.teamRequestGuard,
     render: core.render,
-    featureHtml: (page) => features[page]?.() ?? "",
-    bindFeature: (page, root) => {
-      binders[page]?.();
-      team.bindTeamLinks();
-      access.applyRoleControls();
-      root.querySelectorAll<HTMLElement>("[data-open-match]").forEach(
-        (button) =>
-          (button.onclick = () => {
-            const match = state.matches.find(
-              (m) => m.id === button.dataset.openMatch,
-            );
-            if (match) parts4.matchModal(match);
-          }),
-      );
-      root.querySelectorAll<HTMLElement>("[data-resume-attendance]").forEach(
-        (el) =>
-          (el.onclick = () => {
-            if (navigate("training")) {
-              state.trainingMode = "actual";
-              core.render();
-            }
-          }),
-      );
-      root
-        .querySelectorAll<HTMLElement>("[data-page]")
-        .forEach(
-          (el) => (el.onclick = () => navigate(el.dataset.page as Page)),
-        );
-    },
     actions: {
       pollEntries: workflows.pollEntries,
-      newTraining: () =>
-        training.planningModal({ activity_type: "Allenamento" }),
+      newTraining: async () => {
+        if (navigationGuard && !(await navigationGuard())) return;
+        return training.planningModal({ activity_type: "Allenamento" });
+      },
       openActivity: team.openActivity,
-      mountTrainingReplies: (host, activity) =>
-        training.planningModal(
-          activity,
-          state.roster.filter(
-            (r: { activity_id: string }) => r.activity_id === activity.id,
-          ),
-          host,
-        ),
-      newMatch: () => parts4.matchModal(),
+      newMatch: async () => {
+        if (navigationGuard && !(await navigationGuard())) return;
+        return parts4.matchModal();
+      },
       openMatch: parts4.matchModal,
       users: admin.usersModal,
       expiries: team.expiryModal,
@@ -429,13 +338,8 @@ export async function createRuntime(): Promise<Runtime> {
         !!state.trainingDraft && parts3.draftChanged(state.trainingDraft),
       reload: core.refresh,
       logout: async () => {
-        if (state.trainingDraft?.saving) return;
-        if (navigationGuard && !navigationGuard()) return;
-        if (
-          state.trainingDraft &&
-          parts3.draftChanged(state.trainingDraft) &&
-          !confirm("Uscire e scartare la bozza presenze non salvata?")
-        )
+        const revision = ++navigationRevision;
+        if (!(await canLeaveWorkspace()) || revision !== navigationRevision)
           return;
         const { error } = await db.auth.signOut();
         if (error) throw error;

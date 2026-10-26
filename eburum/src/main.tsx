@@ -1,5 +1,4 @@
 import { createRoot } from "react-dom/client";
-import { createClient } from "@supabase/supabase-js";
 import { HashRouter } from "react-router-dom";
 import { App } from "./app";
 import { createRuntime } from "./runtime";
@@ -14,7 +13,6 @@ initializeTheme();
 
 async function start() {
   const root = createRoot(document.getElementById("app")!);
-  window.supabase ??= { createClient };
   try {
     const runtime = await createRuntime();
     root.render(

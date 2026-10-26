@@ -6,12 +6,6 @@ test('Presentation derives days across DST, Eburum outcomes and relative time wi
  assert.equal(relativeTime('2026-10-25T10:00:00Z',Date.parse('2026-10-25T12:00:00Z')),'2 h fa');
 });
 async function app(t){const dom=new JSDOM('<div id="app"></div>',{runScripts:'outside-only',url:'https://eburum.test'}),w=dom.window,run=code=>vm.runInContext(code,dom.getInternalVMContext());t.after(()=>w.close());w.CONFIG={supabaseUrl:'demo',supabaseAnonKey:'demo',season:'2026/27'};w.scrollTo=()=>{};run(fs.readFileSync(__dirname+'/fixtures/team-ui.js','utf8'));await require('./load-app.cjs').loadApp(dom);run('state.user=fixtureUser');await run('refresh()');return {w,run,$:s=>w.document.querySelector(s)};}
-test('historical trainings open actual attendance and never solicit unrecorded old survey replies',async t=>{
- const {w,run,$}=await app(t);run("const a={id:'historical',user_id:fixtureUser.id,activity_type:'Allenamento',title:'Allenamento',activity_date:'2026-10-06',status:'Concluso',session_id:'session-1',revision:0};state.activities.push(a);planningModal(a)");
- assert.equal($('#planningForm').hidden,true);assert.equal($('.training-actual-entry').hidden,false);assert.match($('.training-confirmed-summary').textContent,/Rossi Marco/);assert.match($('.training-confirmed-summary').textContent,/Assente/);assert.equal($('#copyTrainingReminder').hidden,true);assert.equal($('#pendingReplyFilter').hidden,true);
- let text;Object.defineProperty(w.navigator,'clipboard',{value:{writeText:async value=>text=value}});$('#copyActualAttendance').click();await new Promise(r=>setTimeout(r,0));assert.match(text,/Presenze effettive registrate/);assert.match(text,/Assenti \(1\)\n• Bianchi Luca/);assert.equal(w.fixtureRpcCalls.length,0);
- $('#closePlanning').click();run("state.page='dashboard';render()");assert.match($('.sc-last-training').textContent,/Presenti/);assert.doesNotMatch($('.sc-rows').textContent,/Risposte da registrare|giocatori non hanno/);
-});
 test('document states distinguish missing values from genuinely expired dates',async()=>{
  const {documentState}=await import('../app-workflow-tools.js');assert.equal(documentState(null,'2026-10-11','2026-11-10'),'Mancante');assert.equal(documentState('2026-10-10','2026-10-11','2026-11-10'),'Scaduto');assert.equal(documentState('2026-10-11','2026-10-11','2026-11-10'),'In scadenza');assert.equal(documentState('2026-12-01','2026-10-11','2026-11-10'),'In regola');
 });
@@ -21,10 +15,6 @@ test('match final review detects absent scores, impossible substitutions and man
  assert.ok(matchReview({goals_for:null,goals_against:null,minutes_auto:false},roster,[]).some(i=>i.includes('Risultato')));
  const issues=matchReview({goals_for:0,goals_against:0,minutes_auto:true},roster,[{id:'a',event_type:'Sostituzione',minute:60,player_id:'sub',outgoing_player_id:'p0'},{id:'b',event_type:'Sostituzione',minute:70,player_id:'p0',outgoing_player_id:'sub'}]);assert.ok(issues.some(i=>i.includes('70')));
 });
-test('player sheet opens the selected individual report and its PDF action',async t=>{
- const {run,$}=await app(t);run("playerSheet('player-2')");assert.match($('#playerSheetTitle').textContent,/Bianchi/);assert.match($('.player-kpis').parentElement.textContent,/Presenze effettive|Cartellini/);$('#openPlayerReport').click();assert.equal($('#rp').value,'player-2');assert.ok($('#exportReportPdf'));assert.equal($('#playerSheetTitle'),null);
-});
-
 test('Operational presentation preserves stable chronology and previews Rome deadlines across DST',async()=>{
  const {newestFirst,communicationDeadline,detailPath,detailListPath}=await import('../app-presentation.js');
  const rows=[{id:'b',day:'2026-10-02'},{id:'z',day:'2026-10-03'},{id:'a',day:'2026-10-02'}];

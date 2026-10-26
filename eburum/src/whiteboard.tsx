@@ -270,10 +270,18 @@ export function WhiteboardPage({ runtime }: { runtime: Runtime }) {
     }));
     setNotice("");
   };
-  const canLeave = () =>
-    !pending.current &&
-    (!dirty ||
-      window.confirm("Scartare le modifiche non salvate alla lavagna?"));
+  const canLeave = async () => {
+    if (pending.current) return false;
+    if (!dirty) return true;
+    return (
+      (await confirmDialog({
+        message: "Scartare le modifiche non salvate alla lavagna?",
+        confirmLabel: "Scarta",
+      })) &&
+      current() &&
+      !pending.current
+    );
+  };
   const restore = (value: Board) => {
     setBoard(value);
     setTitle(value.title);
@@ -290,8 +298,8 @@ export function WhiteboardPage({ runtime }: { runtime: Runtime }) {
     setError("");
     setNotice("");
   };
-  const create = (linked = "") => {
-    if (!canLeave()) return;
+  const create = async (linked = "") => {
+    if (!(await canLeave())) return;
     const a = runtime.state.activities.find((a) => a.id === linked);
     restore({
       id: crypto.randomUUID(),
@@ -362,8 +370,8 @@ export function WhiteboardPage({ runtime }: { runtime: Runtime }) {
       if (current()) setBusy(false);
     }
   };
-  const open = (id: string) => {
-    if (!canLeave()) return;
+  const open = async (id: string) => {
+    if (!(await canLeave())) return;
     libraryScroll.current = window.scrollY;
     setParams(
       (p) => {
@@ -376,39 +384,50 @@ export function WhiteboardPage({ runtime }: { runtime: Runtime }) {
   };
   useEffect(() => {
     if (!allowed) return;
-    const id = params.get("board");
-    if (id && id !== board?.id) {
-      if (!canLeave()) {
-        setParams(
-          (p) => {
-            if (board) p.set("board", board.id);
-            else p.delete("board");
-            return p;
-          },
-          { replace: true },
+    let cancelled = false;
+    const sync = async () => {
+      const id = params.get("board");
+      if (id && id !== board?.id) {
+        if (!(await canLeave())) {
+          if (cancelled) return;
+          setParams(
+            (p) => {
+              if (board) p.set("board", board.id);
+              else p.delete("board");
+              return p;
+            },
+            { replace: true },
+          );
+          return;
+        }
+        if (cancelled) return;
+        void run(async () => {
+          const value = await api.load(id);
+          if (current() && !cancelled) restore(value);
+        });
+      } else if (!id && board?.updated_at) {
+        if (!(await canLeave())) {
+          if (cancelled) return;
+          setParams(
+            (p) => {
+              p.set("board", board.id);
+              return p;
+            },
+            { replace: true, state: { boardEntry: true } },
+          );
+          return;
+        }
+        if (cancelled) return;
+        setBoard(null);
+        requestAnimationFrame(() =>
+          window.scrollTo({ top: libraryScroll.current, behavior: "instant" }),
         );
-        return;
       }
-      void run(async () => {
-        const value = await api.load(id);
-        if (current()) restore(value);
-      });
-    } else if (!id && board?.updated_at) {
-      if (!canLeave()) {
-        setParams(
-          (p) => {
-            p.set("board", board.id);
-            return p;
-          },
-          { replace: true, state: { boardEntry: true } },
-        );
-        return;
-      }
-      setBoard(null);
-      requestAnimationFrame(() =>
-        window.scrollTo({ top: libraryScroll.current, behavior: "instant" }),
-      );
-    }
+    };
+    void sync();
+    return () => {
+      cancelled = true;
+    };
   }, [params.get("board"), api]);
   const save = () => {
     if (!board) return;
@@ -662,8 +681,8 @@ export function WhiteboardPage({ runtime }: { runtime: Runtime }) {
           <Button
             disabled={busy}
             aria-label="Chiudi lavagna"
-            onClick={() => {
-              if (canLeave()) {
+            onClick={async () => {
+              if (await canLeave()) {
                 if (params.get("board")) {
                   if (location.state?.boardEntry) navigate(-1);
                   else
@@ -1087,8 +1106,8 @@ export function WhiteboardPage({ runtime }: { runtime: Runtime }) {
             <Button
               variant="ghost"
               disabled={busy}
-              onClick={() => {
-                if (canLeave()) {
+              onClick={async () => {
+                if (await canLeave()) {
                   setBoard(null);
                   setError("");
                 }

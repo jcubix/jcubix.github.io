@@ -657,7 +657,14 @@ function CommunicationEditor({
     [requiresAck, setRequiresAck] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    pending = useRef(false);
+    pending = useRef(false),
+    alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
   const dirty = !!(
     title ||
     body ||
@@ -676,13 +683,23 @@ function CommunicationEditor({
     setMeetingTime("");
     setMeetingLocation("");
   };
+  const canLeave = async () => {
+    if (pending.current) return false;
+    if (!dirty) return true;
+    const current = runtime.requestGuard();
+    return (
+      (await confirmDialog({
+        message: "Scartare la comunicazione non pubblicata?",
+        confirmLabel: "Scarta",
+      })) &&
+      alive.current &&
+      current() &&
+      !pending.current
+    );
+  };
   useEffect(() => {
     if (!open) return;
-    runtime.setNavigationGuard(
-      () =>
-        !pending.current &&
-        (!dirty || confirm("Scartare la comunicazione non pubblicata?")),
-    );
+    runtime.setNavigationGuard(canLeave);
     const unload = (e: BeforeUnloadEvent) => {
       if (dirty || pending.current) {
         e.preventDefault();
@@ -695,13 +712,8 @@ function CommunicationEditor({
       window.removeEventListener("beforeunload", unload);
     };
   }, [runtime, open, dirty]);
-  const close = (next: boolean) => {
-    if (
-      !next &&
-      (pending.current ||
-        (dirty && !confirm("Scartare la comunicazione non pubblicata?")))
-    )
-      return;
+  const close = async (next: boolean) => {
+    if (!next && !(await canLeave())) return;
     onOpenChange(next);
     if (!next) {
       resetMeeting();

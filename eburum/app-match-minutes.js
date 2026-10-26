@@ -38,7 +38,7 @@ async function refreshMatchTimeline(matchId){
  if(!current())return null;
  for(const result of [match,activity,events])if(result.error)throw result.error;
  const roster=await fetchAllRows(()=>db.from('activity_roster').select('*').eq('activity_id',activity.data.id).eq('user_id',owner).order('id'));
- if(!current())return null;if(roster.error)throw roster.error;
+ if(!current())return null;if(roster.error)throw roster.error;if(!Array.isArray(roster.data))throw Error("Risposta delle convocazioni non valida");
  Object.assign(state,dismissals);
  state.matches=state.matches.filter(m=>m.id!==matchId).concat(match.data);
  state.activities=state.activities.filter(a=>a.id!==activity.data.id).concat(activity.data);
