@@ -1,36 +1,13 @@
-import { confirmDialog } from './app-confirm.js';
-import { childRows } from './app-data.js';
-import { icon } from "./app-icons.js";
-import { bindDialog } from "./app-dialogs.js";
-import { registerBinder, registerExtension } from "./app-hooks.js";
-import {
-  db,
-  esc,
-  fetchAllRows,
-  isAdmin,
-  sortPlayers,
-  state,
-  teamOwner,
-  teamRequestGuard,
-  toast,
-} from "./app-part1.js";
-import {
-  initCommunicationsLifecycle,
-  notifyCommunications,
-  onCommunicationsChanged,
-} from "./app-realtime.js";
-import { setBusyControls, trackDialogDraft } from "./app-workflows.js";
+import {db,fetchAllRows,state,teamOwner,teamRequestGuard} from './app-part1.js';
+import {childRows} from './app-data.js';
+import {notifyCommunications} from './app-realtime.js';
 
-let communicationsPresenter = null;
-function setCommunicationsPresenter(presenter) {
-  communicationsPresenter = presenter;
-}
-/* Shared staff notices with server-assigned lifetime. */
 function activeCommunications(at = Date.now()) {
   return (state.staff_communications || [])
     .filter((m) => Date.parse(m.expires_at) > at)
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
 }
+
 function communicationTime(value) {
   return new Intl.DateTimeFormat("it-IT", {
     day: "numeric",
@@ -39,6 +16,7 @@ function communicationTime(value) {
     minute: "2-digit",
   }).format(new Date(value));
 }
+
 function communicationExpiry(value, at = Date.now()) {
   const remaining = Date.parse(value) - at;
   if (remaining <= 0) return "Scaduta";
@@ -52,8 +30,9 @@ function communicationExpiry(value, at = Date.now()) {
       ? `Scade tra ${hours} ${hours === 1 ? "ora" : "ore"}`
       : `Scade tra ${days} ${days === 1 ? "giorno" : "giorni"}`;
 }
+
 function communicationAudience(m) {
-  if (m.kind === 'meeting') return 'Riunione staff';
+  if (m.kind === "meeting") return "Riunione staff";
   const p = state.players.find((p) => p.id === m.player_id);
   return p
     ? `${p.surname} ${p.name}`
@@ -61,78 +40,9 @@ function communicationAudience(m) {
       ? "Giocatore"
       : "Comunicazione generale";
 }
-function communicationExpiryMarkup(m) {
-  return `<time class="communication-expiry" data-communication-expiry="${esc(m.expires_at)}" datetime="${esc(m.expires_at)}" title="Scadenza: ${communicationTime(m.expires_at)}">${communicationExpiry(m.expires_at)}</time>`;
-}
-function updateCommunicationTimes(root) {
-  root.querySelectorAll("[data-communication-expiry]").forEach((el) => {
-    el.textContent = communicationExpiry(el.dataset.communicationExpiry);
-    el.classList.toggle(
-      "is-urgent",
-      Date.parse(el.dataset.communicationExpiry) - Date.now() <= 21600000,
-    );
-  });
-}
-function communicationPreviews() {
-  return (
-    activeCommunications()
-      .slice(0, 3)
-      .map(
-        (m) =>
-          '<button class="sc-communication-preview" data-communications><div><span class="sc-category">' +
-          esc(communicationAudience(m)) +
-          '</span><span class="sc-expiry" data-communication-expiry="' +
-          esc(m.expires_at) +
-          '">' +
-          esc(communicationExpiry(m.expires_at)) +
-          "</span></div><h3>" +
-          esc(m.title) +
-          '</h3><p class="sc-message-body">' +
-          esc(m.body) +
-          '</p><footer><span class="sc-mini-avatar">' +
-          esc(
-            (m.author_label || "Staff")
-              .split(" ")
-              .map((n) => n[0])
-              .slice(0, 2)
-              .join(""),
-          ) +
-          "</span>" +
-          esc(m.author_label || "Staff") +
-          icon("chevron", 18) +
-          "</footer></button>",
-      )
-      .join("") ||
-    '<div class="sc-communication-preview"><h3>Nessuna comunicazione attiva</h3><p>Qui trovi gli aggiornamenti condivisi dallo staff.</p><a class="sc-secondary" href="#/communications?compose=1">Scrivi un messaggio</a></div>'
-  );
-}
-function communicationCount() {
-  document
-    .querySelectorAll("[data-communication-count]")
-    .forEach((el) => (el.textContent = String(activeCommunications().length)));
-  document.querySelectorAll("[data-communication-preview]").forEach((el) => {
-    const signature = JSON.stringify(
-      activeCommunications()
-        .slice(0, 3)
-        .map((m) => [
-          m.id,
-          m.title,
-          m.body,
-          m.expires_at,
-          communicationAudience(m),
-        ]),
-    );
-    if (el.dataset.signature !== signature) {
-      el.innerHTML = communicationPreviews();
-      el.dataset.signature = signature;
-      el.querySelectorAll("[data-communications]").forEach(
-        (b) => (b.onclick = communicationsModal),
-      );
-    }
-    updateCommunicationTimes(el);
-  });
-}
+
 let communicationFetchGeneration = 0;
+
 async function fetchCommunications() {
   const current = teamRequestGuard(),
     generation = ++communicationFetchGeneration,
@@ -147,292 +57,18 @@ async function fetchCommunications() {
   );
   if (!current() || generation !== communicationFetchGeneration) return false;
   if (result.error) throw result.error;
-  const receipts=await childRows('communication_receipts','communication_id',result.data.filter(m=>m.requires_ack).map(m=>m.id),owner);
+  const receipts = await childRows(
+    "communication_receipts",
+    "communication_id",
+    result.data.filter((m) => m.requires_ack).map((m) => m.id),
+    owner,
+  );
   if (!current() || generation !== communicationFetchGeneration) return false;
-  state.communication_receipts=receipts;
+  state.communication_receipts = receipts;
   state.staff_communications = result.data;
   notifyCommunications();
   return true;
 }
 
-function communicationsModal() {
-  if (communicationsPresenter) {
-    communicationsPresenter();
-    return;
-  }
-  const root = document.createElement("div");
-  root.className = "modal-back";
-  root.innerHTML = `<section class="modal communications-panel" role="dialog" aria-modal="true" aria-labelledby="communicationsTitle"><div class="modal-head"><div><h2 id="communicationsTitle">Messaggi</h2></div><button aria-label="Chiudi comunicazioni">✕</button></div><div class="communication-toolbar"><p class="row-sub">Le informazioni ricevute dai giocatori, in un unico posto per tutto lo staff.</p><button class="primary" id="newCommunication">+ Nuova comunicazione</button></div><div class="communication-filters" role="group" aria-label="Filtra comunicazioni"><button data-communication-filter="all" aria-pressed="true">Tutte</button><button data-communication-filter="players" aria-pressed="false">Per giocatore</button><button data-communication-filter="expiring" aria-pressed="false">In scadenza</button></div><div class="communication-search-grid"><div class="field"><label for="communicationSearch">Cerca</label><input type="search" id="communicationSearch" placeholder="Titolo, testo o giocatore"></div><div class="field" id="communicationPlayerField" hidden><label for="communicationPlayerFilter">Giocatore</label><select id="communicationPlayerFilter"><option value="">Tutti i giocatori</option>${sortPlayers(
-    state.players,
-  )
-    .map(
-      (p) =>
-        `<option value="${esc(p.id)}">${esc(p.surname)} ${esc(p.name)}</option>`,
-    )
-    .join(
-      "",
-    )}</select></div></div><div class="communication-refresh"><span id="communicationResults" class="row-sub" role="status" aria-live="polite"></span><button type="button" id="refreshCommunications">Aggiorna</button></div><p class="row-sub" data-realtime-status role="status">Aggiornamenti in tempo reale</p><p id="communicationsStatus" role="status" aria-live="polite"></p><div class="communication-list" id="communicationsList"></div><p class="communication-footnote">Le comunicazioni vengono eliminate automaticamente alla scadenza. “In scadenza” mostra quelle delle prossime 24 ore.</p></section>`;
-  document.body.append(root);
-  let loading = false,
-    filter = "all",
-    signature = "";
-  const currentTeam = teamRequestGuard();
-  const paint = () => {
-    const q = root
-        .querySelector("#communicationSearch")
-        .value.trim()
-        .toLocaleLowerCase("it"),
-      player = root.querySelector("#communicationPlayerFilter").value,
-      now = Date.now();
-    const rows = activeCommunications(now).filter(
-      (m) =>
-        (filter !== "players" ||
-          (m.player_id && (!player || m.player_id === player))) &&
-        (filter !== "expiring" || Date.parse(m.expires_at) - now <= 86400000) &&
-        [m.title, m.body, communicationAudience(m), m.author_label]
-          .join(" ")
-          .toLocaleLowerCase("it")
-          .includes(q),
-    );
-    if (filter === "expiring")
-      rows.sort((a, b) => Date.parse(a.expires_at) - Date.parse(b.expires_at));
-    root.querySelector("#communicationResults").textContent =
-      `${rows.length} ${rows.length === 1 ? "comunicazione" : "comunicazioni"}${filter === "expiring" ? " nelle prossime 24 ore" : ""}`;
-    const nextSignature = JSON.stringify([
-      filter,
-      q,
-      player,
-      state.user.id,
-      isAdmin(),
-      rows.map((m) => [m, communicationAudience(m)]),
-    ]);
-    if (signature !== nextSignature) {
-      signature = nextSignature;
-      root.querySelector("#communicationsList").innerHTML =
-        rows
-          .map(
-            (m) =>
-              `<article class="communication-card"><div class="communication-card-top"><div class="communication-identity"><span class="communication-avatar" aria-hidden="true">${esc(
-                m.player_id
-                  ? communicationAudience(m)
-                      .split(" ")
-                      .map((n) => n[0])
-                      .slice(0, 2)
-                      .join("")
-                  : "ST",
-              )}</span><span class="communication-audience">${esc(communicationAudience(m))}</span></div>${communicationExpiryMarkup(m)}</div><h3>${esc(m.title)}</h3><p class="communication-body">${esc(m.body)}</p><div class="communication-card-footer"><div class="communication-meta"><span>${esc(m.author_label || "Staff")} · ${communicationTime(m.created_at)}</span><span>Scadenza: ${communicationTime(m.expires_at)}</span></div>${isAdmin() || m.created_by === state.user.id ? `<details class="communication-actions"><summary aria-label="Opzioni comunicazione: ${esc(m.title)}">•••</summary><button type="button" data-delete-communication="${esc(m.id)}">Elimina comunicazione</button></details>` : ""}</div></article>`,
-          )
-          .join("") ||
-        `<div class="empty card"><h3>Nessuna comunicazione${q || filter !== "all" ? " trovata" : " attiva"}</h3><p>${q || filter !== "all" ? "Prova a cambiare ricerca o filtro." : "Pubblica un aggiornamento per condividerlo con tutto lo staff."}</p></div>`;
-      root.querySelectorAll(".communication-actions").forEach(
-        (el) =>
-          (el.onkeydown = (e) => {
-            if (e.key === "Escape" && el.open) {
-              e.stopPropagation();
-              el.open = false;
-              el.querySelector("summary").focus();
-            }
-          }),
-      );
-      root.querySelectorAll("[data-delete-communication]").forEach(
-        (b) =>
-          (b.onclick = async () => {
-            if (b.disabled) return;
-            const current = teamRequestGuard();
-            b.disabled = true;
-            try {
-              if (!(await confirmDialog({title: "Elimina comunicazione", message: "Eliminare definitivamente questa comunicazione?", confirmLabel: "Elimina", danger: true})) || !current() || !b.isConnected) return;
-              const { error } = await db
-                .from("staff_communications")
-                .delete()
-                .eq("id", b.dataset.deleteCommunication)
-                .eq("user_id", teamOwner());
-              if (error) throw error;
-              if (!current()) return;
-              await fetchCommunications();
-              if (current() && root.isConnected) {
-                paint();
-                toast("Comunicazione eliminata");
-              }
-            } catch (e) {
-              if (current() && root.isConnected)
-                root.querySelector("#communicationsStatus").textContent =
-                  e.message || "Eliminazione non riuscita";
-            } finally {
-              b.disabled = false;
-            }
-          }),
-      );
-    }
-    updateCommunicationTimes(root);
-    communicationCount();
-  };
-  const load = async () => {
-    if (loading) return;
-    loading = true;
-    root.querySelector("#refreshCommunications").disabled = true;
-    try {
-      await fetchCommunications();
-      if (root.isConnected) {
-        paint();
-        root.querySelector("#communicationsStatus").textContent = "";
-      }
-    } catch (e) {
-      if (root.isConnected)
-        root.querySelector("#communicationsStatus").textContent =
-          e.message || "Impossibile aggiornare le comunicazioni";
-    } finally {
-      loading = false;
-      root.querySelector("#refreshCommunications").disabled = false;
-    }
-  };
-  const unsubscribe = onCommunicationsChanged(() => {
-    if (root.isConnected && currentTeam()) paint();
-  });
-  const cleanup = new MutationObserver(() => {
-    if (!root.isConnected) {
-      unsubscribe();
-      cleanup.disconnect();
-    }
-  });
-  cleanup.observe(document.body, { childList: true });
-  const close = () => {
-    unsubscribe();
-    cleanup.disconnect();
-    root.remove();
-  };
-  root.querySelector(".modal-head button").onclick = close;
-  bindDialog(root, close);
-  root.querySelector("#communicationSearch").oninput = paint;
-  root.querySelector("#communicationPlayerFilter").onchange = paint;
-  root.querySelectorAll("[data-communication-filter]").forEach(
-    (b) =>
-      (b.onclick = () => {
-        filter = b.dataset.communicationFilter;
-        root
-          .querySelectorAll("[data-communication-filter]")
-          .forEach((el) => el.setAttribute("aria-pressed", String(el === b)));
-        root.querySelector("#communicationPlayerField").hidden =
-          filter !== "players";
-        paint();
-      }),
-  );
-  root.querySelector("#refreshCommunications").onclick = load;
-  root.querySelector("#newCommunication").onclick = () =>
-    communicationEditor(load);
-  paint();
-  load();
-}
-function communicationEditor(onSaved) {
-  const root = document.createElement("div");
-  root.className = "modal-back event-back";
-  root.innerHTML = `<section class="modal communication-compose" role="dialog" aria-modal="true" aria-labelledby="communicationEditorTitle"><div class="modal-head"><h2 id="communicationEditorTitle">Nuova comunicazione</h2><button aria-label="Chiudi nuova comunicazione">✕</button></div><form id="communicationForm"><div class="field"><label for="communicationTitle">Titolo</label><input id="communicationTitle" maxlength="120" required placeholder="Es. Disponibilità per domenica"></div><div class="form-grid field-space"><div class="field"><label for="communicationPlayer">Giocatore (facoltativo)</label><select id="communicationPlayer"><option value="">Comunicazione generale</option>${sortPlayers(
-    state.players.filter((p) => p.active),
-  )
-    .map(
-      (p) =>
-        `<option value="${p.id}">${esc(p.surname)} ${esc(p.name)}</option>`,
-    )
-    .join(
-      "",
-    )}</select></div><div class="field"><label for="communicationDuration">Visibile per</label><select id="communicationDuration"><option value="1">1 giorno (24 ore)</option><option value="3">3 giorni (72 ore)</option><option value="7">7 giorni (168 ore)</option></select></div></div><div class="field field-space"><label for="communicationBody">Comunicazione</label><textarea id="communicationBody" rows="6" maxlength="4000" required placeholder="Riporta le informazioni utili allo staff…"></textarea></div><p class="row-sub field-space">La durata parte dalla pubblicazione. La comunicazione sarà visibile a tutto lo staff della squadra e verrà eliminata alla scadenza.</p><div class="modal-actions"><button class="ghost" type="button" id="cancelCommunication">Annulla</button><button class="primary" type="submit">Pubblica comunicazione</button></div><p id="communicationSaveStatus" role="status" aria-live="polite"></p></form></section>`;
-  document.body.append(root);
-  let busy = false;
-  const close = trackDialogDraft(root, () => busy);
-  root.querySelector(".modal-head button").onclick = close;
-  root.querySelector("#cancelCommunication").onclick = close;
-  bindDialog(root, close);
-  root.querySelector("form").onsubmit = async (e) => {
-    e.preventDefault();
-    if (busy) return;
-    const title = root.querySelector("#communicationTitle").value.trim(),
-      body = root.querySelector("#communicationBody").value.trim(),
-      retention_days = Number(
-        root.querySelector("#communicationDuration").value,
-      ),
-      player_id = root.querySelector("#communicationPlayer").value || null;
-    if (
-      !title ||
-      !body ||
-      title.length > 120 ||
-      body.length > 4000 ||
-      ![1, 3, 7].includes(retention_days) ||
-      (player_id && !state.players.some((p) => p.id === player_id))
-    ) {
-      root.querySelector("#communicationSaveStatus").textContent =
-        "Inserisci titolo, testo e una durata valida.";
-      return;
-    }
-    const current = teamRequestGuard(),
-      owner = teamOwner();
-    busy = true;
-    setBusyControls(root, true);
-    root.querySelector("#communicationSaveStatus").textContent =
-      "Pubblicazione in corso…";
-    try {
-      const { data, error } = await db
-        .from("staff_communications")
-        .insert({ user_id: owner, player_id, title, body, retention_days })
-        .select()
-        .single();
-      if (error) throw error;
-      if (!current()) {
-        root.remove();
-        return;
-      }
-      state.staff_communications = (state.staff_communications || []).concat(
-        data,
-      );
-      root.remove();
-      notifyCommunications();
-      if (onSaved) await onSaved();
-      toast("Comunicazione pubblicata");
-    } catch (e) {
-      root.querySelector("#communicationSaveStatus").textContent =
-        e.message || "Pubblicazione non riuscita";
-    } finally {
-      busy = false;
-      setBusyControls(root, false);
-    }
-  };
-}
-function registerCommunications() {
-  initCommunicationsLifecycle();
-  registerExtension(
-    "tools",
-    "communications",
-    () =>
-      `<button data-communications><b>Comunicazioni <span data-communication-count>${activeCommunications().length}</span></b><span>Messaggi condivisi con lo staff · scadenza automatica</span></button>`,
-    10,
-  );
-  registerExtension(
-    "dashboard-side",
-    "communications",
-    () =>
-      `<section class="office-comms dash-communications"><div class="sc-section-heading"><h2>Messaggi</h2><button data-communications>Tutte ${icon("arrowUp", 16)}<span class="sr-only" data-communication-count>${activeCommunications().length}</span></button></div><div data-communication-preview>${communicationPreviews()}</div></section>`,
-  );
-  registerBinder("communications", (root) => {
-    communicationCount();
-    root
-      .querySelectorAll("[data-communications]")
-      .forEach((b) => (b.onclick = communicationsModal));
-  });
-}
 
-export {
-  activeCommunications,
-  communicationTime,
-  communicationExpiry,
-  communicationAudience,
-  communicationExpiryMarkup,
-  updateCommunicationTimes,
-  communicationPreviews,
-  communicationCount,
-  communicationFetchGeneration,
-  fetchCommunications,
-  communicationsModal,
-  communicationEditor,
-  registerCommunications,
-};
-
-export { setCommunicationsPresenter };
+export { activeCommunications, communicationTime, communicationExpiry, communicationAudience, communicationFetchGeneration, fetchCommunications };

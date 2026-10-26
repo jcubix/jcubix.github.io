@@ -29,6 +29,8 @@ export interface Player {
   shirt_number?: number | null;
   phone?: string | null;
   role_order?: number | null;
+  secondary_role?: string | null;
+  user_id?: string;
 }
 export interface Activity {
   id: string;
@@ -41,6 +43,12 @@ export interface Activity {
   session_id?: string | null;
   match_id?: string | null;
   revision: number;
+  end_time?: string | null;
+  organization_note?: string | null;
+  meeting_time?: string | null;
+  meeting_place?: string | null;
+  request_id?: string;
+  venue?: string;
 }
 export interface RosterRow {
   activity_id: string;
@@ -49,6 +57,10 @@ export interface RosterRow {
   called: boolean;
   lineup: string;
   minutes_played: number;
+  position?: string | null;
+  response_note?: string | null;
+  id?: string;
+  user_id?: string;
 }
 export interface Match {
   id: string;
@@ -78,6 +90,99 @@ export interface Communication {
   meeting_time?: string | null;
   meeting_location?: string | null;
 }
+export interface Session {
+  id: string;
+  session_date: string;
+  session_type: string;
+  note?: string | null;
+  revision?: number;
+  updated_at?: string;
+}
+export interface Attendance {
+  id?: string;
+  player_id: string;
+  session_id?: string;
+  status: string;
+  delay_minutes: number;
+  notified: boolean | null;
+  note: string | null;
+}
+export interface MatchEvent {
+  id: string;
+  match_id: string;
+  player_id: string | null;
+  outgoing_player_id?: string | null;
+  minute: number | null;
+  event_type: string;
+  detail?: string | null;
+  created_at?: string;
+  user_id?: string;
+}
+export interface Administration {
+  player_id: string;
+  certificate_until?: string | null;
+  document_until?: string | null;
+  registration_status?: string;
+  administration_note?: string | null;
+  needs_review?: boolean;
+  certificate_status?: string;
+  document_status?: string;
+}
+export interface Technical {
+  activity_id?: string;
+  formation?: string | null;
+  note?: string | null;
+}
+export interface DisciplinaryClearance {
+  id: string;
+  player_id: string;
+  season_start: string;
+  threshold_event_id: string;
+  served_match_id: string;
+}
+export interface DismissalEvent extends MatchEvent {
+  match_date: string;
+  opponent: string;
+  activity_status: string;
+}
+export interface DismissalSanction {
+  event_id: string;
+  player_id: string;
+  kind: string;
+  match_count: number | null;
+  suspended_until: string | null;
+  note: string | null;
+  voided: boolean;
+  revision: number;
+}
+export interface DismissalClearance {
+  id: string;
+  event_id: string;
+  player_id: string;
+  match_id: string;
+  match_date: string;
+  opponent: string;
+  activity_status: string;
+  has_result: boolean;
+  has_minutes: boolean;
+}
+export interface TrainingDraft {
+  originPage: Page;
+  userId: string;
+  id: string | null;
+  revision: number;
+  session: { session_date: string; session_type: string; note: string | null };
+  players: Player[];
+  entries: Map<string, Attendance>;
+  search: string;
+  filter: string;
+  requestId: string;
+  saving: boolean;
+  baseline: string;
+  activityId?: string;
+  activityRevision?: number;
+  planned?: Map<string, string>;
+}
 export interface TeamState {
   pageScroll?: Partial<Record<Page, number>>;
   user: User | null;
@@ -89,7 +194,15 @@ export interface TeamState {
   } | null;
   page: Page;
   players: Player[];
-  sessions: { id: string; session_date: string; session_type: string }[];
+  sessions: Session[];
+  attendance: Attendance[];
+  events: MatchEvent[];
+  administration: Administration[];
+  technical: Technical[];
+  disciplinary_clearances: DisciplinaryClearance[];
+  dismissals: DismissalEvent[];
+  dismissal_sanctions: DismissalSanction[];
+  dismissal_clearances: DismissalClearance[];
   activities: Activity[];
   matches: Match[];
   roster: RosterRow[];
@@ -101,7 +214,12 @@ export interface TeamState {
     acknowledged_at: string;
   }[];
   trainingMode?: "hub" | "actual";
-  trainingDraft?: { saving: boolean; id?: string } | null;
+  trainingDraft?: TrainingDraft | null;
+  registerDate?: string;
+  registerMonth?: string;
+  reportPlayer?: string;
+  reportView?: { player?: string; period?: string; from?: string; to?: string };
+  dataRange?: { from: string; to: string };
   seasonYear?: number;
   earliestSport?: string;
   communicationRealtimeStatus?: string;
@@ -121,12 +239,13 @@ export interface Runtime {
   subscribe: (listener: () => void) => () => void;
   getSnapshot: () => RuntimeSnapshot;
   start: () => Promise<void>;
-  navigate: (page: Page) => boolean;
-  setNavigationGuard: (guard: (() => boolean) | null) => void;
+  navigate: (page: Page) => Promise<boolean>;
+  setNavigationGuard: (
+    guard: (() => boolean | Promise<boolean>) | null,
+  ) => void;
+  canLeaveInline: () => Promise<boolean>;
   requestGuard: () => () => boolean;
   render: () => void;
-  featureHtml: (page: Page) => string;
-  bindFeature: (page: Page, root: HTMLElement) => void;
   syncDetail: (page: Page, search: string) => Promise<boolean>;
   setDetailRouter: (
     handler: ((detail: { page: Page; key: string } | null) => void) | null,
@@ -134,11 +253,7 @@ export interface Runtime {
   actions: {
     pollEntries: (activity: Activity) => { row: { availability: string } }[];
     newTraining: () => void;
-    openActivity: (id: string) => Promise<void>;
-    mountTrainingReplies: (
-      host: HTMLElement,
-      activity: Activity,
-    ) => { isDirty: () => boolean; isBusy: () => boolean; dispose: () => void };
+    openActivity: (id: string) => Promise<number | undefined>;
     newMatch: () => void;
     openMatch: (match: Match) => void;
     users: () => void;

@@ -52,11 +52,14 @@ async function app(t, role = "admin", seed = () => {}) {
   const errors = [];
   w.console.error = (...args) => errors.push(args.map(String).join(" "));
   w.addEventListener("error", (event) => errors.push(event.message));
-  t.after(() => {
+  t.after(async () => {
+    await new Promise(resolve => setTimeout(resolve, 0));
     mounted?.unmount();
+    await new Promise(resolve => setTimeout(resolve, 0));
     w.close();
     assert.deepEqual(errors, [], "Unhandled React errors");
   });
+  for(const key of ["fetch","Headers","Request","Response"])w[key]=globalThis[key];
   w.TextEncoder = TextEncoder;
   w.TextDecoder = TextDecoder;
   w.scrollTo = () => {};
@@ -91,6 +94,10 @@ async function app(t, role = "admin", seed = () => {}) {
   seed(w.fixtureData);
   vm.runInContext(await source(), context);
   mounted = await w.EburumTests.mount();
+  // Flush discrete React interactions before synchronous DOM assertions.
+  for(const [prototype,key] of [[w.HTMLElement.prototype,"click"],[w.EventTarget.prototype,"dispatchEvent"]]){
+    const native=prototype[key];prototype[key]=function(...args){if(key==="dispatchEvent" && !["input","change","submit","keydown"].includes(args[0]?.type))return native.apply(this,args);let result;w.EburumTests.flushSync(()=>{result=native.apply(this,args)});return result;};
+  }
   await until(() => w.document.querySelector(".sc-match-grid"));
   return {
     w,
@@ -131,7 +138,7 @@ for(const role of ['admin','treasurer'])test('Fund editing retains drafts and le
 });
 test('Archived funds remain visible but cannot be chosen for new transactions',async t=>{
  const {w,$,clickText}=await finance(t,'treasurer',data=>{treasurySeed(data);data.finance_accounts[0].archived_at='2026-10-01T12:00:00Z'});
- assert.match($('.finance-fund').textContent,/Archiviato/);assert.equal($('[aria-label="Nuovo movimento"]').disabled,true);
+ assert.match($('.finance-fund').textContent,/Archiviato/);assert.equal($('[aria-label="Nuovo movimento"]').matches(":disabled"),true);
  assert.equal([...w.document.querySelectorAll('.finance-fund button')].some(b=>b.textContent.includes('Modifica fondo')),false);
  assert.equal([...w.document.querySelectorAll('.finance-fund button')].some(b=>b.textContent.includes('Riattiva fondo')),true);
 });
@@ -142,7 +149,7 @@ test('President cannot modify or remove funds',async t=>{
 test('Fund removal requires confirmation and deletes an empty fund once',async t=>{
  const {w,$,clickText}=await finance(t,'treasurer',data=>{treasurySeed(data);data.finance_entries=[]});
  let confirmations=0;w.confirm=()=>{confirmations++;return false};
- clickText('Elimina fondo');await until(()=>confirmations===1);await until(()=>!$('.finance-fund button').disabled);
+ clickText('Elimina fondo');await until(()=>confirmations===1);await until(()=>!$('.finance-fund button').matches(":disabled"));
  assert.equal(w.fixtureFinanceCalls.length,0);
  w.confirm=()=>{confirmations++;return true};clickText('Elimina fondo');
  await until(()=>!$('.finance-fund'));assert.equal(w.fixtureFinanceCalls.length,1);assert.equal(w.fixtureFinanceCalls[0].p_action,'account_remove');
@@ -155,7 +162,7 @@ test('Treasury money parsing preserves cents and rejects ambiguous or excessive 
  assert.throws(()=>w.EburumTests.validateReceipt(new w.File(['x'],'bad.svg',{type:'image/svg+xml'})));
 });
 for(const role of ['admin','treasurer','president','coach','manager','secretary','technical_assistant'])test('Economy tools and direct route enforce '+role+' permissions',async t=>{
- const {runtime,$,w}=await app(t,role,treasurySeed);runtime.navigate('more');await until(()=>$('.sc-tool-list'));
+ const {runtime,$,w}=await app(t,role,treasurySeed);await runtime.navigate('more');await until(()=>$('.sc-tool-list'));
  assert.equal(!!$('.sc-tools a[href="#/finance"]'),['admin','treasurer','president'].includes(role));
  await until(()=>w.location.hash==='#/more');w.location.hash='#/finance';await until(()=>$('.sc-finance')||w.document.body.textContent.includes('Area riservata'));
  if(['admin','treasurer','president'].includes(role)){await until(()=>$('.finance-summary'));assert.equal(!!$('[aria-label="Nuovo movimento"]'),role!=='president');}
@@ -177,7 +184,7 @@ for(const role of ['treasurer','president'])test('Office navigation replaces tra
  assert.equal($('.app-mobile-nav a[href="#/finance"]').getAttribute('aria-current'),'page');
  assert.equal($('.app-mobile-nav a[href="#/more"]').getAttribute('aria-current'),null);
  assert.equal(!!$('[aria-label="Nuovo movimento"]'),role==='treasurer');
- runtime.navigate('register');await until(()=>$('.app-mobile-nav a[href="#/more"][aria-current=page]'));
+ await runtime.navigate('register');await until(()=>$('.app-mobile-nav a[href="#/more"][aria-current=page]'));
 });
 test('Finance failed save retains draft; double submission writes once and blocks navigation',async t=>{
  const {w,runtime,$}=await finance(t);$('[aria-label="Nuovo movimento"]').click();await until(()=>$('.finance-editor form'));
@@ -186,14 +193,14 @@ test('Finance failed save retains draft; double submission writes once and block
  const submit=()=>$('.finance-editor form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));submit();await until(()=>$('.finance-feedback[role=alert]'));
  assert.equal($('input[inputmode=decimal]').value,'12,34');assert.equal(w.fixtureData.finance_entries.length,1);
  w.fixtureFinanceSaveError=false;let release;w.fixtureFinanceGate=new Promise(resolve=>release=resolve);submit();submit();await until(()=>w.fixtureFinanceCalls.length===2);
- assert.equal(runtime.navigate('players'),false);release();await until(()=>!$('.finance-editor'));assert.equal(w.fixtureData.finance_entries.length,2);assert.equal(w.fixtureData.finance_entries[1].amount_cents,-1234);
+ assert.equal(await runtime.navigate('players'),false);release();await until(()=>!$('.finance-editor'));assert.equal(w.fixtureData.finance_entries.length,2);assert.equal(w.fixtureData.finance_entries[1].amount_cents,-1234);
 });
 test('Receipt failure after posting retries attachment without another ledger movement',async t=>{
  const {w,$}=await finance(t);$('[aria-label="Nuovo movimento"]').click();await until(()=>$('.finance-editor form'));
  reactInput(w,$('input[inputmode=decimal]'),'5');reactInput(w,$('.finance-editor textarea'),'Ricevuta materiale');
  const file=new w.File(['pdf'],'receipt.pdf',{type:'application/pdf'});Object.defineProperty($('input[type=file]'),'files',{value:[file],configurable:true});$('input[type=file]').dispatchEvent(new w.Event('change',{bubbles:true}));
  w.fixtureReceiptError=true;$('.finance-editor form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await until(()=>$('.finance-save')?.textContent==='Riprova caricamento ricevuta');
- assert.equal(w.fixtureFinanceCalls.filter(c=>c.p_action==='entry').length,1);assert.equal($('.finance-editor fieldset').disabled,true);
+ assert.equal(w.fixtureFinanceCalls.filter(c=>c.p_action==='entry').length,1);assert.equal($('.finance-editor fieldset').matches(":disabled"),true);
  w.fixtureReceiptError=false;$('.finance-editor form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await until(()=>!$('.finance-editor'));
  assert.equal(w.fixtureFinanceCalls.filter(c=>c.p_action==='entry').length,1);assert.equal(w.fixtureFinanceCalls.filter(c=>c.p_action==='receipt').length,1);
 });
@@ -238,7 +245,7 @@ test("Away matches display home-first scores without swapping stored Eburum goal
  assert.equal($('#activityTitle').textContent,'Squadra ospite – Eburum');
  const order=()=>[...w.document.querySelectorAll('.match-score-fields input')].map(el=>el.id);
  assert.deepEqual(order(),['matchGoalsAgainst','matchGoalsFor']);
- $('#matchGoalsFor').value='3';$('#matchGoalsFor').dispatchEvent(new w.Event('input',{bubbles:true}));
+ eventValue(w,$('#matchGoalsFor'),'3');
  $('#matchVenue').value='Casa';$('#matchVenue').dispatchEvent(new w.Event('change',{bubbles:true}));
  assert.deepEqual(order(),['matchGoalsFor','matchGoalsAgainst']);
  assert.equal($('#matchGoalsFor').value,'3');assert.equal($('#matchGoalsAgainst').value,'1');
@@ -249,11 +256,11 @@ test("Away matches display home-first scores without swapping stored Eburum goal
   saved=payload.p_values;Object.assign(w.fixtureData.matches[0],saved);
   return {data:{...w.fixtureData.matches[0]},error:null};
  };
- $('#saveMatchResult').click();await until(()=>saved&&$('#matchGoalsFor')?.value==='3'&&!$('#saveMatchResult').disabled);
+ $('#saveMatchResult').click();await until(()=>saved&&$('#matchGoalsFor')?.value==='3'&&!$('#saveMatchResult').matches(":disabled"));
  assert.equal(saved.goals_for,3);assert.equal(saved.goals_against,1);assert.equal(saved.venue,'Trasferta');
  $('#closeActivity').click();await until(()=>$('.match-goals'));
  assert.equal([...w.document.querySelectorAll('.match-goals')].map(n=>n.textContent).join(' : '),'1 : 3');
- runtime.navigate('register');await until(()=>$('#calendarGrid'));
+ await runtime.navigate('register');await until(()=>$('#calendarGrid'));
  const selected=$('.calendar-day[aria-pressed=true]');assert.ok(selected);
  assert.match(selected.getAttribute('aria-label'),/attività registrata/);
  const empty=$('button.calendar-day:not(.has-activity)');empty.click();
@@ -271,7 +278,7 @@ test("React match and tools buttons show saved yellows, history and suspension c
   assert.equal(w.document.querySelectorAll(".discipline-event").length, 6);
   assert.ok($("[data-clearance-event]"));
   $('[aria-label="Chiudi cartellini"]').click();
-  runtime.navigate("more");
+  await runtime.navigate("more");
   await until(() => $(".sc-tool-list"));
   const toolsButton = [
     ...w.document.querySelectorAll(".sc-tool-list button"),
@@ -313,27 +320,28 @@ test("React season selection and individual reports preserve the complete stored
   seasonSelect.value='2026';seasonSelect.dispatchEvent(new w.Event('change',{bubbles:true}));
   await until(()=>runtime.actions.season().year===2026&&!seasonSelect.disabled);
   assert.equal(runtime.actions.playerDiscipline("player-1").total, 5);
-  runtime.navigate("reports");
+  await runtime.navigate("reports");
   await until(() => $("#reportContent"));
   $("#rp").value = "player-1";
-  $("#rp").dispatchEvent(new w.Event("change"));
+  $("#rp").dispatchEvent(new w.Event("change",{bubbles:true}));
+  await until(()=>$("#rp").value==="player-1");
   $("#reportPeriod").value="all";$("#reportPeriod").dispatchEvent(new w.Event("change",{bubbles:true}));
-  await until(() => $("#report").textContent.includes("Cartellini: 6"));
+  await until(() => $("#report")?.textContent.includes("Cartellini: 6"));
   assert.equal(w.fixtureData.match_events.length, 7);
   assert.equal(w.fixtureData.matches.length, 2);
 });
 
 test("React attendance drafts survive page navigation and require consent before logout", async (t) => {
   const { w, runtime, $ } = await app(t);
-  runtime.navigate("training");
+  await runtime.navigate("training");
   runtime.state.trainingMode = "actual";
   runtime.render();
   await until(() => $("#trainList"));
   $('[data-presence-player="player-1"][data-presence="Presente"]').click();
   assert.equal(runtime.actions.hasAttendanceDraft(), true);
   const draft = runtime.state.trainingDraft;
-  w.confirm=()=>false;assert.equal(runtime.navigate("players"),false);assert.equal(runtime.state.trainingDraft,draft);
-  w.confirm=()=>true;runtime.navigate("players");
+  w.confirm=()=>false;assert.equal(await runtime.navigate("players"),false);assert.equal(runtime.state.trainingDraft,draft);
+  w.confirm=()=>true;await runtime.navigate("players");
   await until(() => $(".native-player"));
   assert.equal(runtime.state.trainingDraft, draft);
   let exits = 0;
@@ -373,10 +381,10 @@ for (const [role, manage, operate] of [
       ),
       operate,
     );
-    runtime.navigate("players");
+    await runtime.navigate("players");
     await until(() => $(".native-player"));
     assert.equal(text().includes("Giocatore"), manage);
-    runtime.navigate("training");
+    await runtime.navigate("training");
     await until(() => $(".training-scope"));
     assert.equal(
       [...w.document.querySelectorAll("button")].some(
@@ -389,7 +397,7 @@ for (const [role, manage, operate] of [
 
 test("React communication publication retains failed drafts and rejects duplicate submissions", async (t) => {
   const { w, runtime, $, clickText } = await app(t);
-  runtime.navigate("communications");
+  await runtime.navigate("communications");
   await until(() => $(".communication-list-status"));
   clickText("Nuova comunicazione");
   await until(() => $("#communication-title"));
@@ -418,7 +426,7 @@ test("React communication publication retains failed drafts and rejects duplicat
   assert.equal($("#communication-title").value, "Aggiornamento staff");
   assert.equal(w.fixtureData.staff_communications.length, 0);
   w.confirm = () => false;
-  assert.equal(runtime.navigate("training"), false);
+  assert.equal(await runtime.navigate("training"), false);
   delete w.fixtureCommunicationError;
   form.dispatchEvent(
     new w.Event("submit", { bubbles: true, cancelable: true }),
@@ -441,7 +449,7 @@ test("React communication dialog follows keyboard viewport changes and releases 
  viewport.addEventListener=(...args)=>{listeners++;add(...args)};
  viewport.removeEventListener=(...args)=>{listeners--;remove(...args)};
  Object.defineProperty(w,'visualViewport',{configurable:true,value:viewport});
- runtime.navigate('communications');await until(()=>$('.communications-workspace'));
+ await runtime.navigate('communications');await until(()=>$('.communications-workspace'));
  clickText('Nuova comunicazione');await until(()=>$('.modern-dialog-viewport:has(.modern-dialog)')?.style.height==='700px');
  assert.equal(listeners,2);
  viewport.height=360;viewport.offsetTop=40;viewport.dispatchEvent(new w.Event('resize'));
@@ -457,13 +465,13 @@ test("React communication dialog follows keyboard viewport changes and releases 
 test("Club Office preserves every tool and greets with the admin-managed name as text", async t => {
  const { w, runtime, $ } = await app(t);
  runtime.state.team.first_name = '<img src=x onerror=alert(1)> Giàcomo';
- runtime.render();runtime.navigate('dashboard');
+ runtime.render();await runtime.navigate('dashboard');
  await until(() => $('.office-heading'));
  assert.match($('.office-heading').textContent, /Bentornato, <img src=x onerror=alert\(1\)> Giàcomo/);
  assert.equal($('.office-heading img'), null);
  runtime.state.team.first_name='';runtime.render();
  await until(() => $('.office-heading h1').textContent==='Bentornato');
- runtime.navigate('more');await until(()=>$('.sc-tool-list'));
+ await runtime.navigate('more');await until(()=>$('.sc-tool-list'));
  for(const path of ['players','reports','register'])assert.ok($('.sc-tools [href="#/'+path+'"]'));
  for(const label of ['Cartellini e diffide','Scadenze e tesseramenti','Gestione utenti'])assert.match($('.sc-tools').textContent,new RegExp(label));
 });
@@ -476,8 +484,8 @@ test('Admin email correction preserves failed input, rejects double submit and r
   if(fail)return {data:{error:'Erreur simulée'},error:null};email=options.body.email;return {data:{updated:true,email},error:null};
  };
  runtime.actions.users();await until(()=>$('[data-user-email]'));$('[data-user-email]').click();await until(()=>$('#userEmailForm'));
- $('#staffEmail').value='corrected@example.test';const submit=()=>$('#userEmailForm').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));submit();submit();
- await until(()=>$('#emailMessage').textContent.includes('Erreur'));assert.equal(calls.length,1);assert.equal($('#staffEmail').value,'corrected@example.test');assert.equal($('#staffEmail').disabled,false);
+ eventValue(w,$('#staffEmail'),'corrected@example.test');const submit=()=>$('#userEmailForm').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));submit();submit();
+ await until(()=>$('#emailMessage').textContent.includes('Erreur'));assert.equal(calls.length,1);assert.equal($('#staffEmail').value,'corrected@example.test');assert.equal($('#staffEmail').matches(":disabled"),false);
  fail=false;submit();await until(()=>!$('#userEmailForm')&&$('#usersList').textContent.includes('corrected@example.test'));
  assert.equal(calls.length,2);assert.equal(calls[1].action,'email');assert.equal(calls[1].userId,w.fixtureUser.id);assert.equal(calls[1].previousEmail,w.fixtureUser.email);assert.equal(calls[1].password,undefined);assert.equal(runtime.state.team.role,'admin');
 });
@@ -494,9 +502,9 @@ test('Admin deletion confirms identity, protects owner/self, retries errors and 
  assert.equal(w.document.querySelectorAll('[data-user-delete]').length,1);
  $('[data-user-delete]').click();await until(()=>$('#deleteUserForm'));
  assert.match($('#deleteUserDescription').textContent,/Luca Bianchi.*coach@example.test/);assert.match($('#deleteUserDescription').textContent,/storico.*conservati/);
- assert.equal(w.document.activeElement.id,'cancelDeleteUser');$('#cancelDeleteUser').click();assert.equal($('#deleteUserForm'),null);assert.equal(calls.length,0);
+ assert.equal(w.document.activeElement.id,'cancelDeleteUser');$('#cancelDeleteUser').click();await until(()=>!$('#deleteUserForm'));assert.equal($('#deleteUserForm'),null);assert.equal(calls.length,0);
  $('[data-user-delete]').click();const submit=()=>$('#deleteUserForm').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));submit();submit();$('#cancelDeleteUser').click();assert.ok($('#deleteUserForm'));
- await until(()=>$('#deleteUserMessage').textContent.includes('non confermata'));assert.equal(calls.length,1);assert.equal($('#cancelDeleteUser').disabled,false);
+ await until(()=>$('#deleteUserMessage').textContent.includes('non confermata'));assert.equal(calls.length,1);assert.equal($('#cancelDeleteUser').matches(":disabled"),false);
  fail=false;submit();await until(()=>!$('#deleteUserForm')&&!$('[data-user-delete]'));
  assert.equal(calls.length,2);assert.deepEqual(JSON.parse(JSON.stringify(calls[1])),{action:'delete',userId:staff.id,confirmEmail:staff.email});
  assert.match($('#usersList').textContent,/owner@example.test/);assert.match($('#usersList').textContent,/demo@example.test/);
@@ -523,16 +531,16 @@ test("Admin profile edits preserve failed input and update the home greeting aft
   throw Error('Unexpected test action');
  };
  runtime.actions.users();await until(()=>$('[data-user-profile]'));$('[data-user-profile]').click();
- await until(()=>$('#userProfileForm'));$('#staffFirstName').value='  Giàcomo  ';$('#staffLastName').value="D’Angelo";
+ await until(()=>$('#userProfileForm'));eventValue(w,$('#staffFirstName'),'  Giàcomo  ');eventValue(w,$('#staffLastName'),"D’Angelo");
  const submit=()=>$('#userProfileForm').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));submit();submit();
  await until(()=>$('#profileMessage').textContent.includes('Errore simulato'));
- assert.equal(calls,1);assert.equal($('#staffFirstName').value,'  Giàcomo  ');assert.equal($('#staffFirstName').disabled,false);
+ assert.equal(calls,1);assert.equal($('#staffFirstName').value,'  Giàcomo  ');assert.equal($('#staffFirstName').matches(":disabled"),false);
  fail=false;submit();await until(()=>!$('#userProfileForm'));assert.equal(calls,2);assert.equal(runtime.state.team.first_name,'Giàcomo');
- w.document.querySelector('#closeUsers').click();runtime.navigate('dashboard');await until(()=>$('.office-heading h1')?.textContent==='Bentornato, Giàcomo.');
+ w.document.querySelector('#closeUsers').click();await runtime.navigate('dashboard');await until(()=>$('.office-heading h1')?.textContent==='Bentornato, Giàcomo.');
 });
 
 test("Realtime updates Club Office home previews without opening communications",async t=>{
- const {w,runtime,$}=await app(t);runtime.navigate('dashboard');await until(()=>$('.office-comms'));
+ const {w,runtime,$}=await app(t);await runtime.navigate('dashboard');await until(()=>$('.office-comms'));
  w.fixtureData.staff_communications.push({id:'new-home-message',user_id:w.fixtureUser.id,title:'Avviso ricevuto',body:'Tutto lo staff',created_by:'other',author_label:'Staff',created_at:new Date().toISOString(),expires_at:new Date(Date.now()+86400000).toISOString()});
  w.fixtureChannels.at(-1).event({payload:{}});await until(()=>$('.office-comms').textContent.includes('Avviso ricevuto'));
  assert.equal($('.office-comms [data-communication-count]').textContent,'1');assert.equal(runtime.state.page,'dashboard');
@@ -543,22 +551,22 @@ test("Workspace editors protect unsaved replies and preserve the React navigatio
  const {w,runtime,$}=await app(t,"admin",data=>{data.activities.push({id:"training-port",user_id:"demo-user",activity_date:"2026-10-01",activity_type:"Allenamento",title:"Allenamento test",status:"Programmato",revision:0})});
  await runtime.actions.openActivity("training-port");await until(()=>$("#planningForm"));
  assert.ok($("#workspaceEditor #planningForm"));assert.equal($("#planningForm").closest(".modal").getAttribute("role"),"region");assert.equal($("#app").hasAttribute("inert"),false);
- $("[data-training-reply=Disponibile]").click();w.confirm=()=>false;assert.equal(runtime.navigate("players"),false);assert.ok($("#planningForm"));
+ $("[data-training-reply=Disponibile]").click();w.confirm=()=>false;assert.equal(await runtime.navigate("players"),false);assert.ok($("#planningForm"));
  $("[data-training-phase=actual]").click();assert.equal($("#planningForm").hidden,true);assert.equal($(".training-actual-entry").hidden,false);$("[data-training-phase=replies]").click();assert.equal($("#planningForm").hidden,false);
- w.confirm=()=>true;assert.equal(runtime.navigate("players"),true);await until(()=>$(".sc-directory"));assert.equal($("#planningForm"),null);assert.ok($(".app-mobile-nav"));
+ w.confirm=()=>true;assert.equal(await runtime.navigate("players"),true);await until(()=>$(".sc-directory"));assert.equal($("#planningForm"),null);assert.ok($(".app-mobile-nav"));
 });
 
 test("Contextual yellow action edits inline and protects unsaved event navigation",async t=>{
  const {w,runtime,$,clickText}=await app(t);$(".sc-match-preview").click();await until(()=>$("#addYellow"));
  assert.ok($("#workspaceEditor #activityForm"));$("[data-activity-tab=results]").click();$("#addYellow").click();await until(()=>$("#eventForm"));
- assert.equal($("[data-event-type=Ammonizione]").getAttribute("aria-pressed"),"true");assert.ok($("#workspaceEditor .inline-match-event"));assert.equal($("#app").hasAttribute("inert"),false);$("#eventMinute").value="71";$("#eventMinute").dispatchEvent(new w.Event("input",{bubbles:true}));w.confirm=()=>false;assert.equal(runtime.navigate("players"),false);w.confirm=()=>true;
- $("#close").click();await until(()=>!$("#eventForm"));assert.equal($("#app").hasAttribute("inert"),false);assert.ok($("#workspaceEditor #activityForm"));assert.equal($(".match-workspace").dataset.dirty,"false");assert.equal($("#matchGoalsFor").disabled,false);
+ assert.equal($("[data-event-type=Ammonizione]").getAttribute("aria-pressed"),"true");assert.ok($("#workspaceEditor .inline-match-event"));assert.equal($("#app").hasAttribute("inert"),false);eventValue(w,$("#eventMinute"),"71");w.confirm=()=>false;assert.equal(await runtime.navigate("players"),false);w.confirm=()=>true;
+ $("#close").click();await until(()=>!$("#eventForm"));assert.equal($("#app").hasAttribute("inert"),false);assert.ok($("#workspaceEditor #activityForm"));assert.equal($(".match-workspace").dataset.dirty,"false");assert.equal($("#matchGoalsFor").matches(":disabled"),false);
 });
 
 
 test("Real React player directory opens the administrative sheet and retains cancelled edits",async t=>{
- const {w,runtime,$}=await app(t);runtime.navigate("players");await until(()=>$(".player-directory-entry"));$(".player-directory-entry").click();await until(()=>$("#playerAdminForm"));
- $("#certificateUntil").value="2027-06-30";$("#certificateUntil").dispatchEvent(new w.Event("input",{bubbles:true}));w.confirm=()=>false;$("[aria-label='Chiudi scheda']").click();assert.ok($("#playerAdminForm"));assert.equal($("#certificateUntil").value,"2027-06-30");
+ const {w,runtime,$}=await app(t);await runtime.navigate("players");await until(()=>$(".player-directory-entry"));$(".player-directory-entry").click();await until(()=>$("#playerAdminForm"));
+ eventValue(w,$("#certificateUntil"),"2027-06-30");w.confirm=()=>false;$("[aria-label='Chiudi scheda']").click();assert.ok($("#playerAdminForm"));assert.equal($("#certificateUntil").value,"2027-06-30");
  w.confirm=()=>true;$("[aria-label='Chiudi scheda']").click();await until(()=>!$("#playerAdminForm"));assert.equal(w.fixtureData.player_administration.length,0);
 });
 
@@ -580,16 +588,16 @@ test("Collaborator records replies and observations without planning or lineup c
  runtime.actions.newTraining();assert.equal($('#planningForm'),null);
  runtime.actions.newMatch();assert.equal($('#activityForm'),null);
  await runtime.actions.openActivity('activity-1');await until(()=>$('#activityForm'));
- assert.equal($('#activityName').disabled,true);assert.equal($('#formation').disabled,true);
- assert.equal($('[data-called]').disabled,true);assert.equal($('[data-roster-edit]').disabled,true);
- assert.equal($('#matchVenue').disabled,true);assert.equal($('#matchMinutesMode').disabled,true);
- assert.equal($('#addYellow').disabled,false);
- $('[data-activity-tab="roster"]').click();$('#technicalNote').value='Osservazione aggiornata';$('#technicalNote').dispatchEvent(new w.Event('input',{bubbles:true}));
+ assert.equal($('#activityName').matches(":disabled"),true);assert.equal($('#formation').matches(":disabled"),true);
+ assert.equal($('[data-called]').matches(":disabled"),true);assert.equal($('[data-roster-edit]').matches(":disabled"),true);
+ assert.equal($('#matchVenue').matches(":disabled"),true);assert.equal($('#matchMinutesMode').matches(":disabled"),true);
+ assert.equal($('#addYellow').matches(":disabled"),false);
+ $('[data-activity-tab="roster"]').click();eventValue(w,$('#technicalNote'),'Osservazione aggiornata');
  $('#activityForm').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await until(()=>$('#activityFeedback').textContent.includes('Osservazioni tecniche salvate'));
  const request=w.fixtureTeamCalls.find(c=>c.rpc==='save_activity_observation');assert.equal(request.p_note,'Osservazione aggiornata');assert.equal(request.p_roster,undefined);
  assert.equal(w.fixtureData.activity_technical[0].formation,'4-3-3');$('#closeActivity').click();
- runtime.navigate('training');await until(()=>$('.sc-inline-training'));
- assert.equal($('#planningDate').disabled,true);assert.equal($('#planningAttendance').disabled,false);
+ await runtime.navigate('training');await until(()=>$('.sc-inline-training'));
+ assert.equal($('#planningDate').matches(":disabled"),true);assert.equal($('#planningAttendance').matches(":disabled"),false);
  $('[data-training-player="player-1"][data-training-reply="Disponibile"]').click();$('#savePlanning').click();
  await until(()=>w.fixtureTeamCalls.some(c=>c.p_id==='assistant-training'));
  const training=w.fixtureTeamCalls.find(c=>c.p_id==='assistant-training');assert.equal(training.p_activity.title,'Allenamento');assert.equal(training.p_roster.length,2);
@@ -597,29 +605,29 @@ test("Collaborator records replies and observations without planning or lineup c
 
 test("President sees only summarized deadlines and read-only sporting workflows",async t=>{
  const {w,runtime,$}=await app(t,'president',data=>data.activities.push({id:'president-training',user_id:'demo-user',activity_date:'2026-10-01',activity_type:'Allenamento',title:'Allenamento',status:'Programmato',revision:0}));
- runtime.navigate('dashboard');await until(()=>$('.club-office-home'));
+ await runtime.navigate('dashboard');await until(()=>$('.club-office-home'));
  assert.match($('.club-office-home').textContent,/Situazione squadra/);assert.match($('.club-office-home').textContent,/Consulta allenamento/);
- runtime.navigate('more');await until(()=>$('.sc-tool-list'));assert.match($('.sc-tools').textContent,/Scadenze e tesseramenti/);assert.doesNotMatch($('.sc-tools').textContent,/Gestione utenti/);
+ await runtime.navigate('more');await until(()=>$('.sc-tool-list'));assert.match($('.sc-tools').textContent,/Scadenze e tesseramenti/);assert.doesNotMatch($('.sc-tools').textContent,/Gestione utenti/);
  runtime.actions.expiries();await until(()=>$('#expiryTitle'));assert.match($('.expiry-row').textContent,/In scadenza/);assert.doesNotMatch($('.expiry-row').textContent,/\d{2}\/\d{2}\/\d{4}/);
  $('.expiry-row').click();await until(()=>$('#playerSheetTitle'));assert.equal($('#playerAdminForm'),null);$('[aria-label="Chiudi scheda"]').click();
- runtime.navigate('training');await until(()=>$('.sc-inline-training'));assert.equal($('#planningAttendance').disabled,true);
- assert.equal($('[data-training-reply="Disponibile"]').disabled,true);
+ await runtime.navigate('training');await until(()=>$('.sc-inline-training'));assert.equal($('#planningAttendance').matches(":disabled"),true);
+ assert.equal($('[data-training-reply="Disponibile"]').matches(":disabled"),true);
  $('#planningForm').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));assert.equal(w.fixtureTeamCalls.length,0);
  runtime.actions.users();assert.equal($('#usersTitle'),null);
- runtime.navigate('communications');await until(()=>$('.communication-list-status'));assert.ok([...w.document.querySelectorAll('button')].some(b=>b.textContent.includes('Nuova comunicazione')));
+ await runtime.navigate('communications');await until(()=>$('.communication-list-status'));assert.ok([...w.document.querySelectorAll('button')].some(b=>b.textContent.includes('Nuova comunicazione')));
 });
 
 test("Direct training replies preserve failed drafts, guard season changes and save the full roster without attendance",async t=>{
  const {w,runtime,$}=await app(t,"admin",data=>data.activities.push({id:"inline-training",user_id:"demo-user",activity_date:"2026-10-01",activity_type:"Allenamento",title:"Allenamento",status:"Programmato",revision:0}));
- runtime.navigate("training");await until(()=>$(".sc-inline-training #planningForm"));
+ await runtime.navigate("training");await until(()=>$(".sc-inline-training #planningForm"));
  assert.equal(w.document.querySelectorAll("#planningForm").length,1);
  assert.equal($(".sc-inline-training").getAttribute("aria-modal"),null);
  const attendanceBefore=w.fixtureData.attendance.length,season=runtime.actions.season().year;
  $('[data-training-player="player-1"][data-training-reply="Indisponibile"]').click();$("#pendingReplyFilter").click();
  assert.equal(w.document.querySelectorAll(".sc-reply-row").length,1);
- w.confirm=()=>false;assert.equal(runtime.navigate("players"),false);await runtime.actions.changeSeason(season-1);assert.equal(runtime.actions.season().year,season);
+ w.confirm=()=>false;assert.equal(await runtime.navigate("players"),false);await runtime.actions.changeSeason(season-1);assert.equal(runtime.actions.season().year,season);
  w.fixtureSaveError={message:"Errore di rete simulato"};$("#savePlanning").click();await until(()=>$("#planningFeedback").textContent.includes("simulato"));
- assert.equal($("#savePlanning").disabled,false);assert.equal(w.fixtureData.attendance.length,attendanceBefore);
+ assert.equal($("#savePlanning").matches(":disabled"),false);assert.equal(w.fixtureData.attendance.length,attendanceBefore);
  w.fixtureSaveError=null;$("#savePlanning").click();$("#savePlanning").click();await until(()=>w.fixtureData.activity_roster.some(r=>r.activity_id==="inline-training")&&$("#planningChanges").hidden);
  assert.equal(w.fixtureData.activity_roster.filter(r=>r.activity_id==="inline-training").length,2);
  assert.equal(w.fixtureData.activity_roster.find(r=>r.activity_id==="inline-training"&&r.player_id==="player-1").availability,"Indisponibile");
@@ -628,17 +636,17 @@ test("Direct training replies preserve failed drafts, guard season changes and s
 
 test("Secretary direct training workspace is read-only and cannot submit sporting changes",async t=>{
  const {w,runtime,$}=await app(t,"secretary",data=>data.activities.push({id:"readonly-training",user_id:"demo-user",activity_date:"2026-10-01",activity_type:"Allenamento",title:"Allenamento",status:"Programmato",revision:0}));
- runtime.navigate("training");await until(()=>$(".sc-inline-training #planningForm"));
+ await runtime.navigate("training");await until(()=>$(".sc-inline-training #planningForm"));
  assert.ok([...w.document.querySelectorAll("[data-training-reply]")].every(b=>b.disabled));
  $("#planningForm").dispatchEvent(new w.Event("submit",{bubbles:true,cancelable:true}));assert.equal(w.fixtureTeamCalls.length,0);
 });
 
 test('Register replaces training history and preserves read-only access to past sheets',async t=>{
  const {w,runtime,$}=await app(t,'president',data=>data.activities.push({id:'confirmed',user_id:'demo-user',activity_date:'2026-10-06',activity_type:'Allenamento',title:'Allenamento storico',status:'Concluso',session_id:'session-1',organization_note:'Divisa blu',revision:0}));
- runtime.navigate('training');await until(()=>$('.training-scope'));
+ await runtime.navigate('training');await until(()=>$('.training-scope'));
  assert.deepEqual([...w.document.querySelectorAll('.training-scope button')].map(b=>b.textContent),['Prossimi','Da confermare0']);
  assert.equal($('#planningForm'),null);assert.ok(w.document.querySelector('a[href="#/register"]'));
- runtime.navigate('register');await until(()=>$('[data-register-training]'));
+ await runtime.navigate('register');await until(()=>$('[data-register-training]'));
  assert.match($('#registerDetail').textContent,/Presente|Presenti/);assert.match($('#registerDetail').textContent,/Divisa blu/);
  $('[data-register-training]').click();await until(()=>$('#readonlyActivityTitle'));
  assert.match(w.document.body.textContent,/Consultazione/);assert.equal($('#planningForm'),null);assert.equal(runtime.state.page,'register');
@@ -646,18 +654,18 @@ test('Register replaces training history and preserves read-only access to past 
 
 test('Register retains cancelled trainings without inventing attendance',async t=>{
  const {w,runtime,$}=await app(t,'admin',data=>{data.activities.push({id:'cancelled-training',user_id:'demo-user',activity_date:'2026-10-05',activity_type:'Allenamento',title:'Pioggia <img src=x>',status:'Annullato',organization_note:'Campo chiuso',revision:0});});
- runtime.navigate('register');await until(()=>$('#calendarGrid'));
+ await runtime.navigate('register');await until(()=>$('#calendarGrid'));
  const day=$('[data-date="2026-10-05"]');assert.ok(day.classList.contains('has-activity'));day.click();
  assert.match($('#registerDetail').textContent,/Annullato/);assert.match($('#registerDetail').textContent,/nessuna presenza/);assert.match($('#registerDetail').textContent,/Campo chiuso/);
  assert.equal($('#registerDetail img'),null);assert.equal(w.fixtureData.attendance.length,2);
  $('[data-register-training]').click();await until(()=>$('#planningForm'));
- assert.equal($('#planningAttendance').disabled,true);assert.equal(runtime.state.page,'register');
+ assert.equal($('#planningAttendance').matches(":disabled"),true);assert.equal(runtime.state.page,'register');
  $('#closePlanning').click();await until(()=>!$('#planningForm'));assert.match($('#registerDetail').textContent,/Campo chiuso/);
 });
 
 test('Register opens confirmed training sheet and returns to selected calendar day',async t=>{
  const {w,runtime,$}=await app(t,'admin',data=>data.activities.push({id:'confirmed',user_id:'demo-user',activity_date:'2026-10-06',activity_type:'Allenamento',title:'Allenamento storico',status:'Concluso',session_id:'session-1',revision:0}));
- runtime.navigate('register');await until(()=>$('[data-register-training]'));
+ await runtime.navigate('register');await until(()=>$('[data-register-training]'));
  $('[data-register-training]').click();await until(()=>$('#planningForm'));
  assert.equal(runtime.state.page,'register');assert.equal($('#planningForm').hidden,true);assert.ok($('.training-confirmed-summary'));
  $('#closePlanning').click();await until(()=>!$('#planningForm'));assert.equal($('#registerDetail').dataset.selected,'2026-10-06');assert.equal(w.fixtureTeamCalls.length,0);
@@ -665,7 +673,7 @@ test('Register opens confirmed training sheet and returns to selected calendar d
 
 test('Important communication acknowledgement is explicit, retryable and single-submit',async t=>{
  const {w,runtime,$}=await app(t,'secretary',data=>data.staff_communications.push({id:'important',user_id:'demo-user',created_by:'other-staff',title:'Avviso importante',body:'Leggere prima della gara',requires_ack:true,retention_days:3,created_at:new Date().toISOString(),expires_at:new Date(Date.now()+86400000).toISOString()}));
- runtime.navigate('communications');await until(()=>$('.communication-ack'));
+ await runtime.navigate('communications');await until(()=>$('.communication-ack'));
  assert.equal(w.fixtureAcknowledgements,undefined,'opening never acknowledges');
  const button=$('.communication-ack button');w.fixtureAckError={message:'Network'};button.click();await until(()=>$('.native-message [role=alert]'));assert.equal(button.disabled,false);
  w.fixtureAckError=null;w.fixtureAckGate=new Promise(resolve=>w.releaseAck=resolve);button.click();button.click();await until(()=>button.disabled);assert.equal(w.fixtureAcknowledgements,2);w.releaseAck();await until(()=>button.textContent==='Lettura confermata');assert.equal(button.disabled,true);assert.equal(w.fixtureData.communication_receipts.length,1);
@@ -675,7 +683,7 @@ test('Important communication acknowledgement is explicit, retryable and single-
 
 test('Roster groups roles, sorts by surname and removes duplicate management list', async t => {
  const {w,runtime,$}=await app(t,'admin',data=>{ data.players[0].surname='Zeta'; data.players[0].role='Portiere'; data.players[1].surname='Alfa'; data.players[1].role='Difensore'; });
- runtime.navigate('players'); await until(()=>$('.sc-roster-sort select'));
+ await runtime.navigate('players'); await until(()=>$('.sc-roster-sort select'));
  assert.equal($('.sc-player-management'),null);
  assert.deepEqual([...w.document.querySelectorAll('.sc-roster-group h3')].map(e=>e.textContent),['Portiere','Difensore']);
  const select=$('.sc-roster-sort select');select.value='surname';select.dispatchEvent(new w.Event('change',{bubbles:true}));
@@ -689,7 +697,7 @@ test('Roster groups roles, sorts by surname and removes duplicate management lis
 });
 
 test('Coach can consult player sheets without roster management controls', async t=>{
- const {runtime,$}=await app(t,'coach');runtime.navigate('players');await until(()=>$('.player-directory-entry'));$('.player-directory-entry').click();await until(()=>$('#playerSheetTitle'));
+ const {runtime,$}=await app(t,'coach');await runtime.navigate('players');await until(()=>$('.player-directory-entry'));$('.player-directory-entry').click();await until(()=>$('#playerSheetTitle'));
  assert.equal($('#toggleSheetPlayer'),null);assert.equal($('#editSheetPlayer'),null);
 });
 
@@ -697,7 +705,7 @@ test('Motion input tracking switches between pointer and keyboard without changi
  const {w,runtime,$}=await app(t,'admin');
  w.dispatchEvent(new w.Event('pointerdown'));assert.equal(w.document.documentElement.dataset.uiInput,'pointer');
  w.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Tab'}));assert.equal(w.document.documentElement.dataset.uiInput,'keyboard');
- runtime.navigate('players');await until(()=>$('.sc-roster-sort'));assert.equal(w.document.documentElement.dataset.uiInput,'keyboard');
+ await runtime.navigate('players');await until(()=>$('.sc-roster-sort'));assert.equal(w.document.documentElement.dataset.uiInput,'keyboard');
  w.dispatchEvent(new w.Event('pointerdown'));assert.equal(w.document.documentElement.dataset.uiInput,'pointer');
 });
 
@@ -709,12 +717,12 @@ test('Navigation highlights stay unique across page changes and do not create in
  await until(()=>$('.app-mobile-nav .club-nav-highlight'));
  const marker=$('.app-mobile-nav .club-nav-highlight');
  assert.equal(marker.getAttribute('aria-hidden'),'true');
- runtime.navigate('players');await until(()=>$('.sc-roster-sort'));await new Promise(r=>setTimeout(r,40));
+ await runtime.navigate('players');await until(()=>$('.sc-roster-sort'));await new Promise(r=>setTimeout(r,40));
  assert.equal(w.document.querySelectorAll('.app-mobile-nav .club-nav-highlight').length,1);
  assert.equal($('.app-mobile-nav .club-nav-highlight'),marker);
  assert.equal(w.document.querySelectorAll('.app-mobile-nav a[aria-current=page]').length,1);
- runtime.navigate('finance');await until(()=>$('.finance-tabs .club-nav-highlight'));
- runtime.navigate('more');await until(()=>$('.sc-tools-list')||!$('.finance-tabs'));
+ await runtime.navigate('finance');await until(()=>$('.finance-tabs .club-nav-highlight'));
+ await runtime.navigate('more');await until(()=>$('.sc-tools-list')||!$('.finance-tabs'));
  assert.equal($('.finance-tabs .club-nav-highlight'),null);
 });
 for (const role of ['admin','treasurer']) test('User guide searches and respects role topics for '+role,async t=>{
@@ -772,17 +780,17 @@ for(const role of ['admin','treasurer']) test('React match sheet exports saved d
  const {w,$}=await app(t,role);$('.sc-match-preview').click();await until(()=>$('.match-report-trigger'));
  const trigger=$('.match-report-trigger');trigger.focus();trigger.click();await until(()=>$('#matchReportText'));
  assert.match($('#matchReportText').value,/EBURUM - Squadra ospite/);assert.match($('#matchReportText').value,/Ammonito Rossi/);
- assert.ok($('#app').hasAttribute('inert'));assert.equal($('#matchReportText').readOnly,true);
+ assert.ok(trigger.closest('[aria-hidden="true"]'));assert.equal($('#matchReportText').readOnly,true);
  $('[aria-label="Chiudi tabellino"]').click();await until(()=>!$('#matchReportText'));
  if(role==='admin'){await until(()=>!$('#app').hasAttribute('inert'));assert.ok($('#activityForm'));assert.equal(w.document.activeElement,trigger);}
  else {assert.equal($('#activityForm'),null);assert.ok($('#readonlyActivityTitle'));}
  assert.equal(w.fixtureTeamCalls.length,0);assert.equal(w.fixtureData.match_events.length,6);
 });
 
-function eventValue(w,element,value){element.value=value;element.dispatchEvent(new w.Event('input',{bubbles:true}));element.dispatchEvent(new w.Event('change',{bubbles:true}));}
+function eventValue(w,element,value){if(element.tagName==='SELECT'){element.value=value;element.dispatchEvent(new w.Event('change',{bubbles:true}));}else reactInput(w,element,value);}
 test('Match goals update score in place; editing sides and deleting restore the saved result',async t=>{
  const {w,runtime,$}=await app(t);$('.sc-match-preview').click();await until(()=>$('#addGoal'));const sheet=$('#activityForm');w.fixtureQueries=[];
- $('#addGoal').click();assert.ok($('#workspaceEditor .inline-match-event'));assert.equal($('#eventForm').tagName,'DIV');eventValue(w,$('#eventPlayer'),'player-1');eventValue(w,$('#eventMinute'),'71');$('#eventPenalty').click();$('[data-save-event]').click();
+ $('#addGoal').click();assert.ok($('#workspaceEditor .inline-match-event'));assert.equal($('#eventForm').tagName,'FORM');assert.equal(w.document.querySelector('form form'),null);eventValue(w,$('#eventPlayer'),'player-1');eventValue(w,$('#eventMinute'),'71');$('#eventPenalty').click();$('[data-save-event]').click();
  await until(()=>!$('#eventForm')&&$('#matchGoalsFor').value==='3');assert.equal($('#activityForm'),sheet);assert.equal($('#matchGoalsAgainst').value,'1');assert.equal(w.fixtureTeamCalls.length,0);
  assert.ok(w.fixtureQueries.every(q=>['matches','activities','match_events','activity_roster'].includes(q.table)));
  const goal=w.fixtureData.match_events.find(e=>e.event_type==='Gol');assert.equal(goal.detail,'RIG');$(`[data-unified-event="${goal.id}"]`).click();eventValue(w,$('#eventPlayer'),'');$('[data-save-event]').click();
@@ -796,7 +804,7 @@ test('Explicit opponent goal has no player field and exports the correct attribu
  $('.match-report-trigger').click();await until(()=>$('#matchReportText'));assert.match($('#matchReportText').value,/50’ - Gol Squadra avversaria/);assert.doesNotMatch($('#matchReportText').value,/giocatore non indicato/i);
 });
 test('Quick event retries retain fields and never submit the surrounding match form',async t=>{
- const {w,$}=await app(t);$('.sc-match-preview').click();await until(()=>$('#addGoal'));$('#addGoal').click();eventValue(w,$('#eventMinute'),'77');$('[data-save-event]').click();assert.match($('#eventFeedback').textContent,/marcatore/);
+ const {w,$}=await app(t);$('.sc-match-preview').click();await until(()=>$('#addGoal'));$('#addGoal').click();eventValue(w,$('#eventMinute'),'77');$('[data-save-event]').click();await until(()=>$('#eventFeedback').textContent.includes('marcatore'));assert.match($('#eventFeedback').textContent,/marcatore/);
  eventValue(w,$('#eventPlayer'),'player-1');w.fixtureEventError={message:'Rete interrotta'};$('[data-save-event]').click();$('[data-save-event]').click();await until(()=>$('#eventFeedback').textContent.includes('Rete interrotta'));
  assert.equal($('#eventMinute').value,'77');assert.equal($('#eventPlayer').value,'player-1');assert.equal(w.fixtureTeamCalls.length,0);assert.equal(w.fixtureData.match_events.length,6);
  w.fixtureEventError=null;$('[data-save-event]').click();await until(()=>!$('#eventForm')&&$('#matchGoalsFor').value==='3');assert.equal(w.fixtureData.match_events.length,7);
@@ -810,8 +818,8 @@ test('Retry after a lost goal response uses the same id and does not count twice
 test('A committed goal with failed timeline reload offers a read-only retry',async t=>{
  const {w,$}=await app(t);$('.sc-match-preview').click();await until(()=>$('#addOpponentGoal'));
  w.eval("const eventResultBeforeReadError=FixtureQuery.prototype.result;FixtureQuery.prototype.result=async function(){if(this.table==='matches'&&window.failMatchReload)return {data:null,error:{message:'Rete interrotta'}};return eventResultBeforeReadError.call(this)}");
- w.failMatchReload=true;$('#addOpponentGoal').click();eventValue(w,$('#eventMinute'),'20');$('[data-save-event]').click();await until(()=>$('#matchResultStatus button'));
- assert.equal(w.fixtureData.matches[0].goals_against,2);$('#addGoal').click();assert.equal($('#eventForm'),null);w.failMatchReload=false;$('#matchResultStatus button').click();await until(()=>$('#matchGoalsAgainst').value==='2');assert.equal(w.fixtureData.match_events.length,7);
+ w.failMatchReload=true;$('#addOpponentGoal').click();eventValue(w,$('#eventMinute'),'20');$('[data-save-event]').click();await until(()=>$('#eventFeedback').textContent.includes('Evento salvato'));
+ assert.equal(w.fixtureData.matches[0].goals_against,2);assert.ok($('#eventForm'));assert.equal($('#eventMinute').matches(':disabled'),true);w.failMatchReload=false;$('[data-save-event]').click();await until(()=>$('#matchGoalsAgainst').value==='2');assert.equal(w.fixtureData.match_events.length,7);
 });
 test('Flat match tabs and quick lineup selection preserve a single draft',async t=>{
  const {w,$}=await app(t);$('.sc-match-preview').click();await until(()=>$('#activityForm'));assert.equal($('.match-phases'),null);
@@ -824,8 +832,8 @@ test('Match event actions highlight only the open editor and follow type and tea
  const {w,$}=await app(t);$('.sc-match-preview').click();await until(()=>$('#addGoal'));
  const active=()=>[...w.document.querySelectorAll('.match-event-actions [aria-pressed="true"]')].map(b=>b.id);
  assert.deepEqual(active(),[]);$('#addSubstitution').click();assert.deepEqual(active(),['addSubstitution']);
- $('.inline-match-event #close').click();assert.deepEqual(active(),[]);
- $('#addOpponentGoal').click();assert.deepEqual(active(),['addOpponentGoal']);$('.inline-match-event #close').click();
+ $('.inline-match-event #close').click();await until(()=>active().length===0);assert.deepEqual(active(),[]);
+ $('#addOpponentGoal').click();assert.deepEqual(active(),['addOpponentGoal']);$('.inline-match-event #close').click();await until(()=>active().length===0);
  $('#addMatchEvent').click();assert.deepEqual(active(),['addMatchEvent']);$('[data-event-type="Gol"]').click();assert.deepEqual(active(),['addOpponentGoal']);
  eventValue(w,$('#eventPlayer'),'player-1');assert.deepEqual(active(),['addGoal']);
  w.fixtureEventError={message:'Rete interrotta'};$('[data-save-event]').click();await until(()=>$('#eventFeedback').textContent.includes('Rete interrotta'));assert.deepEqual(active(),['addGoal']);
@@ -857,13 +865,13 @@ test('Dismissal decisions retain errors, save the official games, confirm and un
  $('[data-discipline-filter=reds]').click();assert.match($('#disciplineList').textContent,/Provvedimento da definire/);$('[data-sanction-event="red-1"]').click();
  eventValue(w,$('#sanctionGames'),'2');eventValue(w,$('#sanctionNote'),'Comunicato <img src=x>');w.fixtureDismissalError={message:'Rete interrotta'};$('#sanctionForm').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await until(()=>$('#sanctionFeedback').textContent.includes('Rete interrotta'));assert.equal($('#sanctionGames').value,'2');
  w.fixtureDismissalError=null;$('#sanctionForm').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await until(()=>!$('#sanctionForm'));assert.match($('.dismissal-section').textContent,/2 gare da scontare/);assert.equal($('.dismissal-section img'),null);
- $('[data-dismissal-serve]').click();assert.ok($('#dismissalServedMatch option[value="served-red"]'));assert.equal($('#dismissalServedMatch option[value="match-1"]'),null);eventValue(w,$('#dismissalServedMatch'),'served-red');$('#dismissalServedConfirmed').checked=true;$('#dismissalClearanceForm').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await until(()=>!$('#dismissalClearanceForm'));assert.match($('.dismissal-section').textContent,/1 gara da scontare/);
+ $('[data-dismissal-serve]').click();assert.ok($('#dismissalServedMatch option[value="served-red"]'));assert.equal($('#dismissalServedMatch option[value="match-1"]'),null);eventValue(w,$('#dismissalServedMatch'),'served-red');$('#dismissalServedConfirmed').click();$('#dismissalClearanceForm').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await until(()=>!$('#dismissalClearanceForm'));assert.match($('.dismissal-section').textContent,/1 gara da scontare/);
  $('[data-dismissal-undo]').click();await until(()=>$('[data-dismissal-undo]')===null);assert.match($('.dismissal-section').textContent,/2 gare da scontare/);assert.equal(w.fixtureData.dismissal_clearances.length,0);
 });
 test('Date sanctions are inclusive, can be voided without losing history, and warn in the lineup',async t=>{
  const {w,$,runtime,clickText}=await app(t,'admin',data=>{dismissalSeed(data);data.dismissal_sanctions.push({event_id:'red-1',user_id:'demo-user',player_id:'player-1',match_id:'match-1',kind:'until',match_count:null,suspended_until:'2026-10-20',note:'Comunicato 12',voided:false,revision:1});});
  assert.equal(w.EburumTests.playerDismissals('player-1','2026-10-20')[0].attention,true);assert.equal(w.EburumTests.playerDismissals('player-1','2026-10-21')[0].attention,false);
- $('.sc-match-preview').click();await until(()=>$('#activityForm'));$('[data-activity-tab=roster]').click();assert.match($('.roster-suspension').textContent,/20\/10\/2026/);$('#closeActivity').click();
+ $('.sc-match-preview').click();await until(()=>$('#activityForm'));$('[data-activity-tab=roster]').click();assert.match($('.roster-suspension').textContent,/20\/10\/2026/);$('#closeActivity').click();await until(()=>!$('#activityForm'));
  clickText('Cartellini');await until(()=>$('#disciplineList'));$('[data-sanction-event="red-1"]').click();$('#voidSanction').click();await until(()=>!$('#sanctionForm'));assert.match($('.dismissal-section').textContent,/Provvedimento annullato/);assert.equal(w.fixtureData.dismissal_sanctions.length,1);assert.equal(w.fixtureData.match_events.some(e=>e.id==='red-1'),true);
  const corrected={...w.fixtureData.match_events.find(e=>e.id==='red-1'),match_date:'2026-10-01',player_id:'player-2'};assert.equal(w.EburumTests.dismissalState(corrected).label,'Provvedimento da definire');
 });
@@ -873,7 +881,7 @@ test('Dismissal monitor retains inactive and previous-season cases and exposes u
 });
 test('Sanction saves are single-submit and cannot repopulate client data after logout',async t=>{
  const {w,$,clickText}=await app(t,'admin',dismissalSeed);clickText('Cartellini');await until(()=>$('[data-sanction-event="red-1"]'));$('[data-sanction-event="red-1"]').click();eventValue(w,$('#sanctionGames'),'2');
- w.fixtureDismissalGate=new Promise(r=>w.releaseDismissal=r);const form=$('#sanctionForm');form.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));form.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await until(()=>w.fixtureDismissalCalls.length===1);assert.equal($('#sanctionGames').disabled,true);
+ w.fixtureDismissalGate=new Promise(r=>w.releaseDismissal=r);const form=$('#sanctionForm');form.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));form.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await until(()=>w.fixtureDismissalCalls.length===1);assert.equal($('#sanctionGames').matches(":disabled"),true);
  w.EburumTests.renderLogin();w.releaseDismissal();await new Promise(r=>setTimeout(r,30));assert.equal($('#sanctionForm'),null);assert.equal($('.dismissal-section'),null);assert.equal(w.fixtureData.dismissal_sanctions.length,1);
 });
 
@@ -881,7 +889,7 @@ test('Date decision saved before a failed reload retries only the read and keeps
  const year=new Date().getFullYear()+1,untilDate=`${year}-10-20`;
  const {w,$,clickText}=await app(t,'admin',dismissalSeed);clickText('Cartellini');await until(()=>$('[data-sanction-event="red-1"]'));$('[data-sanction-event="red-1"]').click();
  eventValue(w,$('#sanctionKind'),'until');eventValue(w,$('#sanctionUntil'),untilDate);w.fixtureDismissalReadError={message:'Lettura interrotta'};$('#sanctionForm').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await until(()=>$('#sanctionFeedback').textContent.includes('Ricarica dati'));
- assert.equal(w.fixtureData.dismissal_sanctions[0].suspended_until,untilDate);assert.equal($('#sanctionUntil').disabled,true);assert.equal(w.fixtureDismissalCalls.length,1);w.fixtureDismissalReadError=null;$('#sanctionForm').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await until(()=>!$('#sanctionForm'));assert.equal(w.fixtureDismissalCalls.length,1);assert.ok($('.dismissal-section').textContent.includes(`20/10/${year}`));
+ assert.equal(w.fixtureData.dismissal_sanctions[0].suspended_until,untilDate);assert.equal($('#sanctionUntil').matches(":disabled"),true);assert.equal(w.fixtureDismissalCalls.length,1);w.fixtureDismissalReadError=null;$('#sanctionForm').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await until(()=>!$('#sanctionForm'));assert.equal(w.fixtureDismissalCalls.length,1);assert.ok($('.dismissal-section').textContent.includes(`20/10/${year}`));
 });
 
 async function whiteboard(t,role='admin'){
@@ -935,7 +943,7 @@ test('Mobile whiteboard draws, moves with screen directions and resizes without 
  assert.match($('.wb-save').textContent,/Tutte le modifiche sono salvate/);
 });
 test('Whiteboard stale saves retain the draft and cannot silently replace a colleague',async t=>{
- const {w,$,clickText}=await whiteboard(t,'coach');clickText('Nuova lavagna');await until(()=>$('.wb-editor'));clickText('Salva lavagna');await until(()=>w.fixtureData.tactical_boards.length===1&&!$('button[disabled] svg.lucide-save'));
+ const {w,$,clickText}=await whiteboard(t,'coach');clickText('Nuova lavagna');await until(()=>$('.wb-editor'));clickText('Salva lavagna');await until(()=>w.fixtureData.tactical_boards.length===1&&!!$('button[disabled] svg.lucide-save'));
  await until(()=>$('.wb-feedback [role=status]')?.textContent.includes('salvata'));
  w.fixtureData.tactical_boards[0].revision=2;w.fixtureData.tactical_boards[0].title='Versione collega';
  reactInput(w,$('.wb-fields input'),'La mia analisi');await until(()=>$('.wb-fields input').value==='La mia analisi');clickText('Salva lavagna');await until(()=>$('.wb-feedback [role=alert]')?.textContent.includes('collega'));
@@ -949,10 +957,10 @@ for(const role of ['manager','secretary','president','treasurer'])test('Whiteboa
 for(const role of ['admin','manager','coach','secretary','technical_assistant','president','treasurer'])test('Priority navbar has one communications destination and keeps roster in tools: '+role,async t=>{
  const {w,runtime,$}=await app(t,role);const paths=[...w.document.querySelectorAll('.app-mobile-nav a')].map(a=>a.getAttribute('href'));
  assert.deepEqual(paths,['president','treasurer'].includes(role)?['#/dashboard','#/communications','#/finance','#/matches','#/more']:['#/dashboard','#/training','#/communications','#/matches','#/more']);
- runtime.navigate('more');await until(()=>$('.sc-tool-list'));assert.ok($('.sc-tool-list [href="#/players"]'));assert.equal($('.sc-tool-list [href="#/meetings"]'),null);
+ await runtime.navigate('more');await until(()=>$('.sc-tool-list'));assert.ok($('.sc-tool-list [href="#/players"]'));assert.equal($('.sc-tool-list [href="#/meetings"]'),null);
 });
 test('Meeting invitations preserve failed drafts and publish the event with explicit read acknowledgement',async t=>{
- const {w,runtime,$,clickText}=await app(t);runtime.navigate('communications');await until(()=>$('.communication-filters'));clickText('Nuova comunicazione');await until(()=>$('#communication-title'));clickText('Riunione');await until(()=>$('#meeting-date'));
+ const {w,runtime,$,clickText}=await app(t);await runtime.navigate('communications');await until(()=>$('.communication-filters'));clickText('Nuova comunicazione');await until(()=>$('#communication-title'));clickText('Riunione');await until(()=>$('#meeting-date'));
  const next=new Date(Date.now()+14*86400000).toISOString().slice(0,10);
  reactInput(w,$('#communication-title'),'Riunione dello staff');reactInput(w,$('#communication-body'),'Rivediamo la linea difensiva.');reactInput(w,$('#meeting-date'),next);reactInput(w,$('#meeting-time'),'20:30');reactInput(w,$('#meeting-location'),'Sede Eburum');await until(()=>$('#meeting-location').value==='Sede Eburum');
  w.fixtureCommunicationError={message:'Offline'};const form=$('#communication-title').closest('form');form.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await until(()=>form.textContent.includes('Pubblicazione non riuscita'));assert.equal($('#meeting-date').value,next);assert.equal($('#meeting-time').value,'20:30');
@@ -973,18 +981,18 @@ test('Design brief home prioritizes the next match and shares document counts wi
   data.matches.push({id:'next-brief-match',user_id:'demo-user',opponent:'Avversario futuro',match_date:day,venue:'Trasferta',goals_for:null,goals_against:null});
   data.activities.push({id:'next-brief-activity',user_id:'demo-user',activity_type:'Partita',title:'Avversario futuro',activity_date:day,start_time:'15:00',status:'Programmato',match_id:'next-brief-match',revision:0});
  });
- runtime.navigate('dashboard');await until(()=>$('.sc-home-hero'));
+ await runtime.navigate('dashboard');await until(()=>$('.sc-home-hero'));
  assert.match($('.sc-home-hero').textContent,/Prossima partita.*Domani.*Avversario futuro/);assert.equal($('[data-home-season]'),null);assert.ok($('.header-settings-panel .app-season select'));assert.equal($('.sc-home-hero button').dataset.openActivity,'next-brief-activity');
  const count=runtime.actions.documentSummary().review;
  assert.match($('.sc-home-tasks').textContent,new RegExp(count+' da verificare'));
- runtime.navigate('more');await until(()=>$('.tool-group'));
+ await runtime.navigate('more');await until(()=>$('.tool-group'));
  assert.equal(w.document.querySelectorAll('.tool-group').length,3);
  const documents=[...w.document.querySelectorAll('.sc-tools button')].find(b=>b.textContent.includes('Scadenze e tesseramenti'));assert.match(documents.textContent,new RegExp(String(count)));
  assert.equal(w.document.querySelectorAll('.app-mobile-nav a[aria-current=page]').length,1);
 });
 
 test('Home message composer and accessible password visibility retain the existing flows',async t=>{
- const {w,runtime,$}=await app(t);runtime.navigate('dashboard');await until(()=>$('[href="#/communications?compose=1"]'));$('[href="#/communications?compose=1"]').click();await until(()=>$('#communication-title'));assert.equal(runtime.state.page,'communications');
+ const {w,runtime,$}=await app(t);await runtime.navigate('dashboard');await until(()=>$('[href="#/communications?compose=1"]'));$('[href="#/communications?compose=1"]').click();await until(()=>$('#communication-title'));assert.equal(runtime.state.page,'communications');
  w.EburumTests.renderLogin();await until(()=>$('input[name=password]'));
  const password=$('input[name=password]');password.value='Synthetic-secret';$('[aria-label="Mostra password"]').click();await until(()=>password.type==='text');assert.equal(password.type,'text');assert.equal(password.value,'Synthetic-secret');$('[aria-label="Nascondi password"]').click();await until(()=>password.type==='password');assert.equal(password.type,'password');
  [...w.document.querySelectorAll('button')].find(b=>b.textContent==='Password dimenticata?').click();await until(()=>$('.auth-panel').textContent.includes('Gestione utenti → Cambia password'));assert.match($('.auth-panel').textContent,/Gestione utenti → Cambia password/);
@@ -1005,15 +1013,15 @@ test('Operational routes preserve player context and close details on Back and s
 });
 
 test('Operational training creation keeps replies hidden and retains existing time validation',async t=>{
- const {w,$,runtime}=await app(t);runtime.navigate('training');await until(()=>$('.training-scope'));
+ const {w,$,runtime}=await app(t);await runtime.navigate('training');await until(()=>$('.training-scope'));
  runtime.actions.newTraining();await until(()=>$('#planningForm'));
- assert.equal($('.training-replies').hidden,true);assert.equal($('#savePlanning').textContent,'Crea allenamento');
+ assert.equal($('.training-replies'),null);assert.equal($('#savePlanning').textContent,'Crea allenamento');
  assert.equal($('#planningNote').labels[0].textContent,'Indicazioni per l’allenamento');
- $('#planningStart').value='20:00';$('#planningStart').dispatchEvent(new w.Event('input',{bubbles:true}));
- $('#planningEnd').value='19:00';$('#planningEnd').dispatchEvent(new w.Event('input',{bubbles:true}));
+ eventValue(w,$('#planningStart'),'20:00');
+ eventValue(w,$('#planningEnd'),'19:00');
  assert.match($('#planningTimeError').textContent,/successiva/);
  $('#planningForm').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
- assert.match($('#planningFeedback').textContent,/successiva/);assert.equal(w.fixtureTeamCalls.length,0);
+ await until(()=>$('#planningFeedback').textContent.includes('successiva'));assert.match($('#planningFeedback').textContent,/successiva/);assert.equal(w.fixtureTeamCalls.length,0);
 });
 
 test('Operational direct player URL opens after initial data load and pristine close needs no confirmation',async t=>{
@@ -1072,8 +1080,8 @@ test('Operational report drills keep four observed dates newest-first across pla
   data.activity_roster=data.activities.flatMap((a,i)=>['player-1','player-2'].map(player_id=>({id:'chronology-roster-'+i+player_id,user_id:'demo-user',activity_id:a.id,player_id,called:true,lineup:'Titolare',minutes_played:90})));
   data.match_events=data.matches.flatMap((m,i)=>['player-1','player-2'].map(player_id=>({id:'chronology-goal-'+i+player_id,user_id:'demo-user',match_id:m.id,player_id,event_type:'Gol',minute:10,created_at:m.match_date+'T12:00:00Z'})));
  });
- runtime.navigate('reports');await until(()=>$('#rp'));
- const choose=id=>{$('#rp').value=id;$('#rp').dispatchEvent(new w.Event('change'))};
+ await runtime.navigate('reports');await until(()=>$('#rp'));
+ const choose=id=>{$('#rp').value=id;$('#rp').dispatchEvent(new w.Event('change',{bubbles:true}))};
  const expectDates=async(key,expected)=>{
   $('[data-report-detail="'+key+'"]').click();await until(()=>$('#reportDetailTitle'));
   const modal=$('#reportDetailTitle').closest('.modal'),observed=[...modal.querySelectorAll('.list article b')].map(n=>n.textContent.slice(0,10));assert.deepEqual(observed,expected);
@@ -1081,14 +1089,14 @@ test('Operational report drills keep four observed dates newest-first across pla
   $('[aria-label="Chiudi dettagli report"]').click();await until(()=>!$('#reportDetailTitle')&&!w.location.hash.includes('detail='));
  };
  for(const player of ['player-1','player-2']){choose(player);await until(()=>$('[data-report-detail=present] b').textContent==='4');for(const key of ['present','called','minutes','goals'])await expectDates(key,['08/10/2026','06/10/2026','01/10/2026','30/09/2026']);}
- $('#rf').value='2026-10-02';$('#rf').dispatchEvent(new w.Event('change'));$('#rt').value='2026-10-09';$('#rt').dispatchEvent(new w.Event('change'));await until(()=>$('[data-report-detail=present] b').textContent==='2');await expectDates('present',['08/10/2026','06/10/2026']);assert.equal($('#rp').value,'player-2');
+ eventValue(w,$('#rf'),'2026-10-02');eventValue(w,$('#rt'),'2026-10-09');await until(()=>$('[data-report-detail=present] b').textContent==='2');await expectDates('present',['08/10/2026','06/10/2026']);assert.equal($('#rp').value,'player-2');
 });
 
 test('Control audit match tabs have one tab stop and preserve keyboard selection with unsaved events',async t=>{
  const {w,runtime,$}=await app(t);runtime.actions.openMatch(runtime.state.matches[0]);await until(()=>$('#activityForm'));
  const tabs=()=>[...w.document.querySelectorAll('[data-activity-tab]')];assert.equal(tabs().filter(n=>n.tabIndex===0).length,1);
  const selected=()=>$('[data-activity-tab][aria-selected=true]');selected().focus();selected().dispatchEvent(new w.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));assert.equal(selected().dataset.activityTab,'roster');const panel=w.document.getElementById(selected().getAttribute('aria-controls'));assert.equal(panel.getAttribute('role'),'tabpanel');assert.equal(panel.getAttribute('aria-labelledby'),selected().id);assert.equal(w.document.activeElement,selected());assert.equal(tabs().filter(n=>n.tabIndex===0).length,1);
- selected().dispatchEvent(new w.KeyboardEvent('keydown',{key:'Home',bubbles:true}));assert.equal(selected().dataset.activityTab,'results');$('#addGoal').click();await until(()=>$('#eventForm'));$('#eventMinute').value='20';$('#eventMinute').dispatchEvent(new w.Event('input',{bubbles:true}));selected().focus();selected().dispatchEvent(new w.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));assert.equal(selected().dataset.activityTab,'results');assert.equal(tabs().filter(n=>n.tabIndex===0).length,1);
+ selected().dispatchEvent(new w.KeyboardEvent('keydown',{key:'Home',bubbles:true}));assert.equal(selected().dataset.activityTab,'results');$('#addGoal').click();await until(()=>$('#eventForm'));eventValue(w,$('#eventMinute'),'20');selected().focus();selected().dispatchEvent(new w.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));assert.equal(selected().dataset.activityTab,'results');assert.equal(tabs().filter(n=>n.tabIndex===0).length,1);
 });
 
 test('Control audit shares close icons without losing accessible names or close handlers',async t=>{
@@ -1113,4 +1121,35 @@ test('Player activation updates the authoritative row without reloading sporting
  assert.equal(runtime.state.attendance,attendance);assert.equal(runtime.state.events,events);
  assert.deepEqual([...w.fixtureQueries].map(q=>q.table),['players']);
  await runtime.actions.setPlayerActive(runtime.state.players.find(p=>p.id==='player-1'),true);assert.equal(runtime.state.players.find(p=>p.id==='player-1').active,true);
+});
+
+
+test('React actual attendance saves only after full review and preserves the complete draft on retry',async t=>{
+ const {w,runtime,$}=await app(t,'admin',data=>data.activities.push({id:'react-actual',user_id:'demo-user',activity_type:'Allenamento',title:'Allenamento',activity_date:'2026-10-02',status:'Programmato',revision:0}));
+ await runtime.actions.openActivity('react-actual');await until(()=>$('#planningForm'));$('[data-training-phase=actual]').click();$('#planningAttendance').click();await until(()=>$('#trainList'));
+ const before=w.fixtureData.attendance.length;$('[data-presence-player="player-1"][data-presence="Presente"]').click();$('#saveTraining').click();assert.equal($('#reviewTitle'),null);assert.equal(w.fixtureData.attendance.length,before);
+ $('[data-presence-player="player-2"][data-presence="Assente"]').click();$('#saveTraining').click();await until(()=>$('#reviewTitle'));w.fixtureSaveError={message:'Errore rete'};$('#confirmTraining').click();$('#confirmTraining').click();await until(()=>$('#reviewStatus').textContent.includes('Errore rete'));assert.ok(runtime.state.trainingDraft);assert.equal(w.fixtureData.attendance.length,before);w.fixtureSaveError=null;$('#confirmTraining').click();await until(()=>!$('#reviewTitle')&&runtime.state.page==='register');assert.equal(runtime.state.trainingDraft,null);assert.equal(w.fixtureRpcCalls.at(-1).p_attendance.length,2);assert.equal(w.fixtureRpcCalls.at(-1).p_activity_id,'react-actual');
+});
+test('React attendance conflicts require reopening the Register and never replay a stale revision',async t=>{
+ const {w,runtime,$}=await app(t);w.location.hash='#/training?session=session-1';await until(()=>$('#trainList'));$('[data-presence-player="player-1"][data-presence="Assente"]').click();$('#saveTraining').click();await until(()=>$('#confirmTraining'));
+ const rpc=runtime.db.rpc;let writes=0;runtime.db.rpc=async(name,params)=>{if(name==='save_attendance_session'){writes++;return {data:null,error:{code:'PT409',message:'Sessione modificata da un collega'}}}return rpc(name,params)};
+ $('#confirmTraining').click();await until(()=>$('#confirmTraining').textContent==='Riapri dal Registro');$('#confirmTraining').click();await until(()=>runtime.state.page==='register'&&!$('#reviewTitle'));assert.equal(writes,1);assert.ok(runtime.state.trainingDraft);assert.equal(runtime.state.trainingDraft.entries.get('player-1').status,'Assente');
+});
+test('React event deletion rejects double clicks and a session changed during confirmation',async t=>{
+ const {w,runtime,$}=await app(t);$('.sc-match-preview').click();await until(()=>$('[data-unified-event]'));$('[data-unified-event]').click();await until(()=>$('#deleteEvent'));let release,count=0;w.EburumTests.setConfirmationPresenter(()=>{count++;return new Promise(resolve=>release=resolve)});const before=JSON.stringify(w.fixtureData.match_events);$('#deleteEvent').click();$('#deleteEvent').click();assert.equal(count,1);assert.equal($('#deleteEvent').matches(':disabled'),true);runtime.state.user=null;release(true);await new Promise(resolve=>setTimeout(resolve,20));assert.equal(JSON.stringify(w.fixtureData.match_events),before);
+});
+test('React substitution preview validates the timeline and automatic minutes stay read-only',async t=>{
+ const {w,$}=await app(t,'admin',data=>{data.matches[0].minutes_auto=true;data.matches[0].duration_minutes=90;data.activity_roster=[{id:'starter',user_id:'demo-user',activity_id:'activity-1',player_id:'player-1',called:true,lineup:'Titolare',minutes_played:90},{id:'bench',user_id:'demo-user',activity_id:'activity-1',player_id:'player-2',called:true,lineup:'Panchina',minutes_played:0}];});
+ $('.sc-match-preview').click();await until(()=>$('#addSubstitution'));$('#addSubstitution').click();eventValue(w,$('#eventMinute'),'65');eventValue(w,$('#eventOutgoing'),'player-1');eventValue(w,$('#eventPlayer'),'player-2');assert.match($('#substitutionMinutesPreview').textContent,/65′.*25′/);$('#close').click();await until(()=>!$('#eventForm'));$('[data-activity-tab=roster]').click();$('[data-roster-edit="player-1"]').click();await until(()=>$('#rosterMinutes'));assert.equal($('#rosterMinutes').readOnly,true);
+});
+test('React historical training shows saved attendance without inventing survey responses',async t=>{
+ const {w,runtime,$}=await app(t,'admin',data=>data.activities.push({id:'historic-react',user_id:'demo-user',activity_type:'Allenamento',title:'Allenamento storico',activity_date:'2026-10-06',session_id:'session-1',status:'Concluso',revision:0}));await runtime.actions.openActivity('historic-react');await until(()=>$('.training-confirmed-summary'));assert.equal($('#planningForm').hidden,true);assert.match($('.training-confirmed-summary').textContent,/Rossi Marco/);assert.match($('.training-confirmed-summary').textContent,/Bianchi Luca/);assert.equal(w.fixtureRpcCalls.length,0);
+});
+
+
+test('React event deletion retries only the timeline read after a committed delete',async t=>{
+ const {w,$}=await app(t);$('.sc-match-preview').click();await until(()=>$('[data-unified-event]'));$('[data-unified-event]').click();await until(()=>$('#deleteEvent'));w.eval("const previousDeleteRead=FixtureQuery.prototype.result;FixtureQuery.prototype.result=async function(){if(this.table==='matches'&&window.failDeleteReload)return {data:null,error:{message:'Rete interrotta'}};return previousDeleteRead.call(this)}");w.fixtureQueries=[];w.failDeleteReload=true;$('#deleteEvent').click();await until(()=>$('#eventFeedback').textContent.includes('Evento eliminato'));assert.equal($('#deleteEvent').matches(':disabled'),true);assert.equal(w.fixtureQueries.filter(q=>q.table==='match_events'&&q.action==='delete').length,1);w.failDeleteReload=false;$('[data-save-event]').click();await until(()=>!$('#eventForm'));assert.equal(w.fixtureQueries.filter(q=>q.table==='match_events'&&q.action==='delete').length,1);
+});
+test('React yellow clearance undo confirms once and refuses a changed account',async t=>{
+ const {w,runtime,$,clickText}=await app(t,'admin',data=>{data.matches.push({id:'served-guard',user_id:'demo-user',match_date:'2026-10-02',opponent:'Gara scontata',goals_for:0,goals_against:0});data.disciplinary_clearances.push({id:'clear-guard',user_id:'demo-user',player_id:'player-1',season_start:'2026-07-01',threshold_event_id:'yellow-4',served_match_id:'served-guard'});});clickText('Cartellini');await until(()=>$('[data-undo-clearance]'));let release,count=0;w.EburumTests.setConfirmationPresenter(()=>{count++;return new Promise(resolve=>release=resolve)});$('[data-undo-clearance]').click();$('[data-undo-clearance]').click();assert.equal(count,1);assert.equal($('[data-undo-clearance]').matches(':disabled'),true);runtime.state.user=null;release(true);await new Promise(resolve=>setTimeout(resolve,20));assert.equal(w.fixtureData.disciplinary_clearances.length,1);
 });

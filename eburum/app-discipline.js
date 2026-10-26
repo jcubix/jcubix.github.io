@@ -1,57 +1,103 @@
-import { confirmDialog } from './app-confirm.js';
-import { sportSeason } from './app-data.js';
-import { bindDialog } from './app-dialogs.js';
-import { registerBinder, registerExtension } from './app-hooks.js';
-import { canOperate, db, esc, fmt, sortPlayers, state, teamOwner, teamRequestGuard, toast, today } from './app-part1.js';
-import { eventTone } from './app-part4.js';
-import { icon } from './app-icons.js';
-import { setBusyControls } from './app-workflows.js';
-import { dismissalEvents, playerDismissals, dismissalSections, bindDismissalActions } from './app-dismissals.js';
+import {sportSeason} from './app-data.js';
+import {state,today} from './app-part1.js';
+import {playerDismissals} from './app-dismissals.js';
+import {ui} from './src/ui-service.ts';
 
-/* Card index derives only from recorded match events. */
-function disciplineSeason(){return sportSeason()}
-function playerDiscipline(id){
- const season=disciplineSeason(),cancelled=new Set((state.activities||[]).filter(a=>a.status==='Annullato').map(a=>a.match_id)),matches=new Map(state.matches.filter(m=>m.match_date>=season.from&&m.match_date<=season.to&&m.match_date<=today()&&!cancelled.has(m.id)).map(m=>[m.id,m]));
- const seen=new Set(),events=state.events.filter(e=>{if(seen.has(e.id)||e.player_id!==id||!matches.has(e.match_id)||!['Ammonizione','Espulsione'].includes(e.event_type))return false;seen.add(e.id);return true}).sort((a,b)=>matches.get(a.match_id).match_date.localeCompare(matches.get(b.match_id).match_date)||(a.minute??999)-(b.minute??999)||(a.created_at||'').localeCompare(b.created_at||'')||a.id.localeCompare(b.id));
- const yellows=events.filter(e=>e.event_type==='Ammonizione'),total=yellows.length,cycles=Math.floor(total/5),current=total%5;
- const milestones=yellows.filter((e,i)=>(i+1)%5===0),confirmed=(state.disciplinary_clearances||[]).filter(c=>c.player_id===id&&c.season_start===season.from),valid=confirmed.filter(c=>milestones.some(e=>e.id===c.threshold_event_id)&&matches.has(c.served_match_id)&&matches.get(c.served_match_id).match_date>matches.get(state.events.find(e=>e.id===c.threshold_event_id)?.match_id)?.match_date&&!(state.roster||[]).some(r=>r.player_id===id&&r.minutes_played>0&&state.activities.some(a=>a.id===r.activity_id&&a.match_id===c.served_match_id))),pending=milestones.filter(e=>!valid.some(c=>c.threshold_event_id===e.id)),review=confirmed.filter(c=>!valid.includes(c));
- const dismissals=playerDismissals(id),redAttention=dismissals.some(d=>d.attention);
- return {season,events,yellows,total,cycles,current,milestones,confirmed,valid,pending,review,dismissals,redAttention,reds:events.filter(e=>e.event_type==='Espulsione').length,diffida:current===4,matches};
-}
-function disciplineBadge(id){const d=playerDiscipline(id);return `<span class="badge ${d.pending.length||d.review.length||d.redAttention?'b-red':d.diffida?'b-yellow':'b-gray'}">${d.total} gialli${d.reds?` · ${d.reds} ${d.reds===1?'rosso':'rossi'}`:''}${d.diffida?' · Diffida':''}${d.pending.length?' · Da scontare':d.review.length?' · Da verificare':''}${d.redAttention?' · Espulsione da gestire':''}</span>`}
-function disciplineCard(p,d,redOnly=false){
- const redCount=redOnly?d.dismissals.length:d.reds;
- const yellowSection=!redOnly&&(d.total||d.confirmed.length)?`<section class="discipline-yellows"><div class="discipline-section-heading"><h4>Ammonizioni e diffide</h4>${d.diffida?'<span class="badge b-yellow">Diffida</span>':''}</div><div class="discipline-progress" role="img" aria-label="${d.current} ammonizioni su 5 verso la prossima soglia">${Array.from({length:5},(_,i)=>`<span class="${i<d.current?'filled':''}" aria-hidden="true"></span>`).join('')}</div><p class="row-sub">${d.current}/5 verso la prossima soglia${d.diffida?' · Manca un giallo':''}${d.pending.length?` · ${d.pending.length} gare da scontare`:''}${d.valid.length?` · ${d.valid.length} gare scontate confermate`:''}</p>${disciplineClearances(p,d)}</section>`:'';
- return `<article class="discipline-card"><div class="section-title"><div><h3>${esc(p.surname)} ${esc(p.name)}</h3><p class="row-sub">${esc(p.role||'')}${p.active?'':' · Inattivo'}</p></div></div><div class="discipline-totals" aria-label="${redOnly?'Espulsioni visibili':'Cartellini della stagione'}">${redOnly?'':`<div class="discipline-total"><span class="discipline-symbol discipline-symbol-yellow">${icon('card',20)}</span><strong>${d.total}</strong><span>${d.total===1?'Giallo':'Gialli'}</span></div>`}<div class="discipline-total"><span class="discipline-symbol discipline-symbol-red">${icon('card',20)}</span><strong>${redCount}</strong><span>${redCount===1?'Rosso':'Rossi'}</span></div></div>${yellowSection}${dismissalSections(p.id)}${!redOnly&&d.events.length?`<details class="discipline-history"><summary>Storico cartellini (${d.events.length})</summary><div class="list field-space">${d.events.map(e=>`<div class="discipline-event"><span class="badge ${eventTone(e.event_type)}">${esc(e.event_type)}</span><div><b>${fmt(d.matches.get(e.match_id).match_date)} · ${esc(d.matches.get(e.match_id).opponent)}</b><p class="row-sub">${e.minute==null?'Minuto non indicato':e.minute+'′'}${e.detail?' · '+esc(e.detail):''}</p></div></div>`).join('')}</div></details>`:!redOnly&&!d.events.length&&!d.dismissals.length?'<p class="row-sub">Nessun cartellino registrato.</p>':''}</article>`;
-}
-/** @param {string|null} [playerId] */
-function disciplineModal(playerId=null){
- const root=document.createElement('div');root.className='modal-back';root.dataset.detail=playerId?'discipline:'+playerId:'tool:discipline';root.dataset.page=playerId?'players':'more';if(!playerId)root.dataset.workspace='true';const season=disciplineSeason();
- root.innerHTML=`<section class="modal" role="dialog" aria-modal="true" aria-labelledby="disciplineTitle"><div class="modal-head"><div><p class="row-sub">Stagione ${esc(season.key)}</p><h2 id="disciplineTitle">Cartellini e diffide</h2></div><button aria-label="Chiudi cartellini">✕</button></div><details class="discipline-rules"><summary>Come leggere i cartellini</summary><p class="row-sub">Regola impostata: ogni 5 ammonizioni, una gara da saltare. A 4, 9, 14… gialli il giocatore è a un cartellino dalla prossima soglia. Il conteggio usa gli eventi delle partite registrate nella stagione, fino a oggi, escluse quelle annullate. I cartellini senza giocatore associato non entrano nel conteggio.</p></details><div class="field"><label for="disciplineSearch">Cerca giocatore</label><input type="search" id="disciplineSearch" placeholder="Nome o cognome"></div><div class="workflow-switch field-space" role="group" aria-label="Filtro cartellini"><button data-discipline-filter="all" aria-pressed="true">Tutti</button><button data-discipline-filter="attention" aria-pressed="false">Da verificare</button><button data-discipline-filter="reds" aria-pressed="false">Espulsioni</button></div><p id="unassignedDismissals" class="notice" hidden></p><p id="dismissalFeedback" role="status"></p><div id="disciplineList" class="list"></div><p class="row-sub field-space">Per le espulsioni, registra il provvedimento ufficiale per giornate o fino a una data inclusa. Le gare scontate vanno confermate dallo staff. I provvedimenti aperti delle stagioni precedenti restano visibili.</p></section>`;
- document.body.append(root);const close=()=>root.remove();root.querySelector('.modal-head button').onclick=close;bindDialog(root,close);let filter='all';
- const paint=()=>{const q=root.querySelector('#disciplineSearch').value.trim().toLocaleLowerCase('it');const players=sortPlayers(state.players.filter(p=>(!playerId||p.id===playerId)&&(p.active||playerId||playerDiscipline(p.id).events.length||playerDiscipline(p.id).dismissals.length))).filter(p=>`${p.surname} ${p.name}`.toLocaleLowerCase('it').includes(q)).map(p=>({p,d:playerDiscipline(p.id)})).filter(({d})=>filter==='reds'?d.dismissals.length:filter==='all'||d.diffida||d.pending.length||d.review.length||d.redAttention).sort((a,b)=>Number(!!b.d.redAttention)-Number(!!a.d.redAttention)||Number(!!b.d.pending.length)-Number(!!a.d.pending.length)||Number(b.d.diffida)-Number(a.d.diffida)||b.d.total-a.d.total);
- const unassigned=dismissalEvents().filter(e=>e.event_type==='Espulsione'&&!e.player_id&&e.match_date>=season.from&&e.match_date<=season.to&&e.match_date<=today()&&e.activity_status!=='Annullato').length;root.querySelector('#unassignedDismissals').hidden=!unassigned;root.querySelector('#unassignedDismissals').textContent=unassigned+(unassigned===1?' espulsione senza giocatore.':' espulsioni senza giocatore.')+' Lo staff deve associarle dalla scheda partita per monitorare le squalifiche.';root.querySelector('#disciplineList').innerHTML=players.map(({p,d})=>disciplineCard(p,d,filter==='reds')).join('')||'<p class="empty">Nessun giocatore corrisponde al filtro.</p>';
- bindDismissalActions(root,paint);root.querySelectorAll('[data-clearance-event]').forEach(b=>b.onclick=()=>clearanceModal(b.dataset.clearancePlayer,b.dataset.clearanceEvent,()=>{close();disciplineModal(playerId)}));root.querySelectorAll('[data-undo-clearance]').forEach(b=>b.onclick=async()=>{if(b.disabled||!canOperate())return;const current=teamRequestGuard();b.disabled=true;try{if(!(await confirmDialog({title:'Annulla gara scontata',message:'Annullare la conferma della gara scontata? La soglia tornerà da verificare.',confirmLabel:'Annulla conferma',danger:true}))||!current()||!canOperate()||!b.isConnected)return;const {error}=await db.from('disciplinary_clearances').delete().eq('id',b.dataset.undoClearance).eq('user_id',teamOwner());if(error)throw error;if(!current())return;state.disciplinary_clearances=state.disciplinary_clearances.filter(c=>c.id!==b.dataset.undoClearance);if(root.isConnected)paint();toast('Conferma annullata')}catch(e){if(current())toast(e.message||'Annullamento non riuscito')}finally{b.disabled=false}});
- };root.querySelector('#disciplineSearch').oninput=paint;root.querySelectorAll('[data-discipline-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.disciplineFilter;root.querySelectorAll('[data-discipline-filter]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));paint()});paint();
+function disciplineSeason() {
+  return sportSeason();
 }
 
-function disciplineClearances(p,d){
- const pending=d.pending.map(e=>`<div class="discipline-clearance"><span class="badge b-red">Da scontare</span><p class="row-sub">Soglia ${d.yellows.indexOf(e)+1} gialli · ${fmt(d.matches.get(e.match_id).match_date)}</p>${canOperate()?`<button type="button" data-clearance-player="${p.id}" data-clearance-event="${e.id}">Conferma gara saltata</button>`:''}</div>`).join('');
- const history=d.confirmed.map(c=>`<div class="discipline-clearance"><span class="badge ${d.valid.includes(c)?'b-green':'b-yellow'}">${d.valid.includes(c)?'Scontata':'Conferma da rivedere'}</span><p class="row-sub">${state.matches.find(m=>m.id===c.served_match_id)?fmt(state.matches.find(m=>m.id===c.served_match_id).match_date)+' · '+esc(state.matches.find(m=>m.id===c.served_match_id).opponent):'Gara non disponibile'}${d.valid.includes(c)?'':' · Gli eventi o la gara sono cambiati'}</p>${canOperate()?`<button type="button" class="ghost" data-undo-clearance="${c.id}">Annulla conferma</button>`:''}</div>`).join('');return pending+history;
-}
-function clearanceModal(playerId,eventId,onSaved){
- if(!canOperate())return;const d=playerDiscipline(playerId),event=d.pending.find(e=>e.id===eventId);if(!event)return;
- const date=d.matches.get(event.match_id).match_date,used=new Set(d.confirmed.map(c=>c.served_match_id)),choices=[...d.matches.values()].filter(m=>m.match_date>date&&!used.has(m.id)&&!(state.roster||[]).some(r=>r.player_id===playerId&&r.minutes_played>0&&state.activities.some(a=>a.id===r.activity_id&&a.match_id===m.id))).sort((a,b)=>a.match_date.localeCompare(b.match_date));
- const root=document.createElement('div');root.className='modal-back event-back';root.innerHTML=`<section class="modal" role="dialog" aria-modal="true" aria-labelledby="clearanceTitle"><div class="modal-head"><h2 id="clearanceTitle">Conferma gara saltata</h2><button aria-label="Chiudi conferma">✕</button></div><p>La soglia di ${d.yellows.indexOf(event)+1} gialli è stata raggiunta il ${fmt(date)}. Seleziona la gara saltata per questa squalifica.</p><p class="row-sub">Sono selezionabili solo gare registrate, successive alla soglia e già disputate, senza minuti giocati per questo giocatore. Una gara può coprire una sola soglia.</p><form id="clearanceForm"><div class="field"><label for="clearanceMatch">Gara scontata</label><select id="clearanceMatch" required><option value="">Seleziona una gara</option>${choices.map(m=>`<option value="${m.id}">${fmt(m.match_date)} · ${esc(m.opponent)}</option>`).join('')}</select></div>${choices.length?'':'<p class="notice">Nessuna gara idonea. Registra prima la partita effettivamente saltata.</p>'}<label class="reminder-option field-space"><input type="checkbox" id="clearanceConfirmed" required>Confermo che il giocatore ha saltato questa gara per squalifica.</label><button class="primary wide field-space" type="submit" ${choices.length?'':'disabled'}>Conferma squalifica scontata</button><p id="clearanceStatus" role="status" aria-live="polite"></p></form></section>`;document.body.append(root);let busy=false;const current=teamRequestGuard(),close=()=>{if(!busy)root.remove()};root.querySelector('.modal-head button').onclick=close;bindDialog(root,close);
- root.querySelector('form').onsubmit=async e=>{e.preventDefault();if(busy||!canOperate())return;const matchId=root.querySelector('#clearanceMatch').value;if(!choices.some(m=>m.id===matchId)||!root.querySelector('#clearanceConfirmed').checked){root.querySelector('#clearanceStatus').textContent='Seleziona una gara e conferma la squalifica scontata.';return}busy=true;setBusyControls(root,true);try{const {data,error}=await db.from('disciplinary_clearances').insert({user_id:teamOwner(),player_id:playerId,season_start:d.season.from,threshold_event_id:eventId,served_match_id:matchId}).select().single();if(error)throw error;if(!current())return;state.disciplinary_clearances=(state.disciplinary_clearances||[]).concat(data);root.remove();onSaved();toast('Squalifica scontata confermata')}catch(error){root.querySelector('#clearanceStatus').textContent=error.code==='23505'?'Questa soglia o questa gara sono già state confermate. Ricarica la squadra.':error.message||'Conferma non riuscita'}finally{busy=false;setBusyControls(root,false)}};
+function playerDiscipline(id) {
+  const season = disciplineSeason(),
+    cancelled = new Set(
+      (state.activities || [])
+        .filter((a) => a.status === "Annullato")
+        .map((a) => a.match_id),
+    ),
+    matches = new Map(
+      state.matches
+        .filter(
+          (m) =>
+            m.match_date >= season.from &&
+            m.match_date <= season.to &&
+            m.match_date <= today() &&
+            !cancelled.has(m.id),
+        )
+        .map((m) => [m.id, m]),
+    );
+  const seen = new Set(),
+    events = state.events
+      .filter((e) => {
+        if (
+          seen.has(e.id) ||
+          e.player_id !== id ||
+          !matches.has(e.match_id) ||
+          !["Ammonizione", "Espulsione"].includes(e.event_type)
+        )
+          return false;
+        seen.add(e.id);
+        return true;
+      })
+      .sort(
+        (a, b) =>
+          matches
+            .get(a.match_id)
+            .match_date.localeCompare(matches.get(b.match_id).match_date) ||
+          (a.minute ?? 999) - (b.minute ?? 999) ||
+          (a.created_at || "").localeCompare(b.created_at || "") ||
+          a.id.localeCompare(b.id),
+      );
+  const yellows = events.filter((e) => e.event_type === "Ammonizione"),
+    total = yellows.length,
+    cycles = Math.floor(total / 5),
+    current = total % 5;
+  const milestones = yellows.filter((e, i) => (i + 1) % 5 === 0),
+    confirmed = (state.disciplinary_clearances || []).filter(
+      (c) => c.player_id === id && c.season_start === season.from,
+    ),
+    valid = confirmed.filter(
+      (c) =>
+        milestones.some((e) => e.id === c.threshold_event_id) &&
+        matches.has(c.served_match_id) &&
+        matches.get(c.served_match_id).match_date >
+          matches.get(
+            state.events.find((e) => e.id === c.threshold_event_id)?.match_id,
+          )?.match_date &&
+        !(state.roster || []).some(
+          (r) =>
+            r.player_id === id &&
+            r.minutes_played > 0 &&
+            state.activities.some(
+              (a) => a.id === r.activity_id && a.match_id === c.served_match_id,
+            ),
+        ),
+    ),
+    pending = milestones.filter(
+      (e) => !valid.some((c) => c.threshold_event_id === e.id),
+    ),
+    review = confirmed.filter((c) => !valid.includes(c));
+  const dismissals = playerDismissals(id),
+    redAttention = dismissals.some((d) => d.attention);
+  return {
+    season,
+    events,
+    yellows,
+    total,
+    cycles,
+    current,
+    milestones,
+    confirmed,
+    valid,
+    pending,
+    review,
+    dismissals,
+    redAttention,
+    reds: events.filter((e) => e.event_type === "Espulsione").length,
+    diffida: current === 4,
+    matches,
+  };
 }
 
-function registerDiscipline(){
- registerExtension('match-tools','discipline',()=>'<div class="discipline-entry"><button data-discipline>Cartellini e diffide</button><span class="row-sub">Ammonizioni, espulsioni e squalifiche</span></div>');
- registerExtension('tools','discipline',()=>'<button data-discipline><b>Cartellini e diffide</b><span>Ammonizioni, soglie e storico per giocatore</span></button>',20);
- registerExtension('player-actions','discipline',p=>`<button type="button" class="ghost wide field-space" data-discipline-player="${esc(p.id)}">Cartellini e diffide · ${disciplineBadge(p.id)}</button>`);
- registerExtension('player-badges','discipline',p=>{const d=playerDiscipline(p.id);return d.total||d.review.length||d.dismissals.length?`<div class="field-space">${disciplineBadge(p.id)}</div>`:''});
- registerBinder('discipline',root=>{root.querySelectorAll('[data-discipline]').forEach(b=>b.onclick=()=>disciplineModal());root.querySelectorAll('[data-discipline-player]').forEach(b=>b.onclick=()=>disciplineModal(b.dataset.disciplinePlayer))});
-}
-
-export { disciplineSeason, playerDiscipline, disciplineBadge, disciplineModal, disciplineClearances, clearanceModal, registerDiscipline };
+/** @param {string|null} playerId */
+function disciplineModal(playerId=null){return ui.open('discipline',{playerId},{page:playerId?'players':'more',detail:playerId?'discipline:'+playerId:'tool:discipline',workspace:!playerId})} export {disciplineModal};
+export { disciplineSeason, playerDiscipline };

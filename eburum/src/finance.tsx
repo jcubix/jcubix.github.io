@@ -152,28 +152,32 @@ export function FinancePage({
   const dirty =
     !!draft &&
     (JSON.stringify(draft) !== baseline.current || !!file || !!committed);
+  const canLeave = async (message: string) => {
+    if (pending.current) return false;
+    if (!dirty) return true;
+    return (
+      (await confirmDialog({ message, confirmLabel: "Scarta" })) &&
+      current() &&
+      !pending.current
+    );
+  };
   useLayoutEffect(() => {
-    runtime.setNavigationGuard(
-      () =>
-        !pending.current &&
-        (!dirty ||
-          window.confirm(
-            committed
-              ? "Il movimento è salvato. Uscire senza completare l’allegato?"
-              : "Scartare le modifiche economiche non salvate?",
-          )),
+    runtime.setNavigationGuard(() =>
+      canLeave(
+        committed
+          ? "Il movimento è salvato. Uscire senza completare l’allegato?"
+          : "Scartare le modifiche economiche non salvate?",
+      ),
     );
     return () => runtime.setNavigationGuard(null);
   }, [runtime, dirty, committed]);
-  const stop = () => {
-    if (pending.current) return;
+  const stop = async () => {
     if (
-      dirty &&
-      !window.confirm(
+      !(await canLeave(
         committed
           ? "Movimento già salvato: uscire senza completare la ricevuta?"
           : "Scartare la bozza non salvata?",
-      )
+      ))
     )
       return;
     setDraft(null);
