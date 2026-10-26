@@ -848,31 +848,26 @@ html[data-theme] :is(.badge.b-gray, .tone-neutral) {
 .communication-search {
   width: 100%;
 }
-/* All message filters stay visible; selection uses the shared quiet surface. */
+/* A single scrollable row keeps message filters compact on phones. */
 html[data-theme] .soft-club .communication-filters > .segmented {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: nowrap;
   gap: 4px;
-  overflow: visible;
+  overflow-x: auto;
   padding: 4px;
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-pill);
+  scrollbar-width: none;
+}
+.communication-filters > .segmented::-webkit-scrollbar {
+  display: none;
 }
 html[data-theme] .soft-club .communication-filters > .segmented > button {
-  min-width: 0;
+  flex: 0 0 auto;
+  min-width: max-content;
   min-height: 44px;
-  padding: 8px;
+  padding: 8px 16px;
   font-size: 13px;
-  white-space: normal;
-}
-@media (max-width: 359px) {
-  html[data-theme] .soft-club .communication-filters > .segmented {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-@media (min-width: 1280px) {
-  html[data-theme] .soft-club .communication-filters > .segmented {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-  }
+  white-space: nowrap;
 }
 .communication-list-status {
   display: flex;
@@ -887,22 +882,21 @@ html[data-theme] .soft-club .communication-filters > .segmented > button {
   margin: 0;
   font-size: 13px;
 }
+.communication-list-status > p:last-of-type {
+  flex: 1;
+  min-width: 0;
+}
 .communication-list-status .status-dot.success {
   animation: realtime-pulse 2.8s ease-in-out infinite;
 }
-.communication-refresh-menu {
-  position: relative;
-}
-.communication-refresh-menu summary {
+.communication-list-status .communication-refresh {
+  flex: none;
+  width: 44px;
+  height: 44px;
   min-height: 44px;
-  cursor: pointer;
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.communication-refresh-menu[open] button {
-  margin-block: 8px;
+  padding: 0;
+  margin-inline-start: auto;
+  border-radius: var(--radius-pill);
 }
 .native-message {
   padding: 20px;

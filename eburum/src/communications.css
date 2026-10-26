@@ -36,14 +36,63 @@
   border-top: 1px solid var(--border);
   padding-top: 24px;
 }
-.communication-legacy-meetings summary {
+.communication-legacy-meetings > summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
   cursor: pointer;
   font-weight: 600;
+  list-style: none;
 }
-.communication-legacy-meetings .sc-list-row {
+.communications-main .communication-legacy-meetings > summary::before,
+.communications-main
+  .communication-legacy-meetings
+  > summary::-webkit-details-marker {
+  display: none;
+}
+.legacy-meetings-title {
+  flex: 1;
+  min-width: 0;
+}
+.legacy-meetings-chevron {
+  flex: none;
+  transition: transform 180ms ease-out;
+}
+.communication-legacy-meetings[open] .legacy-meetings-chevron {
+  transform: rotate(90deg);
+}
+.communication-legacy-meetings .sc-helper {
+  margin-block: 12px 16px;
+}
+.communication-legacy-meetings .communication-meeting-list {
+  padding: 0;
+  overflow: hidden;
+}
+.communication-legacy-meetings .legacy-meeting-row {
+  display: flex;
+  align-items: center;
   width: 100%;
+  min-height: 72px;
+  padding: 16px;
+  gap: 12px;
   text-align: left;
-  gap: 16px;
+  background: transparent;
+  color: var(--ink);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.legacy-meeting-row + .legacy-meeting-row {
+  border-top: 1px solid var(--border);
+}
+.legacy-meeting-row .sc-chevron {
+  flex: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .legacy-meetings-chevron {
+    transition: none;
+  }
 }
 .modern-dialog-overlay {
   background: color-mix(in srgb, var(--bg) 85%, transparent);
