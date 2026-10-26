@@ -18,7 +18,7 @@
     "paddingBottom": 192
   },
   "palette": {
-    "--bg": "#e9edf3",
+    "--bg": "#e9edf4",
     "--surface": "#fff",
     "--ink": "#0f1b3d",
     "--primary": "#0d1e45",

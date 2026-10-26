@@ -10,3 +10,4 @@ dist/
 /graphify-out/
 /.playwright-cli/
 /.impeccable/review/
+/test-results/

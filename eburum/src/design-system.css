@@ -196,6 +196,7 @@
   --muted: var(--ink-2);
   --input-bg: var(--surface);
   --surface-hover: var(--primary-soft);
+  --match-action-bg: var(--surface);
   --gold: var(--accent-ink);
   --focus: var(--primary-ink);
   --green: var(--success);
@@ -551,6 +552,39 @@ textarea::placeholder {
   flex: 1;
   min-width: 0;
 }
+.sc-row-copy strong,
+.sc-person-copy b {
+  font-size: 15px;
+  font-weight: 600;
+}
+.sc-row-copy small,
+.sc-person-copy small,
+.sc-communication-preview p {
+  font-weight: 400;
+}
+.sc-communication-preview {
+  padding: 20px;
+}
+.sc-communication-preview > :is(h2, h3):first-child {
+  margin-top: 0;
+}
+.sc-communication-preview > button.ghost {
+  margin-top: 16px;
+}
+html[data-theme] .app-header .header-actions > :is(button, a),
+html[data-theme] .app-header .header-settings > summary,
+html[data-theme] .soft-club .page-heading > button {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: var(--radius-pill);
+  color: var(--ink);
+}
 .sc-chevron {
   color: var(--ink-3);
 }
@@ -572,6 +606,8 @@ html[data-theme] :is(.badge.b-gray, .tone-neutral) {
   background: var(--neutral-soft);
 }
 .sc-list-row .sc-small-count {
+  align-self: flex-start;
+  flex: none;
   font-size: 12px;
   padding: 4px 8px;
   white-space: normal;
@@ -654,6 +690,8 @@ html[data-theme] :is(.badge.b-gray, .tone-neutral) {
   font-size: 13px;
 }
 .sc-last-training {
+  display: grid;
+  gap: 8px;
   padding: 20px;
   background: var(--surface);
   color: var(--ink);
@@ -664,11 +702,16 @@ html[data-theme] :is(.badge.b-gray, .tone-neutral) {
 .sc-last-training :is(h3, p, b) {
   color: var(--ink);
 }
+.sc-last-training :is(h2, p) {
+  margin: 0;
+}
 .sc-last-training p {
   font-size: 15px;
+  font-weight: 400;
 }
 .sc-last-training button {
-  margin-top: 12px;
+  justify-self: start;
+  margin-top: 8px;
 }
 .sc-training-focus.sc-last-training {
   background: var(--surface);
@@ -701,7 +744,10 @@ html[data-theme] :is(.badge.b-gray, .tone-neutral) {
 .sc-home-availability {
   order: 5;
 }
-.sc-home-secondary > .sc-section-heading {
+.sc-home-layout .sc-section-heading {
+  margin: 0 0 12px;
+}
+.sc-home-layout .sc-last-training {
   margin-top: 0;
 }
 .sc-home-availability {
@@ -802,35 +848,31 @@ html[data-theme] :is(.badge.b-gray, .tone-neutral) {
 .communication-search {
   width: 100%;
 }
-.communication-filters > .segmented {
-  display: flex;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  gap: 8px;
-  padding: 4px 0 8px;
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  scrollbar-width: thin;
+/* All message filters stay visible; selection uses the shared quiet surface. */
+html[data-theme] .soft-club .communication-filters > .segmented {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  overflow: visible;
+  padding: 4px;
+  border-radius: var(--radius-card);
 }
-.communication-filters > .segmented button {
-  flex: none;
-  min-width: max-content;
+html[data-theme] .soft-club .communication-filters > .segmented > button {
+  min-width: 0;
   min-height: 44px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  padding: 8px 16px;
+  padding: 8px;
   font-size: 13px;
-  background: var(--surface);
-  color: var(--ink-2);
+  white-space: normal;
 }
-.communication-filters > .segmented button[aria-pressed="true"] {
-  background: var(--primary);
-  color: var(--primary-foreground);
-  border-color: var(--primary);
+@media (max-width: 359px) {
+  html[data-theme] .soft-club .communication-filters > .segmented {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
-.communication-filters .club-nav-highlight {
-  display: none;
+@media (min-width: 1280px) {
+  html[data-theme] .soft-club .communication-filters > .segmented {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
 }
 .communication-list-status {
   display: flex;
@@ -1351,42 +1393,58 @@ html[data-theme="dark"] .soft-club {
   color: var(--ink-3);
   margin-top: 8px;
 }
-:is(
-  .workflow-switch,
-  .sc-segmented,
-  .activity-tabs,
-  .training-phase-tabs,
-  .attendance-filters,
-  .report-tabs,
-  .training-scope
-) {
+html[data-theme]
+  .soft-club
+  :is(
+    .segmented,
+    .workflow-switch,
+    .sc-segmented,
+    .activity-tabs,
+    .training-phase-tabs,
+    .attendance-filters,
+    .report-tabs,
+    .training-scope,
+    .finance-tabs
+  ) {
   background: var(--surface-muted);
   border: 1px solid var(--border);
   padding: 4px;
   border-radius: var(--radius-pill);
 }
-:is(
+html[data-theme]
+  .soft-club
+  :is(
+    .segmented,
     .workflow-switch,
     .sc-segmented,
     .activity-tabs,
     .training-phase-tabs,
     .attendance-filters,
     .report-tabs,
-    .training-scope
+    .training-scope,
+    .finance-tabs
   )
   > button {
+  border: 1px solid transparent;
   border-radius: var(--radius-pill);
+  background: transparent;
   color: var(--ink-2);
   font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
 }
-:is(
+html[data-theme]
+  .soft-club
+  :is(
+    .segmented,
     .workflow-switch,
     .sc-segmented,
     .activity-tabs,
     .training-phase-tabs,
     .attendance-filters,
     .report-tabs,
-    .training-scope
+    .training-scope,
+    .finance-tabs
   )
   > button:is(
     [aria-pressed="true"],
@@ -1396,17 +1454,14 @@ html[data-theme="dark"] .soft-club {
   ) {
   color: var(--ink);
   background: var(--surface);
+  font-weight: 600;
 }
-.club-motion-nav > .club-nav-highlight {
+html[data-theme] .soft-club .club-motion-nav > .club-nav-highlight {
   background: var(--surface);
   border-radius: var(--radius-pill);
 }
-.app-mobile-nav.club-motion-nav > .club-nav-highlight {
+html[data-theme] .soft-club .app-mobile-nav > .club-nav-highlight {
   background: var(--primary-soft);
-}
-.communication-filters > .segmented > button[aria-pressed="true"] {
-  background: var(--primary);
-  color: var(--primary-foreground);
 }
 .app-season {
   position: relative;
@@ -1575,11 +1630,6 @@ html[data-theme] .sc-mini-avatar {
 .training-whiteboard-link {
   margin-block: 0 24px;
 }
-.communications-main .communication-filters > .segmented {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-}
 .communications-main .communication-list-status {
   flex-direction: row;
   justify-content: flex-start;
@@ -1613,14 +1663,8 @@ html[data-theme] .sc-match-preview.is-today {
 /* Operational layouts keep one working bar and a visible keyboard focus. */
 html[data-theme]
   :is(.soft-club, .modal, .modern-dialog, .auth-panel)
-  :is(
-    button,
-    a,
-    input,
-    select,
-    textarea,
-    summary,
-    [tabindex="0"]
+  :is(button, a, input, select, textarea, summary, [tabindex="0"]):not(
+    :where(.sc-search input, .communication-search input)
   ):focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
@@ -1632,15 +1676,17 @@ html[data-theme]
   border-color: var(--control-border);
 }
 html[data-theme]
-  :is(.soft-club, .modal, .modern-dialog, .auth-panel)
+  :where(.soft-club, .modal, .modern-dialog, .auth-panel)
   button:not(
-    .app-nav-item,
-    .sc-list-row,
-    .sc-match-preview,
-    .sc-communication-preview,
-    .player-directory-entry,
-    .report-metric,
-    .sc-player-open
+    :where(
+      .app-nav-item,
+      .sc-list-row,
+      .sc-match-preview,
+      .sc-communication-preview,
+      .player-directory-entry,
+      .report-metric,
+      .sc-player-open
+    )
   ) {
   border-radius: var(--radius-control);
 }
@@ -1715,14 +1761,6 @@ html[data-theme] .sc-last-training p {
 }
 .workspace-editor .modal-head h2 {
   font-size: 32px;
-}
-.sc-search:focus-within {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-html[data-theme] .sc-search input:focus-visible {
-  outline: none;
-  box-shadow: none;
 }
 @media (min-width: 1024px) {
   html[data-theme]
@@ -2143,11 +2181,48 @@ html[data-theme] .header-settings-panel select {
   border-color: var(--control-border);
   border-radius: var(--radius-control);
 }
-html[data-theme] .sc-search {
+/* Composite searches have one border and one focus ring, including on iOS. */
+html[data-theme] .soft-club :is(.sc-search, .communication-search) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 0 12px;
   border: 1px solid var(--control-border);
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+  color: var(--ink-3);
+  box-shadow: none;
 }
-html[data-theme] .soft-club .sc-search input {
+html[data-theme]
+  .soft-club
+  :is(.sc-search, .communication-search):focus-within {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+html[data-theme]
+  .soft-club
+  :is(.sc-search, .communication-search)
+  input[type="search"] {
+  appearance: none;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 12px 0;
+  border: 0;
+  border-radius: 0;
   background: transparent;
+  color: var(--ink);
+  box-shadow: none;
+  outline: none;
+}
+html[data-theme] .soft-club :is(.sc-search, .communication-search) > svg {
+  position: static;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
 }
 .trend-caption {
   font-size: 14px;
