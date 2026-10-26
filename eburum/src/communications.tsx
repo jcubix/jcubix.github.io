@@ -191,22 +191,18 @@ export function CommunicationsPage({
                   ? "connessione interrotta"
                   : "connessione agli aggiornamenti…"}
             </p>
-          </div>
-          <details className="communication-refresh-menu">
-            <summary>
-              <RefreshCw size={18} />
-              Gestisci aggiornamenti
-            </summary>
             <Button
-              variant="secondary"
+              variant="ghost"
+              size="icon"
+              className="communication-refresh"
               disabled={busy}
               onClick={() => void reload()}
               aria-label="Aggiorna comunicazioni"
+              title="Aggiorna messaggi"
             >
               {busy ? <LoaderCircle className="animate-spin" /> : <RefreshCw />}
-              Riconnetti
             </Button>
-          </details>
+          </div>
           {error ? (
             <div className="network-banner" role="alert">
               <p>{error}</p>
@@ -252,8 +248,10 @@ export function CommunicationsPage({
           ) ? (
             <details className="communication-legacy-meetings">
               <summary>
-                <CalendarDays size={20} />
-                Riunioni già registrate{" "}
+                <CalendarDays size={20} aria-hidden="true" />
+                <span className="legacy-meetings-title">
+                  Riunioni già registrate
+                </span>
                 <span className="badge tone-neutral">
                   {
                     runtime.state.activities.filter(
@@ -261,13 +259,17 @@ export function CommunicationsPage({
                     ).length
                   }
                 </span>
-                <ChevronRight size={20} />
+                <ChevronRight
+                  size={20}
+                  className="legacy-meetings-chevron"
+                  aria-hidden="true"
+                />
               </summary>
               <p className="sc-helper">
                 Gli appuntamenti precedenti restano consultabili. Per i nuovi
                 inviti usa Nuova comunicazione → Riunione.
               </p>
-              <div className="sc-directory">
+              <div className="sc-directory communication-meeting-list">
                 {runtime.state.activities
                   .filter((a) => a.activity_type === "Riunione")
                   .sort((a, b) =>
@@ -275,11 +277,14 @@ export function CommunicationsPage({
                   )
                   .map((a) => (
                     <button
-                      className="sc-list-row"
+                      type="button"
+                      className="legacy-meeting-row"
                       key={a.id}
                       onClick={() => void runtime.actions.openActivity(a.id)}
                     >
-                      <CalendarDays size={20} />
+                      <span className="sc-row-icon">
+                        <CalendarDays size={20} aria-hidden="true" />
+                      </span>
                       <span className="sc-row-copy">
                         <strong>{a.title}</strong>
                         <small>
@@ -295,7 +300,11 @@ export function CommunicationsPage({
                             : ""}
                         </small>
                       </span>
-                      <ChevronRight size={20} />
+                      <ChevronRight
+                        size={20}
+                        className="sc-chevron"
+                        aria-hidden="true"
+                      />
                     </button>
                   ))}
               </div>

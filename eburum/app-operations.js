@@ -140,7 +140,7 @@ function mountMatchResults(root, a, guard, getMatch, onTimeline = () => {}) {
     timeline = panel.querySelector("#matchEventList"),
     minutes = panel.querySelector(".match-minutes");
   const composer=document.createElement('div');composer.className='match-event-composer';
-  const notes=document.createElement('details');notes.className='match-game-notes';notes.innerHTML='<summary>Note sulla gara</summary>';notes.append(note);
+  const notes=document.createElement('div');notes.className='match-game-notes';note.classList.remove('field-space');notes.append(note);
   main.append(heading, composer, timeline, notes);
   settings.querySelector('summary').firstChild.textContent='Durata e calcolo minuti ';
   settings.append(panel.querySelector('.match-result-venue'));

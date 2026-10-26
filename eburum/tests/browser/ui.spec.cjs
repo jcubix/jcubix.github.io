@@ -76,8 +76,11 @@ test('searches have one focus ring and message filters keep a quiet, reachable s
  expect(searches[0]).toEqual(searches[1]);
  const filters=page.getByRole('group',{name:'Filtra comunicazioni'}),buttons=filters.getByRole('button');
  await expect(buttons).toHaveCount(6);
- for(const button of await buttons.all())await expect(button).toBeInViewport();
- expect(await filters.evaluate(el=>el.scrollWidth>el.clientWidth)).toBe(false);
+ const geometry=await buttons.evaluateAll(elements=>elements.map(el=>Math.round(el.getBoundingClientRect().top)));
+ expect(new Set(geometry).size).toBe(1);
+ if(page.viewportSize().width<768)expect(await filters.evaluate(el=>el.scrollWidth>el.clientWidth)).toBe(true);
+ await buttons.last().focus();await expect(buttons.last()).toBeInViewport();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
  await buttons.filter({hasText:'Riunioni'}).click();await expect(buttons.filter({hasText:'Riunioni'})).toHaveAttribute('aria-pressed','true');
  const selected=await filters.locator('[aria-pressed=true]').evaluate(el=>{const style=getComputedStyle(el),probe=document.createElement('span');probe.style.color='var(--ink)';probe.style.background='var(--surface)';document.body.append(probe);const expected=getComputedStyle(probe),result={color:style.color,background:style.backgroundColor,radius:style.borderRadius,expectedColor:expected.color,expectedBackground:expected.backgroundColor};probe.remove();return result;});
  expect(selected.color).toBe(selected.expectedColor);expect(selected.background).toBe(selected.expectedBackground);expect(selected.radius).toBe('999px');
@@ -93,4 +96,30 @@ test('dashboard cards share surfaces, compact badges and consistent header actio
  for(const card of styles.cards){expect(card.background).toBe(styles.surface);expect(card.radius).toBe('16px');}
  for(const badge of styles.badges){expect(badge.width).toBeLessThan(130);expect(badge.width).toBeLessThan(badge.parentWidth);}
  for(const icon of styles.icons){expect(icon.radius).toBe('999px');expect(icon.width).toBe(44);expect(icon.height).toBe(44);}
+});
+
+
+test('registered meetings use one disclosure icon and unboxed list rows; refresh is a direct icon action',async({page})=>{
+ await open(page,'communications');await page.waitForFunction(()=>window.fixtureMount?.runtime);
+ await page.evaluate(()=>{
+  const meeting={id:'legacy-ui-meeting',user_id:fixtureUser.id,activity_type:'Riunione',title:'Riunione precedente di prova',activity_date:'2026-10-20',start_time:'19:00',status:'Programmato',revision:0};
+  fixtureData.activities.push(meeting);window.fixtureMount.runtime.state.activities.push(meeting);window.fixtureMount.runtime.render();
+ });
+ await expect(page.locator('.communication-refresh-menu')).toHaveCount(0);
+ const refresh=page.getByRole('button',{name:'Aggiorna comunicazioni',exact:true});await expect(refresh).toBeVisible();await expect(refresh).toHaveText('');
+ await page.evaluate(()=>window.fixtureCommunicationError={message:'Offline di prova'});await refresh.click();await expect(page.getByRole('alert')).toContainText('Aggiornamento non riuscito');
+ await page.evaluate(()=>delete window.fixtureCommunicationError);await refresh.click();await expect(page.getByRole('alert')).toHaveCount(0);
+ const history=page.locator('.communication-legacy-meetings');await history.locator('summary').click();const row=history.getByRole('button',{name:/Riunione precedente di prova/});await expect(row).toBeVisible();
+ expect(await history.locator('summary').evaluate(el=>getComputedStyle(el,'::before').display)).toBe('none');
+ const style=await row.evaluate(el=>{const s=getComputedStyle(el);return {border:s.borderWidth,radius:s.borderRadius,background:s.backgroundColor};});
+ expect(style).toEqual({border:'0px',radius:'0px',background:'rgba(0, 0, 0, 0)'});
+ await row.click();await expect(page.locator('#planningForm')).toBeVisible();
+});
+
+test('match notes are visible without opening a disclosure and save with the result',async({page})=>{
+ await open(page,'matches');await page.locator('.sc-match-preview').filter({hasText:'Atletico Battipaglia 2018'}).click();
+ await page.locator('[data-activity-tab=results]').click();const note=page.locator('#matchNote');await expect(note).toBeVisible();
+ expect(await note.evaluate(el=>el.closest('details')===null)).toBe(true);await note.fill('Nota gara sintetica sempre visibile');
+ await page.locator('#saveMatchResult').click();await expect(page.locator('#saveMatchResult')).toBeEnabled();
+ await expect.poll(()=>page.evaluate(()=>fixtureData.matches.find(m=>m.id==='future-match').note)).toBe('Nota gara sintetica sempre visibile');
 });
