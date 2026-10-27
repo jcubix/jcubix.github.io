@@ -1752,7 +1752,7 @@ export function MatchEditor({
                       "Difensore",
                       "Portiere",
                     ].map((role) => (
-                      <div className="formation-row" key={role}>
+                      <div className="pitch-line" key={role}>
                         {starters
                           .filter(
                             (r) =>
@@ -1764,12 +1764,10 @@ export function MatchEditor({
                               (p) => p.id === r.player_id,
                             )!;
                             return (
-                              <span
-                                className="formation-player"
-                                key={r.player_id}
-                              >
+                              <span className="pitch-player" key={r.player_id}>
                                 <b>{p.shirt_number ?? "•"}</b>
-                                <small>{p.surname}</small>
+                                <span>{p.surname}</span>
+                                <small>{r.position || role}</small>
                               </span>
                             );
                           })}

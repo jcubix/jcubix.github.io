@@ -2653,3 +2653,20 @@ html[data-theme] .sc-person-avatar[data-role="Attaccante"] {
   font-size: 24px;
   color: var(--ink-3);
 }
+
+/* The workspace itself is a programmatic focus target, not an interactive control. */
+.workspace-editor[tabindex="-1"]:focus {
+  outline: none;
+}
+
+/* Disabled fieldsets must not double the existing phase-to-replies spacing. */
+.training-work-panel #planningForm > fieldset > .training-replies {
+  margin-top: 4px;
+}
+.sc-inline-training
+  .training-work-panel
+  #planningForm
+  > fieldset
+  > .training-replies {
+  margin-top: 0;
+}

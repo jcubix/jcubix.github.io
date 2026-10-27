@@ -110,13 +110,15 @@ export function Field({
   id,
   label,
   children,
+  className = "",
 }: {
   id?: string;
   label: string;
   children: ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="field">
+    <div className={`field ${className}`}>
       <label htmlFor={id}>{label}</label>
       {children}
     </div>
@@ -124,7 +126,13 @@ export function Field({
 }
 export function Feedback({ error, id }: { error: string; id?: string }) {
   return (
-    <p id={id} role="status" aria-live="polite" className="row-sub">
+    <p
+      id={id}
+      role="status"
+      aria-live="polite"
+      className="row-sub"
+      hidden={!error}
+    >
       {error}
     </p>
   );
@@ -163,13 +171,18 @@ export function EditorFrame({
       <section
         ref={root}
         tabIndex={-1}
-        className={`workspace-editor modal-back workspace-view ${className}`}
+        className="workspace-editor modal-back workspace-view"
         data-detail={surface.detail}
         data-page={surface.page}
         data-dirty={dirty}
         aria-busy={busy}
       >
-        <div className="modal" role="region" aria-label={title}>
+        <div
+          className={`modal ${className}`}
+          data-dirty={dirty}
+          role="region"
+          aria-label={title}
+        >
           <div className="modal-head">
             <h2 id={titleId}>{title}</h2>
             <Button
@@ -217,10 +230,14 @@ export function CopyText({
   text,
   label = "Copia testo",
   id,
+  className,
+  children,
 }: {
   text: string;
   label?: string;
   id?: string;
+  className?: string;
+  children?: ReactNode;
 }) {
   const [status, setStatus] = useState(""),
     [fallback, setFallback] = useState(false),
@@ -235,6 +252,7 @@ export function CopyText({
     <>
       <Button
         id={id}
+        className={className}
         variant="secondary"
         onClick={async () => {
           try {
@@ -246,8 +264,12 @@ export function CopyText({
           }
         }}
       >
-        <Copy size={18} />
-        {label}
+        {children || (
+          <>
+            <Copy size={18} />
+            {label}
+          </>
+        )}
       </Button>
       {fallback ? (
         <textarea
