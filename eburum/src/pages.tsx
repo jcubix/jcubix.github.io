@@ -519,8 +519,8 @@ export function ToolsPage({ runtime }: { runtime: Runtime }) {
         },
         {
           page: "reports",
-          label: "Report giocatori",
-          description: "Presenze, minuti e rendimento",
+          label: "Report giocatori e squadra",
+          description: "Dati individuali e riepilogo della squadra",
           icon: FileChartColumn,
         },
         {
