@@ -15,10 +15,25 @@ test('team report uses confirmed training records, excludes cancelled and old ma
  assert.equal(rows[1].active,false);assert.equal(rows[1].sessions,1);assert.equal(rows[1].injured,1);assert.equal(rows[1].substitutes,1);assert.equal(rows[1].reds,1);assert.equal(rows[2].substitutes,0);assert.equal(rows[2].percentage,null);assert.equal(rows[2].absent,0);
  const narrow=teamReportRows(players,source(),'2026-10-01','2026-10-01');assert.equal(narrow[0].percentage,100);assert.equal(narrow[0].goals,0);
 });
-test('team report sorts without mutation and CSV protects names against spreadsheet formulas',async()=>{
- const {teamReportRows,sortTeamReport,teamReportCsv,teamReportColumns}=await domain;const rows=teamReportRows(players,source(),'2026-10-01','2026-10-31');const before=JSON.stringify(rows);
+test('team report sorts without mutation',async()=>{
+ const {teamReportRows,sortTeamReport}=await domain;const rows=teamReportRows(players,source(),'2026-10-01','2026-10-31');const before=JSON.stringify(rows);
  assert.deepEqual(sortTeamReport(rows).map(r=>r.id),['b','a','c']);assert.deepEqual(sortTeamReport(rows,'minutes','desc').map(r=>r.id),['a','b','c']);assert.equal(sortTeamReport(rows,'percentage','desc').at(-1).id,'c');assert.equal(JSON.stringify(rows),before);
- rows[0].name='  =HYPERLINK("test")';rows[1].role='@SUM(1)';const csv=teamReportCsv(rows);assert.ok(csv.startsWith('\uFEFF"Giocatore";"Ruolo"'));assert.ok(csv.includes('"\'  =HYPERLINK(""test"")"'));assert.ok(csv.includes('"\'@SUM(1)"'));assert.ok(csv.includes('Bianchi Luca (Inattivo)'));assert.equal(csv.split('\r\n')[0].split(';').length,teamReportColumns.length);
+});
+
+test('team Excel round-trips ordered data as real numbers and safe text, with filters and frozen headings',async()=>{
+ const {teamReportRows,sortTeamReport,createTeamReportExcel,teamReportColumns}=await domain;
+ const rows=sortTeamReport(teamReportRows(players,source(),'2026-10-01','2026-10-31'),'minutes','desc');
+ rows[0].name='  =HYPERLINK("test")';rows[1].role='@SUM(1)';rows[2].name='D’Angelo Nicolò & <Paolo>';
+ rows.push({...rows[0],id:'full',name:'Presenza completa',percentage:100});const before=JSON.stringify(rows);
+ const bytes=await createTeamReportExcel(rows,'2026-10-01','2026-10-31');assert.equal(Buffer.from(bytes).subarray(0,2).toString(),'PK');assert.equal(JSON.stringify(rows),before);
+ const {Workbook,ValueType}=require('exceljs'),book=new Workbook();await book.xlsx.load(bytes);assert.equal(book.worksheets.length,1);const sheet=book.getWorksheet('Report squadra');
+ assert.equal(sheet.getCell('A2').value,'01/10/2026 – 31/10/2026 · 4 giocatori');assert.equal(sheet.rowCount,8);assert.equal(sheet.columnCount,14);assert.deepEqual(sheet.getRow(4).values.slice(1),teamReportColumns.map(c=>c.label));
+ for(const [i,row] of rows.entries())for(const [j,column] of teamReportColumns.entries()){
+  const cell=sheet.getCell(i+5,j+1);let expected=row[column.key];if(column.key==='name'&&!row.active)expected+=' (Inattivo)';if(column.key==='percentage'&&expected!=null)expected/=100;
+  assert.equal(cell.value,expected);assert.equal(cell.formula,undefined);if(typeof expected==='number')assert.equal(cell.type,ValueType.Number);
+ }
+ assert.equal(sheet.getCell('G5').numFmt,'0%');assert.equal(sheet.getCell('G6').value,0);assert.equal(sheet.getCell('G7').value,null);assert.equal(sheet.getCell('G8').value,1);assert.equal(sheet.getCell('A5').type,ValueType.String);assert.equal(sheet.getCell('B6').type,ValueType.String);
+ assert.equal(sheet.views[0].state,'frozen');assert.equal(sheet.views[0].xSplit,1);assert.equal(sheet.views[0].ySplit,4);assert.equal(sheet.autoFilter,'A4:N8');assert.equal(sheet.getCell('A4').fill.fgColor.argb,'FF101D42');assert.ok(sheet.getRow(4).height>=30);assert.equal(sheet.getCell('A4').alignment.wrapText,true);
 });
 test('team PDF is a real landscape document with repeated headers on multiple pages',async t=>{
  const dom=new JSDOM('',{runScripts:'outside-only'});t.after(()=>{dom.window.close();delete globalThis.jspdf});dom.window.TextEncoder=TextEncoder;dom.window.TextDecoder=TextDecoder;vm.runInContext(fs.readFileSync(__dirname+'/../vendor/jspdf.umd.min.js','utf8'),dom.getInternalVMContext());globalThis.jspdf=dom.window.jspdf;
