@@ -249,6 +249,7 @@ export function PlanningEditor({
   surface: Surface;
   inline?: boolean;
 }) {
+  const navigate = useNavigate();
   const data = surface.data as {
       activity: Partial<Activity>;
       rows?: RosterRow[];
@@ -365,7 +366,16 @@ export function PlanningEditor({
     const opened = await startActualAttendance(
       runtime.state.activities.find((row) => row.id === a.id) || a,
     );
-    if (opened && !inline) await editor.close();
+    if (opened && !inline) {
+      await editor.close({ restoreRoute: false });
+      const session = runtime.state.trainingDraft?.id;
+      navigate(
+        session
+          ? "/training?session=" + encodeURIComponent(session)
+          : "/training",
+        { replace: true },
+      );
+    }
   };
   const content = (
     <div className="training-work-panel">
@@ -399,6 +409,7 @@ export function PlanningEditor({
             Le risposte WhatsApp restano separate dal registro: conferma le
             presenze solo dopo aver verificato chi ha partecipato.
           </p>
+          <Feedback id="planningActualError" error={editor.error} />
           <Button
             id="planningAttendance"
             disabled={

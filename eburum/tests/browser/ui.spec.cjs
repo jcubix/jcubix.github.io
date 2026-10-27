@@ -271,3 +271,14 @@ test('team report sorts, exports and links a player without losing the selected 
  await scroll.evaluate(el=>el.scrollLeft=0);const a11y=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(a11y.violations).toEqual([]);await info.attach('team-report',{body:await page.screenshot({fullPage:true}),contentType:'image/png'});
  await page.locator('#teamReportFrom').fill('2026-11-01');await expect(page.getByText(/Seleziona un intervallo valido/)).toBeVisible();await expect(page.getByRole('button',{name:'Esporta CSV',exact:true})).toBeDisabled();await expect(page.locator('[data-team-player]')).toHaveCount(0);
 });
+
+test('actual attendance opened from Home stays in training through review and saves the full team once',async({page})=>{
+ await open(page,'dashboard');await page.evaluate(()=>{for(const activities of [fixtureData.activities,fixtureMount.runtime.state.activities])activities.find(a=>a.id==='review-training').activity_date='2026-10-25';fixtureMount.runtime.render()});
+ await page.locator('.sc-home-hero [data-open-activity="review-training"]').click();await expect(page.locator('#planningTitle')).toBeVisible();await page.locator('[data-training-phase=actual]').click();await page.locator('#planningAttendance').click();await expect(page.locator('#trainList')).toBeVisible();await expect(page).toHaveURL(/#\/training$/);
+ const players=await page.locator('[data-presence="Presente"]').evaluateAll(buttons=>buttons.map(button=>button.dataset.presencePlayer));expect(players).toHaveLength(30);
+ const before=await page.evaluate(()=>fixtureData.attendance.length);
+ for(const id of players)await page.locator(`[data-presence-player="${id}"][data-presence="Presente"]`).click();
+ await page.locator('[data-presence-player="player-2"][data-presence="Assente"]').click();await page.locator('#saveTraining').click();await expect(page.locator('#reviewTitle')).toBeVisible();expect(await page.evaluate(()=>fixtureData.attendance.length)).toBe(before);
+ await page.locator('#confirmTraining').click();await expect(page.locator('#registerDetail')).toBeVisible();await expect(page).toHaveURL(/#\/register/);
+ const saved=await page.evaluate(()=>{const activity=fixtureData.activities.find(a=>a.id==='review-training'),rows=fixtureData.attendance.filter(r=>r.session_id===activity.session_id);return {rows:rows.length,present:rows.filter(r=>r.status==='Presente').length,absent:rows.filter(r=>r.status==='Assente').length,writes:fixtureRpcCalls.filter(r=>r.p_activity_id==='review-training').length}});expect(saved.rows).toBe(30);expect(saved.present).toBe(29);expect(saved.absent).toBe(1);expect(saved.writes).toBe(1);
+});

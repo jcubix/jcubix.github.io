@@ -58,7 +58,11 @@ export const ui = {
       if (guards.get(id) === guard) guards.delete(id);
     };
   },
-  async close(id: number, force = false) {
+  async close(
+    id: number,
+    force = false,
+    options: { restoreRoute?: boolean } = {},
+  ) {
     if (!force && !(await (guards.get(id)?.() ?? true))) return false;
     const surface = snapshot.surfaces.find((item) => item.id === id);
     if (!surface) return true;
@@ -68,7 +72,11 @@ export const ui = {
       surfaces: snapshot.surfaces.filter((item) => item.id !== id),
     };
     emit();
-    if (surface.detail && !snapshot.surfaces.some((item) => item.detail))
+    if (
+      options.restoreRoute !== false &&
+      surface.detail &&
+      !snapshot.surfaces.some((item) => item.detail)
+    )
       detailPresenter?.(null);
     return true;
   },
