@@ -1,21 +1,20 @@
+import * as admin from "../app-admin.js";
+import * as communications from "../app-communications.js";
+import { confirmDialog } from "../app-confirm.js";
+import * as data from "../app-data.ts";
+import * as dialogs from "../app-dialogs.js";
+import * as discipline from "../app-discipline.js";
 import * as core from "../app-part1.js";
-import * as team from "../app-team.js";
-import * as training from "../app-training-planning.js";
 import * as parts2 from "../app-part2.js";
 import * as parts3 from "../app-part3.js";
 import * as parts4 from "../app-part4.js";
-import * as communications from "../app-communications.js";
-import * as realtime from "../app-realtime.js";
-import * as discipline from "../app-discipline.js";
-import * as workflows from "../app-workflows.js";
-import * as admin from "../app-admin.js";
-import * as data from "../app-data.js";
-import * as dialogs from "../app-dialogs.js";
-import { ui } from "./ui-service";
-import { confirmDialog } from "../app-confirm.js";
 import { routeDetail } from "../app-presentation.js";
-import type { Runtime, RuntimeSnapshot, TeamState, Page } from "./types";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import * as realtime from "../app-realtime.js";
+import * as team from "../app-team.js";
+import * as training from "../app-training-planning.js";
+import * as workflows from "../app-workflows.js";
+import type { Page, Runtime, RuntimeSnapshot } from "./types";
+import { ui } from "./ui-service";
 const pages = new Set<Page>([
   "dashboard",
   "training",
@@ -37,8 +36,8 @@ export function pageFromHash(): Page {
 // Existing domain modules retain atomic writes, audit and role checks. React owns
 // the application root; the explicit presentation port replaces DOM-root writes.
 export async function createRuntime(): Promise<Runtime> {
-  const state = core.state as unknown as TeamState,
-    db = core.db as SupabaseClient;
+  const state = core.state,
+    db = core.db;
   const listeners = new Set<() => void>();
   let snapshot: RuntimeSnapshot = {
     status: "loading",

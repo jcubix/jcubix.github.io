@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { setConfirmationPresenter } from "../../../app-confirm.js";
-import { Dialog } from "./dialog";
 import { Button } from "./button";
+import { Dialog } from "./dialog";
 interface Request {
   message: string;
   title: string;

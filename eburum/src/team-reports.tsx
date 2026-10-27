@@ -1,24 +1,24 @@
+import { ArrowDown, ArrowUp, ArrowUpDown, Download } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowDown, ArrowUp, ArrowUpDown, Download } from "lucide-react";
-import { Button } from "./components/ui/button";
-import { Field, Feedback } from "./operational-ui";
-import { saveDownload } from "./finance-api";
-import type { Runtime } from "./types";
-import { loadSportPeriod, sportSeason } from "../app-data.js";
+import { loadSportPeriod, sportSeason } from "../app-data.ts";
 import { fmt, teamOwner, today } from "../app-part1.js";
-import { recentFrom } from "../app-workflows.js";
-import { validDay } from "../app-presentation.js";
 import { ensureJsPdf } from "../app-pdf-loader.js";
+import { validDay } from "../app-presentation.js";
 import {
-  teamReportColumns,
-  teamReportRows,
-  sortTeamReport,
-  teamReportCell,
   createTeamReportExcel,
   createTeamReportPdf,
+  sortTeamReport,
+  teamReportCell,
+  teamReportColumns,
+  teamReportRows,
 } from "../app-team-report.js";
+import { recentFrom } from "../app-workflows.js";
+import { Button } from "./components/ui/button";
+import { saveDownload } from "./finance-api";
+import { Feedback, Field } from "./operational-ui";
 import "./team-reports.css";
+import type { Runtime } from "./types";
 
 export function ReportViewSwitch() {
   const [params] = useSearchParams();
@@ -120,7 +120,7 @@ export function TeamReports({ runtime }: { runtime: Runtime }) {
     return () => {
       current = false;
     };
-  }, [runtime, key, valid, retry]);
+  }, [runtime, key, valid, retry, from, to]);
   const ready = valid && result?.key === key;
   const rows = ready
     ? sortTeamReport(result.rows, sort.key, sort.direction)

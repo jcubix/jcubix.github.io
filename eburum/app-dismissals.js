@@ -1,4 +1,4 @@
-import {loadDismissalSnapshot,sportSeason} from './app-data.js';
+import {loadDismissalSnapshot,sportSeason} from './app-data.ts';
 import {canOperate,fmt,render,state,teamRequestGuard,today} from './app-part1.js';
 import {ui} from './src/ui-service.ts';
 

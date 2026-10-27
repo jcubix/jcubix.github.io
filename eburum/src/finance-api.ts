@@ -1,6 +1,6 @@
 import { ensureJsPdf } from "../app-pdf-loader.js";
+import { canManageFinanceRole, canViewFinanceRole } from "../app-roles.ts";
 import type { Runtime } from "./types";
-import { canManageFinanceRole, canViewFinanceRole } from "../app-roles.js";
 
 export interface Fund {
   id: string;

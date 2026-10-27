@@ -1,27 +1,27 @@
 import {
+  ArrowUpRight,
   CalendarDays,
+  ChevronRight,
+  ClipboardCheck,
   Clock3,
   MapPin,
-  ArrowUpRight,
-  ChevronRight,
   MessageSquare,
   ShieldCheck,
   Trophy,
-  ClipboardCheck,
 } from "lucide-react";
+import { NavLink } from "react-router-dom";
 import { communicationExpiry } from "../app-communications.js";
+import { playerDismissals } from "../app-dismissals.js";
 import { isAwayMatch } from "../app-match-display.js";
+import { fmt, today } from "../app-part1.js";
 import { dayLabel, matchOutcome } from "../app-presentation.js";
-import { today, fmt } from "../app-part1.js";
 import {
   canOperateRole,
   canPlanRole,
   canViewExpiriesRole,
-} from "../app-roles.js";
-import { playerDismissals } from "../app-dismissals.js";
-import { NavLink } from "react-router-dom";
-import { ui } from "./ui-service";
+} from "../app-roles.ts";
 import type { Runtime } from "./types";
+import { ui } from "./ui-service";
 
 export function Dashboard({ runtime }: { runtime: Runtime }) {
   const { state, actions } = runtime,

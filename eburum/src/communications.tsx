@@ -1,34 +1,34 @@
-import { relativeTime, communicationDeadline } from "../app-presentation.js";
-import { roleLabels } from "../app-roles.js";
-import { useSearchParams } from "react-router-dom";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import {
+  CalendarDays,
+  ChevronRight,
+  Clock3,
+  LoaderCircle,
+  MapPin,
+  MessageSquare,
+  Plus,
+  RefreshCw,
+  Search,
+  Trash2,
+} from "lucide-react";
+import {
+  useCallback,
   useDeferredValue,
   useEffect,
   useLayoutEffect,
   useRef,
   useState,
 } from "react";
-import { useWindowVirtualizer } from "@tanstack/react-virtual";
-import {
-  Plus,
-  RefreshCw,
-  Trash2,
-  Clock3,
-  LoaderCircle,
-  Search,
-  CalendarDays,
-  MapPin,
-  MessageSquare,
-  ChevronRight,
-} from "lucide-react";
-import { canPlanRole } from "../app-roles.js";
+import { useSearchParams } from "react-router-dom";
+import { confirmDialog } from "../app-confirm.js";
+import { communicationDeadline, relativeTime } from "../app-presentation.js";
+import { canPlanRole, roleLabels } from "../app-roles.ts";
+import "./communications.css";
 import { Button } from "./components/ui/button";
-import { Input } from "./components/ui/input";
 import { Dialog } from "./components/ui/dialog";
+import { Input } from "./components/ui/input";
 import { PageHeading } from "./pages";
 import type { Communication, Runtime } from "./types";
-import { confirmDialog } from "../app-confirm.js";
-import "./communications.css";
 
 export function CommunicationsPage({
   runtime,
@@ -683,7 +683,7 @@ function CommunicationEditor({
     setMeetingTime("");
     setMeetingLocation("");
   };
-  const canLeave = async () => {
+  const canLeave = useCallback(async () => {
     if (pending.current) return false;
     if (!dirty) return true;
     const current = runtime.requestGuard();
@@ -696,7 +696,7 @@ function CommunicationEditor({
       current() &&
       !pending.current
     );
-  };
+  }, [dirty, runtime]);
   useEffect(() => {
     if (!open) return;
     runtime.setNavigationGuard(canLeave);
@@ -711,7 +711,7 @@ function CommunicationEditor({
       runtime.setNavigationGuard(null);
       window.removeEventListener("beforeunload", unload);
     };
-  }, [runtime, open, dirty]);
+  }, [runtime, open, dirty, canLeave]);
   const close = async (next: boolean) => {
     if (!next && !(await canLeave())) return;
     onOpenChange(next);

@@ -253,7 +253,7 @@ test('training replies preserve player columns, touch targets and three summary 
 test('reports keep colored chart tracks and the register keeps its seven-day calendar',async({page})=>{
  await open(page,'reports');await page.locator('#rp').selectOption('player-1');await expect(page.locator('.chart-card')).toHaveCount(3);await expect(page.locator('[data-chart-family=minutes] .chart-bar-row')).toHaveCount(1);
  const charts=await page.locator('.chart-card').evaluateAll(cards=>cards.map(card=>{const row=card.querySelector('.chart-bar-row'),track=card.querySelector('.chart-track'),fill=card.querySelector('.chart-fill');return {row:row&&getComputedStyle(row).display,height:track?.getBoundingClientRect().height,radius:track&&parseFloat(getComputedStyle(track).borderRadius),color:fill&&getComputedStyle(fill).backgroundColor}}));for(const chart of charts){expect(chart.row).toBe('grid');expect(chart.height).toBeGreaterThan(0);expect(chart.radius).toBeGreaterThan(0);expect(chart.color).not.toBe('rgba(0, 0, 0, 0)')}expect(new Set(charts.map(c=>c.color)).size).toBe(3);
- await open(page,'register');const days=await page.locator('.calendar-week > span').evaluateAll(items=>items.map(el=>el.getBoundingClientRect().toJSON()));expect(days).toHaveLength(7);expect(new Set(days.map(d=>d.y)).size).toBe(1);for(let i=1;i<7;i++)expect(days[i].x).toBeGreaterThanOrEqual(days[i-1].right-1);expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+ await open(page,'register');await expect(page.locator('.calendar-week > span')).toHaveCount(7);const days=await page.locator('.calendar-week > span').evaluateAll(items=>items.map(el=>el.getBoundingClientRect().toJSON()));expect(days).toHaveLength(7);expect(new Set(days.map(d=>d.y)).size).toBe(1);for(let i=1;i<7;i++)expect(days[i].x).toBeGreaterThanOrEqual(days[i-1].right-1);expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
 });
 
 test('team report sorts, exports and links a player without losing the selected period',async({page},info)=>{
@@ -281,6 +281,21 @@ test('team Excel blocks duplicate exports and discards a file when its period ch
  await page.getByRole('button',{name:'Esporta Excel',exact:true}).click();await expect(page.getByRole('button',{name:'Creo il file Excel…',exact:true})).toBeDisabled();await expect(page.getByRole('button',{name:'Scarica PDF',exact:true})).toBeDisabled();
  await page.locator('#teamReportPeriod').selectOption('custom');await page.locator('#teamReportFrom').fill('2026-10-01');await page.locator('#teamReportTo').fill('2026-10-12');release();await expect(page.getByRole('button',{name:'Esporta Excel',exact:true})).toBeEnabled();expect(downloads).toHaveLength(0);
  const downloaded=page.waitForEvent('download');await page.getByRole('button',{name:'Esporta Excel',exact:true}).click();const file=await downloaded;expect(file.suggestedFilename()).toBe('Eburum-squadra-2026-10-01-2026-10-12.xlsx');const {Workbook}=require('exceljs'),book=new Workbook();await book.xlsx.readFile(await file.path());const sheet=book.getWorksheet('Report squadra');expect(sheet.getCell('A2').value).toBe('01/10/2026 – 12/10/2026 · 30 giocatori');const rossi=sheet.getRows(5,30).find(row=>row.getCell(1).value==='Rossi Marco');expect(rossi.getCell(3).value).toBe(0);expect(rossi.getCell(7).value).toBe(null);expect(downloads).toHaveLength(1);
+});
+
+test('a delayed report route leaves navigation usable and cannot replace a newer page',async({page})=>{
+ let release;const gate=new Promise(resolve=>release=resolve);await page.route('**/src/reports/reports.tsx*',async route=>{await gate;await route.continue()});
+ await open(page,'dashboard');await page.getByRole('link',{name:'Altro',exact:true}).click();await page.getByRole('link',{name:/Report giocatori e squadra/}).click();await expect(page.getByRole('status',{name:'Caricamento schermata…'})).toBeVisible();
+ await page.getByRole('link',{name:'Home',exact:true}).click();await expect(page.getByRole('heading',{name:/Bentornato/})).toBeVisible();const response=page.waitForResponse(r=>r.url().includes('/src/reports/reports.tsx'));release();await response;await expect(page).toHaveURL(/#\/dashboard$/);await expect(page.getByRole('heading',{name:/Bentornato/})).toBeVisible();
+ await page.getByRole('link',{name:'Altro',exact:true}).click();await page.getByRole('link',{name:/Report giocatori e squadra/}).click();await expect(page.getByRole('heading',{name:'Report giocatore',exact:true})).toBeVisible();
+});
+
+test('a whiteboard image generated after a role change is never downloaded',async({page})=>{
+ await open(page,'whiteboard');await page.getByRole('button',{name:'Nuova lavagna',exact:true}).first().click();await expect(page.locator('.wb-editor')).toBeVisible();
+ const downloads=[];page.on('download',download=>downloads.push(download));
+ await page.evaluate(()=>{const toBlob=HTMLCanvasElement.prototype.toBlob;HTMLCanvasElement.prototype.toBlob=function(callback,...args){toBlob.call(this,blob=>{window.releaseBoardPng=()=>callback(blob)},...args)}});
+ await page.getByRole('button',{name:'Esporta immagine',exact:true}).click();await page.waitForFunction(()=>typeof window.releaseBoardPng==='function');
+ await page.evaluate(()=>{fixtureMount.runtime.state.team.role='president';fixtureMount.runtime.render()});await expect(page.getByText('Area riservata allo staff tecnico.',{exact:true})).toBeVisible();await page.evaluate(()=>window.releaseBoardPng());await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));expect(downloads).toHaveLength(0);
 });
 
 test('actual attendance opened from Home stays in training through review and saves the full team once',async({page})=>{

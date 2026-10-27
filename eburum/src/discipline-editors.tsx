@@ -1,9 +1,6 @@
-import { useState, useRef } from "react";
 import { RectangleVertical } from "lucide-react";
-import { Button } from "./components/ui/button";
-import { EditorFrame, Field, Feedback, useEditor } from "./operational-ui";
-import { ui, type Surface } from "./ui-service";
-import type { Runtime, MatchEvent } from "./types";
+import { useRef, useState } from "react";
+import { confirmDialog } from "../app-confirm.js";
 import { disciplineSeason, playerDiscipline } from "../app-discipline.js";
 import {
   dismissalEvents,
@@ -11,9 +8,12 @@ import {
   playerDismissals,
   reloadDismissals,
 } from "../app-dismissals.js";
-import { fmt, today, teamOwner, sortPlayers } from "../app-part1.js";
-import { canOperateRole } from "../app-roles.js";
-import { confirmDialog } from "../app-confirm.js";
+import { fmt, sortPlayers, teamOwner, today } from "../app-part1.js";
+import { canOperateRole } from "../app-roles.ts";
+import { Button } from "./components/ui/button";
+import { EditorFrame, Feedback, Field, useEditor } from "./operational-ui";
+import type { MatchEvent, Runtime } from "./types";
+import { ui, type Surface } from "./ui-service";
 
 export function DismissalRecords({
   runtime,

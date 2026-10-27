@@ -1,5 +1,5 @@
+import { canTechnicalRole } from "../app-roles.ts";
 import type { Runtime } from "./types";
-import { canTechnicalRole } from "../app-roles.js";
 import {
   validateBoard,
   type Board,

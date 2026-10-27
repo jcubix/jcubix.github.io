@@ -1,5 +1,6 @@
+import type { TeamRole } from "./src/types";
 // Team membership is authoritative; these capabilities only shape the interface.
-const roleLabels = {
+const roleLabels: Record<TeamRole, string> = {
   admin: "Amministratore",
   manager: "Team manager",
   coach: "Allenatore",
@@ -8,7 +9,7 @@ const roleLabels = {
   president: "Presidente",
   treasurer: "Tesoriere",
 };
-const roleHelp = {
+const roleHelp: Record<TeamRole, string> = {
   admin:
     "Gestione completa, incluse utenze, nominativi, ruoli e password degli altri utenti.",
   manager:
@@ -24,17 +25,20 @@ const roleHelp = {
   treasurer:
     "Gestisce fondi, movimenti, ricevute e rendiconti. Consulta calendario e comunicazioni. Nessuna modifica sportiva, accesso alle note tecniche, documenti personali o gestione utenze.",
 };
-const canOperateRole = (role) =>
-  ["admin", "manager", "coach", "technical_assistant"].includes(role);
-const canPlanRole = (role) => ["admin", "manager", "coach"].includes(role);
-const canManageRole = (role) =>
-  ["admin", "manager", "secretary"].includes(role);
-const canViewExpiriesRole = (role) =>
+const canOperateRole = (role: string | null | undefined) =>
+  ["admin", "manager", "coach", "technical_assistant"].includes(role || "");
+const canPlanRole = (role: string | null | undefined) =>
+  ["admin", "manager", "coach"].includes(role || "");
+const canManageRole = (role: string | null | undefined) =>
+  ["admin", "manager", "secretary"].includes(role || "");
+const canViewExpiriesRole = (role: string | null | undefined) =>
   canManageRole(role) || role === "president";
-const canTechnicalRole = (role) =>
-  ["admin", "coach", "technical_assistant"].includes(role);
-const canViewFinanceRole = (role) => ["admin", "treasurer", "president"].includes(role);
-const canManageFinanceRole = (role) => ["admin", "treasurer"].includes(role);
+const canTechnicalRole = (role: string | null | undefined) =>
+  ["admin", "coach", "technical_assistant"].includes(role || "");
+const canViewFinanceRole = (role: string | null | undefined) =>
+  ["admin", "treasurer", "president"].includes(role || "");
+const canManageFinanceRole = (role: string | null | undefined) =>
+  ["admin", "treasurer"].includes(role || "");
 export {
   roleLabels,
   roleHelp,

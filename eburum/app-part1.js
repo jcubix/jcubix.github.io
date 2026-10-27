@@ -1,6 +1,8 @@
+import { fetchAllRows } from "./src/data-query.ts";
+import { state } from "./src/domain-state.ts";
 import { createClient } from "@supabase/supabase-js";
-import { canOperateRole, canPlanRole, canManageRole, canViewExpiriesRole, canTechnicalRole } from './app-roles.js';
-import { loadTeamData } from './app-data.js';
+import { canOperateRole, canPlanRole, canManageRole, canViewExpiriesRole, canTechnicalRole } from './app-roles.ts';
+import { loadTeamData } from './app-data.ts';
 import { notifyCommunications, stopCommunicationsRealtime, syncCommunicationsRealtime } from './app-realtime.js';
 import { ui } from './src/ui-service.ts';
 
@@ -29,8 +31,6 @@ const TEAM_ARRAYS = [
   "communication_receipts",
 ];
 
-/** @type {import("./src/types").TeamState} */
-const state = { user: null, page: "dashboard" };
 
 let presentation = null;
 
@@ -156,15 +156,6 @@ async function syncSession(user) {
   }
 }
 
-async function fetchAllRows(build) {
-  const data = [];
-  for (let offset = 0; ; offset += 500) {
-    const result = await build().range(offset, offset + 499);
-    if (result.error) return { data: null, error: result.error };
-    data.push(...(result.data || []));
-    if ((result.data || []).length < 500) return { data, error: null };
-  }
-}
 
 async function refresh() {
   const actor = state.user?.id;

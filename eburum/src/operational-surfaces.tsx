@@ -1,31 +1,26 @@
 import { useSyncExternalStore, type ComponentType } from "react";
-import { ui, type Surface } from "./ui-service";
-import type { Runtime } from "./types";
-import {
-  UsersEditor,
-  UserEditor,
-  PlayerEditor,
-  PlayerSheet,
-  Expiries,
-} from "./people-editors";
-import {
-  PlanningEditor,
-  AttendanceReview,
-  AttendanceNote,
-} from "./training-editors";
-import {
-  MatchEditor,
-  EventEditor,
-  RosterEditor,
-  ReadOnlyActivity,
-} from "./match-editors";
-import { MatchReport, ReportDetail } from "./report-pages";
 import {
   Discipline,
-  Sanction,
   DisciplineClearance,
+  Sanction,
 } from "./discipline-editors";
 import { History, Priorities } from "./history-editor";
+import { EventEditor } from "./matches/event-editor";
+import { MatchEditor } from "./matches/match-editor";
+import { ReadOnlyActivity } from "./matches/read-only-activity";
+import { RosterEditor } from "./matches/roster-editor";
+import { Expiries } from "./people/expiries";
+import { PlayerEditor } from "./people/player-editor";
+import { PlayerSheet } from "./people/player-sheet";
+import { UserEditor } from "./people/user-editor";
+import { UsersEditor } from "./people/users-editor";
+import { MatchReport } from "./reports/match-report";
+import { ReportDetail } from "./reports/report-detail";
+import { AttendanceNote } from "./training/attendance-note";
+import { AttendanceReview } from "./training/attendance-review";
+import { PlanningEditor } from "./training/planning-editor";
+import type { Runtime } from "./types";
+import { ui, type Surface } from "./ui-service";
 const editors: Record<
   string,
   ComponentType<{ runtime: Runtime; surface: Surface }>

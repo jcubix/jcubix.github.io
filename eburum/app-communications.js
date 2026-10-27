@@ -1,5 +1,5 @@
 import {db,fetchAllRows,state,teamOwner,teamRequestGuard} from './app-part1.js';
-import {childRows} from './app-data.js';
+import {childRows} from './app-data.ts';
 import {notifyCommunications} from './app-realtime.js';
 
 function activeCommunications(at = Date.now()) {

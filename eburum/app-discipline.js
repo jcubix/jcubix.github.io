@@ -1,4 +1,4 @@
-import {sportSeason} from './app-data.js';
+import {sportSeason} from './app-data.ts';
 import {state,today} from './app-part1.js';
 import {playerDismissals} from './app-dismissals.js';
 import {ui} from './src/ui-service.ts';

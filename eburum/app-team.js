@@ -2,7 +2,7 @@ import { ui } from './src/ui-service.ts';
 import { matchPhase } from './app-workflows.js';
 import { matchTitle } from './app-match-display.js';
 import { readonlyActivity } from './app-access.js';
-import { roleLabels } from './app-roles.js';
+import { roleLabels } from './app-roles.ts';
 import { canOperate, canPlan, canViewExpiries, db, fail, fetchAllRows, state, teamOwner, teamRequestGuard, teamRole, today } from './app-part1.js';
 
 const teamArrays = () => {
