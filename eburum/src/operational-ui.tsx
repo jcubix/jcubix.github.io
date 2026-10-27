@@ -103,7 +103,8 @@ export function useEditor<T>(runtime: Runtime, surface: Surface, initial: T) {
       live.current = next;
       setValue(next);
     },
-    close: () => ui.close(surface.id, true),
+    close: (options?: { restoreRoute?: boolean }) =>
+      ui.close(surface.id, true, options),
   };
 }
 export function Field({
