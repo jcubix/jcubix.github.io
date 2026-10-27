@@ -179,27 +179,86 @@ export function teamReportCell(row, key) {
   return key === "percentage" ? row[key] + "%" : String(row[key]);
 }
 
-export function teamReportCsv(rows) {
-  const cell = (value) => {
-    let text = String(value ?? "");
-    if (/^\s*[=+@-]/.test(text)) text = "'" + text;
-    return '"' + text.replaceAll('"', '""') + '"';
-  };
-  return (
-    "\uFEFF" +
-    [
-      teamReportColumns.map((c) => c.label),
-      ...rows.map((row) =>
-        teamReportColumns.map((c) =>
-          c.key === "name" && !row.active
-            ? row.name + " (Inattivo)"
-            : row[c.key],
-        ),
+export async function createTeamReportExcel(rows, from, to) {
+  const { default: ExcelJS } = await import("exceljs");
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "Eburum";
+  const sheet = workbook.addWorksheet("Report squadra", {
+    views: [{ state: "frozen", xSplit: 1, ySplit: 4 }],
+    pageSetup: {
+      orientation: "landscape",
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 0,
+    },
+  });
+  sheet.columns = teamReportColumns.map((column) => ({
+    width:
+      column.key === "name" ? 36 : column.key === "role" ? 22 : column.width,
+  }));
+  const date = (value) => value.split("-").reverse().join("/");
+  for (const text of [
+    "Report squadra — Eburum",
+    `${date(from)} – ${date(to)} · ${rows.length} giocatori`,
+    "Presenze effettive confermate. Allenamenti non registrati esclusi; percentuale vuota se non ci sono registrazioni.",
+  ]) {
+    const row = sheet.addRow([text]);
+    sheet.mergeCells(row.number, 1, row.number, teamReportColumns.length);
+    row.height = row.number === 1 ? 32 : 24;
+  }
+  sheet.addRow(teamReportColumns.map((column) => column.label)).height = 36;
+  for (const player of rows) {
+    const row = sheet.addRow(
+      teamReportColumns.map(({ key }) =>
+        key === "name" && !player.active
+          ? player.name + " (Inattivo)"
+          : key === "percentage"
+            ? player.percentage == null
+              ? null
+              : player.percentage / 100
+            : player[key],
       ),
-    ]
-      .map((row) => row.map(cell).join(";"))
-      .join("\r\n")
-  );
+    );
+    row.height = 32;
+    row.eachCell({ includeEmpty: true }, (cell, index) => {
+      cell.font = { name: "Calibri", size: 11, color: { argb: "FF17233A" } };
+      cell.alignment = {
+        vertical: "middle",
+        horizontal: index > 2 ? "center" : "left",
+        wrapText: index <= 2,
+      };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: row.number % 2 ? "FFF1F4F8" : "FFFFFFFF" },
+      };
+      if (index > 2)
+        cell.numFmt =
+          teamReportColumns[index - 1].key === "percentage" ? "0%" : "0";
+    });
+  }
+  for (const index of [1, 2, 3, 4])
+    sheet.getRow(index).eachCell((cell) => {
+      cell.font = {
+        name: "Calibri",
+        size: index === 1 ? 18 : 11,
+        bold: index === 1 || index === 4,
+        color: { argb: index === 4 ? "FFFFFFFF" : "FF17233A" },
+      };
+      cell.alignment = { vertical: "middle", wrapText: true };
+      if (index === 4)
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FF101D42" },
+        };
+    });
+  sheet.autoFilter = {
+    from: { row: 4, column: 1 },
+    to: { row: sheet.rowCount, column: teamReportColumns.length },
+  };
+  sheet.pageSetup.printTitlesRow = "4:4";
+  return new Uint8Array(await workbook.xlsx.writeBuffer());
 }
 
 export function createTeamReportPdf(rows, from, to) {

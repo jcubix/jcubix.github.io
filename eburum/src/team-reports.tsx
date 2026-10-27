@@ -15,7 +15,7 @@ import {
   teamReportRows,
   sortTeamReport,
   teamReportCell,
-  teamReportCsv,
+  createTeamReportExcel,
   createTeamReportPdf,
 } from "../app-team-report.js";
 import "./team-reports.css";
@@ -80,7 +80,7 @@ export function TeamReports({ runtime }: { runtime: Runtime }) {
     } | null>(null),
     [error, setError] = useState(""),
     [retry, setRetry] = useState(0),
-    [pdfBusy, setPdfBusy] = useState(false);
+    [exportKind, setExportKind] = useState<"excel" | "pdf" | null>(null);
   const [sort, setSort] = useState({ key: "name", direction: "asc" });
   const liveKey = useRef(key),
     alive = useRef(true),
@@ -143,25 +143,39 @@ export function TeamReports({ runtime }: { runtime: Runtime }) {
     return "/reports?" + next;
   };
   const groups = [...new Set(teamReportColumns.map((column) => column.group))];
-  const exportPdf = async () => {
+  const exportReport = async (kind: "excel" | "pdf") => {
     if (!ready || !rows.length || exporting.current) return;
     const guard = runtime.requestGuard(),
       captured = key;
     exporting.current = true;
-    setPdfBusy(true);
+    setExportKind(kind);
     setError("");
     try {
-      await ensureJsPdf();
-      if (alive.current && guard() && liveKey.current === captured)
-        createTeamReportPdf(rows, from, to).save(
-          `Eburum-squadra-${from}-${to}.pdf`,
-        );
+      if (kind === "excel") {
+        const bytes = await createTeamReportExcel(rows, from, to);
+        if (alive.current && guard() && liveKey.current === captured)
+          saveDownload(
+            new Blob([bytes], {
+              type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            }),
+            `Eburum-squadra-${from}-${to}.xlsx`,
+          );
+      } else {
+        await ensureJsPdf();
+        if (alive.current && guard() && liveKey.current === captured)
+          createTeamReportPdf(rows, from, to).save(
+            `Eburum-squadra-${from}-${to}.pdf`,
+          );
+      }
     } catch (cause) {
       if (alive.current && guard() && liveKey.current === captured)
-        setError("PDF non creato: " + ((cause as Error).message || "Riprova."));
+        setError(
+          (kind === "excel" ? "File Excel non creato: " : "PDF non creato: ") +
+            ((cause as Error).message || "Riprova."),
+        );
     } finally {
       exporting.current = false;
-      if (alive.current) setPdfBusy(false);
+      if (alive.current) setExportKind(null);
     }
   };
   return (
@@ -174,29 +188,17 @@ export function TeamReports({ runtime }: { runtime: Runtime }) {
         <div className="report-export-actions">
           <Button
             variant="secondary"
-            disabled={!ready || !rows.length}
-            onClick={() => {
-              try {
-                saveDownload(
-                  new Blob([teamReportCsv(rows)], {
-                    type: "text/csv;charset=utf-8",
-                  }),
-                  `Eburum-squadra-${from}-${to}.csv`,
-                );
-                setError("");
-              } catch {
-                setError("CSV non creato. Riprova.");
-              }
-            }}
+            disabled={!ready || !rows.length || exportKind !== null}
+            onClick={() => void exportReport("excel")}
           >
             <Download size={18} />
-            Esporta CSV
+            {exportKind === "excel" ? "Creo il file Excel…" : "Esporta Excel"}
           </Button>
           <Button
-            disabled={!ready || !rows.length || pdfBusy}
-            onClick={() => void exportPdf()}
+            disabled={!ready || !rows.length || exportKind !== null}
+            onClick={() => void exportReport("pdf")}
           >
-            {pdfBusy ? "Creo il PDF…" : "Scarica PDF"}
+            {exportKind === "pdf" ? "Creo il PDF…" : "Scarica PDF"}
           </Button>
         </div>
       </div>
@@ -271,7 +273,7 @@ export function TeamReports({ runtime }: { runtime: Runtime }) {
         <>
           <p className="team-report-help" id="teamReportHelp">
             Presenze effettive confermate. Gli allenamenti senza registrazione
-            non sono assenze. Il CSV si apre con Excel.
+            non sono assenze. Esporta in Excel (.xlsx) per lavorare sui dati.
           </p>
           {rows.length ? (
             <p className="team-report-help">

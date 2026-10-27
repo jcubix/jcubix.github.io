@@ -86,7 +86,7 @@ const topics = [
       "Seleziona la vista e il periodo: stagione, ultimo mese oppure intervallo personalizzato.",
       "Consulta indicatori, grafici e storico; seleziona gli indicatori disponibili per i dettagli.",
       "Nella vista Squadra ordina le colonne; su smartphone scorri la tabella mantenendo il nome visibile. Seleziona un nome per aprire il report individuale nello stesso periodo.",
-      "Esporta il PDF orizzontale o il CSV compatibile con Excel. I minuti derivano dalle registrazioni delle partite; gli allenamenti non confermati non sono assenze. I giocatori disattivati restano inclusi.",
+      "Esporta il PDF orizzontale o il file Excel (.xlsx) con filtri e intestazioni bloccate. I minuti derivano dalle registrazioni delle partite; gli allenamenti non confermati non sono assenze. I giocatori disattivati restano inclusi.",
     ],
   },
   {

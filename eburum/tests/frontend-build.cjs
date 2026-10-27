@@ -5,6 +5,7 @@ test('built PWA precaches every published asset and resolves its manifest icons'
  const assets=JSON.parse(worker.match(/const ASSETS\s*=\s*(\[[\s\S]*?\]);/)[1]);
  for(const asset of assets)assert.ok(fs.existsSync(path.join(root,asset==='./'?'index.html':asset)),asset);
  assert.match(html,/assets\/index-[\w-]+\.js/);assert.doesNotMatch(html,/\/src\/|app-main\.js|cdn\.jsdelivr/);
+ const excel=fs.readdirSync(path.join(root,'assets')).filter(name=>/^exceljs.*\.js$/.test(name));assert.equal(excel.length,1);assert.ok(assets.includes('./assets/'+excel[0]),'Excel must remain available in the offline cache');assert.ok(!html.includes(excel[0]),'Excel must not be preloaded with the initial page');
  const manifestPath=html.match(/rel="manifest" href="([^"]+)"/)[1],manifest=JSON.parse(fs.readFileSync(path.join(root,manifestPath),'utf8'));
  assert.equal(manifest.start_url,'/');assert.equal(manifest.scope,'/');
  for(const icon of manifest.icons){assert.ok(icon.src.startsWith('/'));assert.ok(fs.existsSync(path.join(root,icon.src)))}
