@@ -79,13 +79,14 @@ const topics = [
     ],
   },
   {
-    title: "Report individuali e PDF",
-    text: "I report riguardano il singolo giocatore. Risposte WhatsApp e presenze effettive sono indicatori distinti.",
+    title: "Report dei giocatori e della squadra",
+    text: "Scegli Giocatore per il dettaglio individuale o Squadra per confrontare tutti i giocatori in una tabella. Risposte WhatsApp e presenze effettive sono indicatori distinti.",
     steps: [
       "Apri Report da Altro oppure dalla scheda del giocatore.",
-      "Seleziona giocatore e periodo, controllando la stagione attiva.",
+      "Seleziona la vista e il periodo: stagione, ultimo mese oppure intervallo personalizzato.",
       "Consulta indicatori, grafici e storico; seleziona gli indicatori disponibili per i dettagli.",
-      "Esporta il PDF per condividere il riepilogo. I minuti derivano dalle registrazioni delle partite.",
+      "Nella vista Squadra ordina le colonne; su smartphone scorri la tabella mantenendo il nome visibile. Seleziona un nome per aprire il report individuale nello stesso periodo.",
+      "Esporta il PDF orizzontale o il CSV compatibile con Excel. I minuti derivano dalle registrazioni delle partite; gli allenamenti non confermati non sono assenze. I giocatori disattivati restano inclusi.",
     ],
   },
   {

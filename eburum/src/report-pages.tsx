@@ -1,3 +1,4 @@
+import { TeamReports, ReportViewSwitch } from "./team-reports";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import {
@@ -25,7 +26,7 @@ import type {
   MatchEvent,
 } from "./types";
 import { fmt, today, teamOwner, sortPlayers } from "../app-part1.js";
-import { loadSportPeriod } from "../app-data.js";
+import { loadSportPeriod, sportSeason } from "../app-data.js";
 import { reportData } from "../app-part5.js";
 import {
   playerReportModel,
@@ -333,6 +334,14 @@ function Bars({
   );
 }
 export function Reports({ runtime }: { runtime: Runtime }) {
+  const [params] = useSearchParams();
+  return params.get("view") === "team" ? (
+    <TeamReports runtime={runtime} />
+  ) : (
+    <PlayerReports runtime={runtime} />
+  );
+}
+function PlayerReports({ runtime }: { runtime: Runtime }) {
   const [params] = useSearchParams(),
     navigate = useNavigate(),
     players = sortPlayers(runtime.state.players),
@@ -347,13 +356,19 @@ export function Reports({ runtime }: { runtime: Runtime }) {
     from =
       period === "custom"
         ? params.get("from") || view?.from || recentFrom(30)
-        : period === "month"
-          ? today().slice(0, 7) + "-01"
-          : period === "all"
-            ? runtime.state.earliestSport || today()
-            : recentFrom(Number(period)),
+        : period === "season"
+          ? sportSeason().from
+          : period === "month"
+            ? today().slice(0, 7) + "-01"
+            : period === "all"
+              ? runtime.state.earliestSport || today()
+              : recentFrom(Number(period)),
     to =
-      period === "custom" ? params.get("to") || view?.to || today() : today();
+      period === "season"
+        ? sportSeason().to
+        : period === "custom"
+          ? params.get("to") || view?.to || today()
+          : today();
   const [data, setData] = useState<ReturnType<typeof reportData> | null>(null),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(false),
@@ -670,6 +685,7 @@ export function Reports({ runtime }: { runtime: Runtime }) {
           </Button>
         </div>
       </div>
+      <ReportViewSwitch />
       <section className="report-controls">
         <Field id="reportPeriod" label="Periodo" className="report-period">
           <select
@@ -678,6 +694,7 @@ export function Reports({ runtime }: { runtime: Runtime }) {
             onChange={(e) => change({ period: e.target.value })}
           >
             {[
+              ["season", `Stagione ${sportSeason().key}`],
               ["7", "Ultimi 7 giorni"],
               ["30", "Ultimi 30 giorni"],
               ["month", "Questo mese"],
