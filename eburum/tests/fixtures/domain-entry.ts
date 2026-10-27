@@ -2,7 +2,7 @@ import * as m0 from "../../app-part1.js";
 import * as m1 from "../../app-part3.js";
 import * as m2 from "../../app-part4.js";
 import * as m3 from "../../app-part5.js";
-import * as m4 from "../../app-data.js";
+import * as m4 from "../../app-data.ts";
 import * as m5 from "../../app-team.js";
 import * as m6 from "../../app-workflows.js";
 import * as m7 from "../../app-discipline.js";

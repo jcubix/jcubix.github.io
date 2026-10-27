@@ -1,5 +1,5 @@
 import { db, fetchAllRows, state, teamOwner, teamRequestGuard } from './app-part1.js';
-import { loadDismissalSnapshot } from './app-data.js';
+import { loadDismissalSnapshot } from './app-data.ts';
 
 // Preview only: the database validates and persists the same timeline atomically.
 function calculateMatchMinutes(duration, roster, events, started=true) {

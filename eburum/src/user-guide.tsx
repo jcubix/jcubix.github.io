@@ -1,16 +1,16 @@
-import { useState } from "react";
 import { BookOpen, Search } from "lucide-react";
+import { useState } from "react";
+import {
+  canTechnicalRole,
+  canViewExpiriesRole,
+  canViewFinanceRole,
+  roleHelp,
+  roleLabels,
+} from "../app-roles.ts";
+import { Button } from "./components/ui/button";
 import { Dialog } from "./components/ui/dialog";
 import { Input } from "./components/ui/input";
-import { Button } from "./components/ui/button";
 import { Tooltip } from "./components/ui/tooltip";
-import {
-  roleLabels,
-  roleHelp,
-  canViewFinanceRole,
-  canViewExpiriesRole,
-  canTechnicalRole,
-} from "../app-roles.js";
 
 const topics = [
   {

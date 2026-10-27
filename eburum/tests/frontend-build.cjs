@@ -6,6 +6,9 @@ test('built PWA precaches every published asset and resolves its manifest icons'
  for(const asset of assets)assert.ok(fs.existsSync(path.join(root,asset==='./'?'index.html':asset)),asset);
  assert.match(html,/assets\/index-[\w-]+\.js/);assert.doesNotMatch(html,/\/src\/|app-main\.js|cdn\.jsdelivr/);
  const excel=fs.readdirSync(path.join(root,'assets')).filter(name=>/^exceljs.*\.js$/.test(name));assert.equal(excel.length,1);assert.ok(assets.includes('./assets/'+excel[0]),'Excel must remain available in the offline cache');assert.ok(!html.includes(excel[0]),'Excel must not be preloaded with the initial page');
+ const published=fs.readdirSync(path.join(root,'assets'));for(const file of published)assert.ok(assets.includes('./assets/'+file),'Missing from PWA cache: '+file);
+ for(const name of ['finance-page','whiteboard-page','reports','register']){const chunk=published.find(file=>file.startsWith(name+'-')&&file.endsWith('.js'));assert.ok(chunk,'Missing lazy route '+name);assert.ok(!html.includes(chunk),'Route must not be preloaded: '+name)}
+ const entry=html.match(/src="([^"]+assets\/index-[^"]+\.js)"/)[1];assert.ok(fs.statSync(path.join(root,entry.replace(/^\//,''))).size<400000,'Initial application code must stay below 400 KB');
  const manifestPath=html.match(/rel="manifest" href="([^"]+)"/)[1],manifest=JSON.parse(fs.readFileSync(path.join(root,manifestPath),'utf8'));
  assert.equal(manifest.start_url,'/');assert.equal(manifest.scope,'/');
  for(const icon of manifest.icons){assert.ok(icon.src.startsWith('/'));assert.ok(fs.existsSync(path.join(root,icon.src)))}

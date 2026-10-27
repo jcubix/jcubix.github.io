@@ -1,57 +1,73 @@
-import { ui } from "./ui-service";
-import { OperationalSurfaces } from "./operational-surfaces";
-import { Toast } from "./operational-ui";
-import { Dashboard } from "./dashboard";
-import { Reports, Register } from "./report-pages";
-import { TrainingScreen } from "./training-editors";
-import { ConfirmationDialog } from "./components/ui/confirmation-dialog";
 import {
-  detailPath,
-  detailListPath,
-  routeDetail,
-} from "../app-presentation.js";
-import { LoadingState } from "./components/ui/loading-state";
-import { installNavigationMotion } from "./navigation-motion";
-import { roleLabels as roleNames } from "../app-roles.js";
+  Bell,
+  CalendarDays,
+  CircleAlert,
+  Eye,
+  EyeOff,
+  Home,
+  LayoutGrid,
+  LoaderCircle,
+  LogOut,
+  MessageSquare,
+  RefreshCw,
+  Settings,
+  Trophy,
+  Users,
+  Wallet,
+} from "lucide-react";
 import {
   Component,
+  lazy,
+  Suspense,
   useEffect,
+  useId,
   useLayoutEffect,
   useRef,
   useState,
   useSyncExternalStore,
-  useId,
   type ReactNode,
 } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
-  CalendarDays,
-  Home,
-  Users,
-  Trophy,
-  LayoutGrid,
-  LogOut,
-  Bell,
-  LoaderCircle,
-  RefreshCw,
-  Settings,
-  MessageSquare,
-  Wallet,
-  Eye,
-  EyeOff,
-  CircleAlert,
-} from "lucide-react";
-import { Button } from "./components/ui/button";
-import { Input } from "./components/ui/input";
-import { Tooltip, TooltipProvider } from "./components/ui/tooltip";
-import { MatchesPage, PlayersPage, ToolsPage } from "./pages";
+  detailListPath,
+  detailPath,
+  routeDetail,
+} from "../app-presentation.js";
+import { roleLabels as roleNames } from "../app-roles.ts";
 import { CommunicationsPage } from "./communications";
-import { ThemePicker } from "./theme";
-import { UserGuide } from "./user-guide";
-import { FinancePage } from "./finance";
-import { WhiteboardPage } from "./whiteboard";
+import { Button } from "./components/ui/button";
+import { ConfirmationDialog } from "./components/ui/confirmation-dialog";
+import { Input } from "./components/ui/input";
+import { LoadingState } from "./components/ui/loading-state";
+import { Tooltip, TooltipProvider } from "./components/ui/tooltip";
+import { Dashboard } from "./dashboard";
+import { installNavigationMotion } from "./navigation-motion";
+import { OperationalSurfaces } from "./operational-surfaces";
+import { Toast } from "./operational-ui";
+import { MatchesPage, PlayersPage, ToolsPage } from "./pages";
 import { PwaStatus } from "./pwa";
-import type { Runtime, RuntimeSnapshot, Page } from "./types";
+import { ThemePicker } from "./theme";
+import { TrainingScreen } from "./training/training-screen";
+import type { Page, Runtime, RuntimeSnapshot } from "./types";
+import { ui } from "./ui-service";
+import { UserGuide } from "./user-guide";
+
+const FinancePage = lazy(() =>
+  import("./finance/finance-page").then((module) => ({
+    default: module.FinancePage,
+  })),
+);
+const WhiteboardPage = lazy(() =>
+  import("./whiteboard/whiteboard-page").then((module) => ({
+    default: module.WhiteboardPage,
+  })),
+);
+const Reports = lazy(() =>
+  import("./reports/reports").then((module) => ({ default: module.Reports })),
+);
+const Register = lazy(() =>
+  import("./reports/register").then((module) => ({ default: module.Register })),
+);
 
 const navigation = [
   { page: "dashboard", label: "Home", icon: Home },
@@ -154,6 +170,7 @@ export function App({ runtime }: { runtime: Runtime }) {
     }
   }, [
     location.pathname,
+    location.search,
     snapshot.page,
     snapshot.status,
     snapshot.revision,
@@ -653,19 +670,7 @@ function Workspace({
                 </NavLink>
               </Button>
             </Tooltip>
-            <details
-              ref={settingsRef}
-              className="header-settings"
-              onClick={(event) => {
-                if (
-                  (event.target as Element).closest(
-                    ".header-settings-panel button",
-                  ) &&
-                  settingsRef.current
-                )
-                  settingsRef.current.open = false;
-              }}
-            >
+            <details ref={settingsRef} className="header-settings">
               <summary
                 title="Opzioni account e stagione"
                 aria-label="Opzioni account e stagione"
@@ -699,7 +704,11 @@ function Workspace({
                     <Button
                       variant="secondary"
                       size="icon"
-                      onClick={runtime.actions.users}
+                      onClick={() => {
+                        if (settingsRef.current)
+                          settingsRef.current.open = false;
+                        runtime.actions.users();
+                      }}
                       aria-label="Gestione utenti"
                     >
                       <Users />
@@ -712,6 +721,7 @@ function Workspace({
                     size="icon"
                     aria-label="Esci"
                     onClick={async () => {
+                      if (settingsRef.current) settingsRef.current.open = false;
                       try {
                         await runtime.actions.logout();
                       } catch (err) {
@@ -790,7 +800,11 @@ function Workspace({
           className="workspace-content"
         >
           {!operational.surfaces.some((s) => s.workspace) ? (
-            <PageContent runtime={runtime} snapshot={snapshot} />
+            <Suspense
+              fallback={<LoadingState label="Caricamento schermata…" />}
+            >
+              <PageContent runtime={runtime} snapshot={snapshot} />
+            </Suspense>
           ) : null}
         </main>
         <div id="workspaceEditor" className="workspace-editor-host">

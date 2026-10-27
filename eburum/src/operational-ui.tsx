@@ -1,4 +1,6 @@
+import { Copy, X } from "lucide-react";
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -6,12 +8,11 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
-import { X, Copy } from "lucide-react";
-import { Dialog } from "./components/ui/dialog";
-import { Button } from "./components/ui/button";
 import { confirmDialog } from "../app-confirm.js";
-import { ui, type Surface } from "./ui-service";
+import { Button } from "./components/ui/button";
+import { Dialog } from "./components/ui/dialog";
 import type { Runtime } from "./types";
+import { ui, type Surface } from "./ui-service";
 
 export function useEditor<T>(runtime: Runtime, surface: Surface, initial: T) {
   const [value, setValue] = useState(initial),
@@ -78,13 +79,17 @@ export function useEditor<T>(runtime: Runtime, surface: Surface, initial: T) {
       if (alive.current) setBusy(false);
     }
   };
-  const canLeave = async () =>
-    !saving.current &&
-    (JSON.stringify(live.current) === baseline.current ||
-      (await confirmDialog({
-        message: "Scartare le modifiche non salvate?",
-        confirmLabel: "Scarta",
-      })));
+  const canLeave = useCallback(
+    async () =>
+      !saving.current &&
+      (JSON.stringify(live.current) === baseline.current ||
+        (await confirmDialog({
+          message: "Scartare le modifiche non salvate?",
+          confirmLabel: "Scarta",
+        }))),
+    [],
+  );
+  const isCurrent = useCallback(() => alive.current && current.current(), []);
   return {
     value,
     setValue,
@@ -94,7 +99,7 @@ export function useEditor<T>(runtime: Runtime, surface: Surface, initial: T) {
     dirty,
     run,
     canLeave,
-    current: () => alive.current && current.current(),
+    current: isCurrent,
     clean: () => {
       baseline.current = JSON.stringify(live.current);
     },

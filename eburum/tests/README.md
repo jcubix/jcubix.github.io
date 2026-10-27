@@ -1,38 +1,45 @@
-# Verifica dei flussi
+# Verifiche Eburum
 
-Da questa cartella: `npm ci` e `npm test`. I test JavaScript usano account e dati simulati: nessuna credenziale o scrittura in produzione.
+I test locali e browser usano dati sintetici: non richiedono credenziali e non scrivono nel progetto di produzione.
 
-`workflows-ui.cjs` verifica risposte WhatsApp separate dalle presenze, risposte rapide, filtri e solleciti, salvataggio dell’intera rosa, importazione in bozza senza trasformare una disponibilità in presenza definitiva, blocco dei giocatori da confermare, date future, fasi della partita, eventi, protezione delle bozze, report per periodo, dettagli e permessi.
+## Comandi
 
-`training-separation.cjs` verifica sezioni autonome, convocazioni senza sondaggio, riunioni secondarie, salvataggio delle risposte senza presenze, errori e bozze, conferma effettiva senza riscrivere le risposte previste, invii doppi, ripetizione idempotente, correzione della data di una sessione storica e consultazione del segretario. `../supabase/tests/training_attendance.sql` verifica sul database il collegamento esplicito all’allenamento scelto, revisioni, richieste ripetute, audit delle correzioni storiche, date future, annullamenti e ruoli, con record sintetici e rollback.
+Dalla cartella `eburum`, con Node.js 24:
 
-I test SQL `../supabase/tests/attendance_review.sql`, `../supabase/tests/team_operations.sql` e `survey_to_attendance.sql` sono eseguibili sul progetto inizializzato con un collegamento amministrativo. Ogni file apre una transazione e termina con `ROLLBACK`: i dati sintetici non vengono conservati. Verificano anche conflitti, atomicità, autore delle modifiche e isolamento delle squadre.
+```sh
+npm ci
+npm --prefix tests ci
+npm run typecheck
+npm run lint
+npm run verify
+npm --prefix tests run browser
+```
 
-I test `report-pdf.cjs` verificano report esclusivamente individuali, grafici, inclusione del giocatore uscito nelle sostituzioni e PDF su più pagine. Impostando `REPORT_PDF_OUTPUT` si salvano due PDF dimostrativi per il controllo visivo.
+Per il browser installare prima Chromium tramite il CLI Playwright della cartella `tests`. Il runner avvia il server locale quando necessario. Il workflow GitHub esegue `verify` e poi `browser`, conserva il report e impedisce l'aggiornamento delle baseline in CI.
 
-`secretary-ui.cjs` verifica scadenze, schede amministrative e consultazione dei dati sportivi. `../supabase/tests/secretary_role.sql` verifica il trigger di assegnazione e le policy RLS, con dati sintetici annullati tramite rollback.
+## Copertura attuale
 
-`../supabase/tests/managed_auth_creation.sql` verifica l’ordine reale di creazione Auth e l’assegnazione atomica dei quattro ruoli. `managed-auth-live.cjs` è una verifica opzionale sulle API reali, esclusa da `npm test`: richiede un amministratore temporaneo con email `codex-auth-e2e-*@example.invalid` e le variabili `AUTH_TEST_EMAIL` / `AUTH_TEST_PASSWORD`. Crea utenze sintetiche, verifica accesso, permessi, duplicati, cambio password e cambio ruolo. Elimina il giocatore sintetico; restituisce gli identificativi delle utenze da rimuovere con accesso amministrativo, insieme all’amministratore temporaneo. Eseguire preferibilmente in staging, non utilizzare account dello staff, non conservare credenziali nei file o nei log.
+| File | Verifica |
+| --- | --- |
+| `staff-access.cjs` | Handler utenti: ruoli autorevoli, isolamento, creazione, aggiornamento e rimozione, account proprietario protetto. |
+| `daily-workflows.cjs` | Presentazione, date e passaggi dei workflow. |
+| `match-minutes.cjs`, `match-report.cjs` | Minuti, sostituzioni, espulsioni, attribuzione degli eventi e tabellino/PDF. |
+| `runtime-safety.cjs` | Sessione, ruolo e risposte tardive; nessuna riscrittura della radice React. |
+| `domain-workflows.cjs` | Moduli di produzione per presenze, storico, disciplina, export e realtime. |
+| `team-report.cjs` | Report squadra, ordinamento, celle Excel numeriche/testuali, filtri e intestazioni bloccate; PDF multipagina. |
+| `react-boundary.cjs` | Assenza di renderer HTML e binder, incluse le sottocartelle React. |
+| `quality-gates.cjs` | Il lint rileva hook condizionali, dipendenze mancanti e JSX inaccessibile; consente regioni di scorrimento raggiungibili da tastiera. |
+| `frontend-interactions.cjs` | Componenti React reali: ruoli, bozze, salvataggi, errori, retry, invii ripetuti, logout e cambio contesto. |
+| `frontend-build.cjs` | Avvio della build, manifest, asset, chunk su richiesta, budget del bundle e cache PWA senza dati API. |
+| `types/domain-contracts.ts` | Casi negativi controllati da TypeScript per date, tabelle, ruoli e snapshot. Non vengono eseguiti nel browser. |
+| `browser/ui.spec.cjs` | Temi mobile/desktop, geometria, axe, focus, safe area, editor, esportazioni reali, caricamento ritardato delle rotte e download negato dopo revoca del ruolo. |
 
-`discipline-ui.cjs` verifica il conteggio stagionale dagli eventi, diffide a 4 e 9 gialli, soglie ripetute, esclusione di gare future/annullate e cartellini senza giocatore, conferma e annullamento della gara scontata, ricalcolo dopo correzioni e consultazione del segretario. `../supabase/tests/disciplinary_clearances.sql` verifica conferme, duplicati, autore, isolamento della squadra e permessi con rollback.
+I test di dominio compilano i moduli distribuiti con Vite. Le interazioni React compilano gli stessi componenti della produzione; non esiste un renderer di prova alternativo. La suite browser blocca HTTP verso servizi esterni.
 
-`communications-ui.cjs` verifica accesso dalla Dashboard e da Altro, creazione con le tre durate, dati conservati in caso di errore, invii doppi, associazione al giocatore, testo HTML neutralizzato, ricerca e messaggi scaduti nascosti. `../supabase/tests/staff_communications.sql` verifica durata e autore sul server, lettura e pubblicazione condivise, eliminazione riservata, scadenze non modificabili, isolamento e pulizia con rollback.
+## Baseline e prove server
 
-`runtime-safety.cjs` carica i moduli operativi ES effettivi e verifica risposte fuori ordine, cambio ruolo, logout durante richieste pendenti, doppio invio del cambio password, recupero dagli errori di eliminazione, totali della scheda giocatore e cache offline. Il service worker conserva solo risposte statiche riuscite, non restituisce HTML al posto di JavaScript e non elimina cache appartenenti ad altre applicazioni.
+Le baseline geometriche in `browser/baselines/` ammettono 2 px di tolleranza. Non aggiornarle per far passare una regressione. Screenshot e tracce restano nel report HTML e vengono rivisti prima della pubblicazione.
 
-`realtime-season.cjs` verifica aggiornamento del badge a pannello chiuso, pannello aperto e cancellazioni, singola sottoscrizione, rimozione al logout, recupero alla riconnessione, scadenza senza polling, selettore stagione, report sull’intero storico e slot espliciti. Il caricatore usa i moduli ES effettivi con `--experimental-vm-modules`; l’esposizione degli export alle espressioni legacy è limitata al test harness e non esiste in produzione. La suite contiene 32 test, incluso il presentation adapter che preserva la radice React durante caricamento, rendering e logout.
+`managed-auth-live.cjs` e gli script `../supabase/tests/` sono verifiche separate dei servizi reali e non fanno parte dei test locali. I test SQL in transazione terminano con rollback; vanno eseguiti consapevolmente, preferibilmente su staging. Le prove persistenti richiedono account sintetici dedicati e pulizia: non usare utenze dello staff o registrare credenziali nei log.
 
-`match-minutes.cjs` verifica anteprima dei minuti, cambi multipli, espulsioni e confini, blocco delle sequenze incoerenti, RPC di risultato, conservazione delle bozze dopo errore, riepilogo aggiornato dopo un evento e minuti automatici non modificabili manualmente. La fixture simula le risposte del server; la correttezza della persistenza è verificata separatamente da `../supabase/tests/match_minutes.sql`, con record sintetici e rollback, inclusi permessi, conflitti, durata, correzioni e cancellazioni dipendenti. La migrazione mantiene manuali le gare preesistenti.
-
-`frontend-interactions.cjs` aggiunge 9 test dei componenti React effettivi. Vite compila in memoria `fixtures/react-entry.tsx`, che monta l'app e il runtime in JSDom con SDK e dati simulati. Copre il pulsante Cartellini da Partite e Altro, soglie e consultazione del segretario, cambio stagione e report sull'intero storico, bozza presenze e conferma del logout, i quattro ruoli, bozze delle comunicazioni dopo errore e invii doppi. Non usa componenti finti e non aggiunge ingressi di test alla build pubblicata. Richiede anche `npm ci` dalla cartella `eburum`; il comando `npm test` di quella cartella esegue sia i 32 test operativi sia questi 9. Il comando di questa cartella esegue soltanto i 32 test operativi.
-
-`frontend-build.cjs`, eseguito dopo la build con `node --test tests/frontend-build.cjs`, aggiunge due verifiche sugli asset effettivamente distribuiti: precache completa, icone del manifest risolvibili, esclusione di sorgenti e fixture, isolamento delle API e delle cache, MIME JavaScript e attivazione esplicita degli aggiornamenti. Per tutte le 43 verifiche usare `npm run verify` dalla cartella `eburum`, dopo aver installato le dipendenze di entrambe le cartelle. Le prove browser restano separate e verificano anche layout responsive e liste virtualizzate: JSDom non riproduce la disposizione visiva su un dispositivo.
-
-
-## Browser e accessibilità — 25 ottobre 2026
-
-Dalla cartella applicazione: `npm --prefix tests ci`, `npm --prefix tests exec -- playwright install chromium`, `npm --prefix tests run browser`. Il runner avvia Vite sulla porta 4202 e usa esclusivamente `fixtures/browser.html` e il client sintetico; le richieste HTTP verso origini esterne sono bloccate. Nessuna credenziale reale viene richiesta e non viene usato il progetto Supabase di produzione.
-
-I 38 casi applicabili coprono sei pagine nei due temi su telefono e desktop, area di tocco e safe area, bozze delle riunioni e retry, uscita dei dialoghi e movimento ridotto. I due casi notch sui progetti desktop sono intenzionalmente non applicabili. axe controlla WCAG 2 A/AA e 2.1 AA; le 24 baseline controllano geometria e palette con tolleranza di 2 px. PNG, JSON axe e tracce di errore sono allegati al report in `playwright-report/`; non si dichiara un collaudo completo di ogni criterio WCAG o una regressione pixel per pixel.
-
-L’ambiente Supabase separato non è configurato: i test SQL e i flussi fra due utenze reali devono essere eseguiti su staging. I dati sintetici nel browser non provano le policy RLS: l’audit in sola lettura e i test SQL sono verifiche distinte, documentate nello stato dell’handoff.
+Il passaggio dei test con fixture non equivale a un nuovo collaudo di RLS, inviti tra due account o hardware iPhone. Lo stato dell'ultima integrazione è in `../CODE-REVIEW-IMPLEMENTATION-2026-10-27.md`.

@@ -1,6 +1,6 @@
+import { RefreshCw, WifiOff } from "lucide-react";
 import { useEffect, useState } from "react";
 import { confirmDialog } from "../app-confirm.js";
-import { RefreshCw, WifiOff } from "lucide-react";
 import { Button } from "./components/ui/button";
 import type { Runtime } from "./types";
 export function PwaStatus({ runtime }: { runtime: Runtime }) {

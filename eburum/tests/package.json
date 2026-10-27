@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "test": "node --test staff-access.cjs daily-workflows.cjs match-minutes.cjs match-report.cjs runtime-safety.cjs domain-workflows.cjs team-report.cjs react-boundary.cjs",
+    "test": "node --test staff-access.cjs daily-workflows.cjs match-minutes.cjs match-report.cjs runtime-safety.cjs domain-workflows.cjs team-report.cjs react-boundary.cjs quality-gates.cjs",
     "browser": "playwright test -c playwright.config.cjs"
   },
   "devDependencies": {

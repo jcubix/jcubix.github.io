@@ -3,12 +3,9 @@ import { HashRouter } from "react-router-dom";
 import { App } from "./app";
 import { createRuntime } from "./runtime";
 import "./styles.css";
-import "./soft-club.css";
-import "./soft-club-reference.css";
 
-import { initializeTheme } from "./theme";
-import "./dark-theme.css";
 import "./design-system.css";
+import { initializeTheme } from "./theme";
 initializeTheme();
 
 async function start() {

@@ -1,10 +1,50 @@
-import { db, fetchAllRows, state, teamRole, teamOwner, today } from './app-part1.js';
+import {
+  db,
+  fetchAllRows,
+  state,
+  teamRole,
+  teamOwner,
+  today,
+} from "./app-part1.js";
+import type {
+  TeamState,
+  Session,
+  Match,
+  Activity,
+  Player,
+  Administration,
+  DisciplinaryClearance,
+  Communication,
+} from "./src/types";
+
+type QueryResult<Row> = { data: Row[] | null; error: unknown };
+type ChildTables = {
+  attendance: TeamState["attendance"][number];
+  match_events: TeamState["events"][number];
+  activity_roster: TeamState["roster"][number];
+  activity_technical: TeamState["technical"][number];
+  communication_receipts: TeamState["communication_receipts"][number];
+};
+export type SportSnapshot = Pick<
+  TeamState,
+  | "sessions"
+  | "matches"
+  | "activities"
+  | "attendance"
+  | "events"
+  | "roster"
+  | "technical"
+>;
+type DismissalSnapshot = Pick<
+  TeamState,
+  "dismissals" | "dismissal_sanctions" | "dismissal_clearances"
+>;
 
 const DATE_TABLES = [
   ["sessions", "session_date"],
   ["matches", "match_date"],
   ["activities", "activity_date"],
-];
+] as const;
 
 function sportSeason() {
   const year =
@@ -19,19 +59,47 @@ function sportSeason() {
   };
 }
 
-async function rowsOrThrow(build) {
+async function rowsOrThrow<Row>(
+  build: () => {
+    range: (from: number, to: number) => PromiseLike<QueryResult<Row>>;
+  },
+): Promise<Row[]> {
   const result = await fetchAllRows(build);
   if (result.error) throw result.error;
   return result.data || [];
 }
 
-async function childRows(table, column, ids, owner, player = null) {
+function parentRows<Row>(
+  table: (typeof DATE_TABLES)[number][0],
+  date: (typeof DATE_TABLES)[number][1],
+  from: string,
+  to: string,
+  owner: string,
+) {
+  return rowsOrThrow<Row>(() =>
+    db
+      .from(table)
+      .select("*")
+      .eq("user_id", owner)
+      .gte(date, from)
+      .lte(date, to)
+      .order("id"),
+  );
+}
+
+async function childRows<Table extends keyof ChildTables>(
+  table: Table,
+  column: string,
+  ids: string[],
+  owner: string,
+  player: string | null = null,
+): Promise<ChildTables[Table][]> {
   const unique = [...new Set(ids)],
-    data = [];
+    data: ChildTables[Table][] = [];
   for (let offset = 0; offset < unique.length; offset += 100) {
     const batch = unique.slice(offset, offset + 100);
     data.push(
-      ...(await rowsOrThrow(() => {
+      ...(await rowsOrThrow<ChildTables[Table]>(() => {
         let q = db
           .from(table)
           .select("*")
@@ -53,26 +121,17 @@ async function childRows(table, column, ids, owner, player = null) {
 }
 
 async function loadSportPeriod(
-  from,
-  to,
-  owner,
-  player = null,
+  from: string,
+  to: string,
+  owner: string,
+  player: string | null = null,
   withTechnical = false,
-) {
-  const parents = await Promise.all(
-    DATE_TABLES.map(([table, date]) =>
-      rowsOrThrow(() =>
-        db
-          .from(table)
-          .select("*")
-          .eq("user_id", owner)
-          .gte(date, from)
-          .lte(date, to)
-          .order("id"),
-      ),
-    ),
-  );
-  const [sessions, matches, activities] = parents;
+): Promise<SportSnapshot> {
+  const [sessions, matches, activities] = await Promise.all([
+    parentRows<Session>("sessions", "session_date", from, to, owner),
+    parentRows<Match>("matches", "match_date", from, to, owner),
+    parentRows<Activity>("activities", "activity_date", from, to, owner),
+  ]);
   const [attendance, events, roster, technical] = await Promise.all([
     childRows(
       "attendance",
@@ -116,8 +175,8 @@ async function loadSportPeriod(
   };
 }
 
-async function earliestSportDate(owner = teamOwner()) {
-  const results = await Promise.all(
+async function earliestSportDate(owner: string = teamOwner()): Promise<string> {
+  const results: QueryResult<Record<string, string>>[] = await Promise.all(
     DATE_TABLES.map(([table, date]) =>
       db.from(table).select(date).eq("user_id", owner).order(date).limit(1),
     ),
@@ -130,7 +189,22 @@ async function earliestSportDate(owner = teamOwner()) {
   );
 }
 
-async function loadTeamData(owner) {
+async function loadTeamData(
+  owner: string,
+): Promise<
+  SportSnapshot &
+    DismissalSnapshot &
+    Pick<
+      TeamState,
+      | "players"
+      | "administration"
+      | "disciplinary_clearances"
+      | "staff_communications"
+      | "communication_receipts"
+      | "dataRange"
+      | "earliestSport"
+    >
+> {
   const season = sportSeason();
   const [
     sport,
@@ -142,7 +216,7 @@ async function loadTeamData(owner) {
     dismissals,
   ] = await Promise.all([
     loadSportPeriod(season.from, season.to, owner, null, true),
-    rowsOrThrow(() =>
+    rowsOrThrow<Player>(() =>
       db.from("players").select("*").eq("user_id", owner).order("id"),
     ),
     teamRole() === "president"
@@ -150,14 +224,14 @@ async function loadTeamData(owner) {
           if (r.error) throw r.error;
           return r.data || [];
         })
-      : rowsOrThrow(() =>
+      : rowsOrThrow<Administration>(() =>
           db
             .from("player_administration")
             .select("*")
             .eq("user_id", owner)
             .order("player_id"),
         ),
-    rowsOrThrow(() =>
+    rowsOrThrow<DisciplinaryClearance>(() =>
       db
         .from("disciplinary_clearances")
         .select("*")
@@ -165,7 +239,7 @@ async function loadTeamData(owner) {
         .eq("season_start", season.from)
         .order("id"),
     ),
-    rowsOrThrow(() =>
+    rowsOrThrow<Communication>(() =>
       db
         .from("staff_communications")
         .select("*")
@@ -195,7 +269,7 @@ async function loadTeamData(owner) {
   };
 }
 
-async function loadDismissalSnapshot() {
+async function loadDismissalSnapshot(): Promise<DismissalSnapshot> {
   const { data, error } = await db.rpc("disciplinary_dismissal_snapshot");
   if (error) throw error;
   return {
@@ -205,5 +279,13 @@ async function loadDismissalSnapshot() {
   };
 }
 
-
-export { DATE_TABLES, sportSeason, rowsOrThrow, childRows, loadSportPeriod, earliestSportDate, loadTeamData, loadDismissalSnapshot };
+export {
+  DATE_TABLES,
+  sportSeason,
+  rowsOrThrow,
+  childRows,
+  loadSportPeriod,
+  earliestSportDate,
+  loadTeamData,
+  loadDismissalSnapshot,
+};

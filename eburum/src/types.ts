@@ -1,4 +1,4 @@
-import type { User, SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 export type Page =
   | "dashboard"
   | "training"
@@ -184,6 +184,7 @@ export interface TrainingDraft {
   planned?: Map<string, string>;
 }
 export interface TeamState {
+  loadedActor?: string | null;
   pageScroll?: Partial<Record<Page, number>>;
   user: User | null;
   team: {

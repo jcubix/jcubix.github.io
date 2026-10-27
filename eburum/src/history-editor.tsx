@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from "react";
-import { Button } from "./components/ui/button";
-import { EditorFrame, Feedback } from "./operational-ui";
-import { ui, type Surface } from "./ui-service";
-import type { Runtime } from "./types";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { fmt, teamOwner } from "../app-part1.js";
 import { activityPollPending } from "../app-workflows.js";
+import { Button } from "./components/ui/button";
+import { EditorFrame, Feedback } from "./operational-ui";
+import type { Runtime } from "./types";
+import { ui, type Surface } from "./ui-service";
 
 interface HistoryRow {
   id: string;
@@ -74,7 +74,7 @@ export function History({
           ? runtime.state.players.find((p) => p.id === v)?.surname ||
             "Giocatore storico"
           : String(v);
-  const load = async () => {
+  const load = useCallback(async () => {
     if (lock.current) return;
     lock.current = true;
     setBusy(true);
@@ -102,14 +102,14 @@ export function History({
       lock.current = false;
       if (alive.current) setBusy(false);
     }
-  };
+  }, [runtime, kind, id]);
   useEffect(() => {
     alive.current = true;
     void load();
     return () => {
       alive.current = false;
     };
-  }, [id, kind]);
+  }, [load]);
   return (
     <EditorFrame
       surface={surface}
