@@ -297,20 +297,28 @@ function Bars({
   title,
   rows,
   unit = "",
+  family = "attendance",
 }: {
   title: string;
   rows: [string, number][];
   unit?: string;
+  family?: string;
 }) {
   const max = Math.max(1, ...rows.map((r) => r[1]));
   return (
-    <article className="player-chart">
+    <article className="chart-card" data-chart-family={family}>
       <h4>{title}</h4>
+      <p className="chart-scale">
+        Scala: 0–{max} {unit.trim() || "registrazioni"}
+      </p>
       {rows.map(([label, value]) => (
-        <div className="bar-row" key={label}>
+        <div className="chart-bar-row" key={label}>
           <span>{label}</span>
-          <div className="bar-track">
-            <span style={{ width: `${(value / max) * 100}%` }} />
+          <div className="chart-track">
+            <div
+              className="chart-fill"
+              style={{ width: `${Math.round((value / max) * 100)}%` }}
+            />
           </div>
           <b>
             {value}
@@ -623,7 +631,11 @@ export function Reports({ runtime }: { runtime: Runtime }) {
           <p>Presenze, disponibilità e impiego nel periodo selezionato.</p>
         </div>
         <div className="report-export-actions">
-          {data ? <CopyText id="copyReport" text={text} /> : null}
+          {data ? (
+            <CopyText id="copyReport" text={text}>
+              Copia testo
+            </CopyText>
+          ) : null}
           <Button
             id="exportReportPdf"
             disabled={!data || pdfBusy}
@@ -659,7 +671,7 @@ export function Reports({ runtime }: { runtime: Runtime }) {
         </div>
       </div>
       <section className="report-controls">
-        <Field id="reportPeriod" label="Periodo">
+        <Field id="reportPeriod" label="Periodo" className="report-period">
           <select
             id="reportPeriod"
             value={period}
@@ -701,7 +713,7 @@ export function Reports({ runtime }: { runtime: Runtime }) {
             />
           </Field>
         </div>
-        <div id="playerPicker">
+        <div id="playerPicker" className="field field-space">
           <Field id="rp" label="Giocatore">
             <select
               id="rp"
@@ -716,6 +728,13 @@ export function Reports({ runtime }: { runtime: Runtime }) {
               ))}
             </select>
           </Field>
+          <output
+            id="reportSelectedName"
+            className="selected-name"
+            htmlFor="rp"
+          >
+            {p?.surname} {p?.name}
+          </output>
         </div>
         <p id="reportPeriodLabel" className="filter-summary">
           {fmt(from)} – {fmt(to)} · {p?.surname} {p?.name} · {attendance.length}{" "}
@@ -805,10 +824,12 @@ export function Reports({ runtime }: { runtime: Runtime }) {
                   rows={model.attendance as [string, number][]}
                 />
                 <Bars
+                  family="replies"
                   title="Risposte WhatsApp registrate"
                   rows={model.replies as [string, number][]}
                 />
                 <Bars
+                  family="minutes"
                   title="Minuti giocati per mese"
                   rows={model.months.map((month) => [
                     month.label,
@@ -816,6 +837,11 @@ export function Reports({ runtime }: { runtime: Runtime }) {
                   ])}
                   unit=" min"
                 />
+                <p className="row-sub">
+                  Le barre confrontano i valori all’interno di ogni grafico. Le
+                  risposte WhatsApp non determinano automaticamente la presenza.
+                  I minuti sono quelli registrati dallo staff.
+                </p>
               </div>
             </section>
             <section id="playerHistory" className="player-history">
@@ -892,11 +918,14 @@ export function Register({ runtime }: { runtime: Runtime }) {
       <div className="section-title">
         <div>
           <h1>Registro</h1>
-          <p>Presenze effettive e allenamenti registrati.</p>
+          <div className="muted">
+            Presenze e schede degli allenamenti per data
+          </div>
         </div>
+        <span className="badge b-blue">{state.sessions.length} sessioni</span>
       </div>
       <div className="register-layout">
-        <section className="register-calendar">
+        <div className="card calendar-card">
           <div className="calendar-head">
             <Button
               id="calPrev"
@@ -906,12 +935,17 @@ export function Register({ runtime }: { runtime: Runtime }) {
             >
               ‹
             </Button>
-            <h3 id="calTitle">
-              {new Intl.DateTimeFormat("it-IT", {
-                month: "long",
-                year: "numeric",
-              }).format(new Date(year, index, 15))}
-            </h3>
+            <div>
+              <h3 id="calTitle" className="row-title" aria-live="polite">
+                {new Intl.DateTimeFormat("it-IT", {
+                  month: "long",
+                  year: "numeric",
+                }).format(new Date(year, index, 15))}
+              </h3>
+              <p className="row-sub">
+                I giorni evidenziati contengono attività
+              </p>
+            </div>
             <Button
               id="calNext"
               variant="secondary"
@@ -921,8 +955,8 @@ export function Register({ runtime }: { runtime: Runtime }) {
               ›
             </Button>
           </div>
-          <div className="calendar-weekdays" aria-hidden="true">
-            {["L", "M", "M", "G", "V", "S", "D"].map((day, i) => (
+          <div className="calendar-week" aria-hidden="true">
+            {["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"].map((day, i) => (
               <span key={i}>{day}</span>
             ))}
           </div>
@@ -958,12 +992,8 @@ export function Register({ runtime }: { runtime: Runtime }) {
               );
             })}
           </div>
-        </section>
-        <section
-          id="registerDetail"
-          className="register-content"
-          data-selected={selected}
-        >
+        </div>
+        <div id="registerDetail" data-selected={selected}>
           {sessions.map((session) => {
             const rows = state.attendance.filter(
               (r) => r.session_id === session.id,
@@ -972,15 +1002,20 @@ export function Register({ runtime }: { runtime: Runtime }) {
               <article className="card session-detail" key={session.id}>
                 <div className="session-detail-head">
                   <div>
-                    <h3>{session.session_type}</h3>
-                    <p>
+                    <div className="row-title" role="heading" aria-level={3}>
+                      {session.session_type}
+                    </div>
+                    <div className="row-sub">
                       {fmt(session.session_date)}
                       {session.note ? ` · ${session.note}` : ""}
-                    </p>
+                    </div>
                   </div>
                   <div className="session-summary">
                     {["Presente", "Assente", "Infortunato"].map((status) => (
-                      <span className="badge tone-neutral" key={status}>
+                      <span
+                        className={`badge ${status === "Presente" ? "b-green" : status === "Assente" ? "b-red" : "b-blue"}`}
+                        key={status}
+                      >
                         {rows.filter((r) => r.status === status).length}{" "}
                         {status[0]}
                       </span>
@@ -990,23 +1025,43 @@ export function Register({ runtime }: { runtime: Runtime }) {
                 <div className="register-groups">
                   {["Presente", "Assente", "Infortunato"].map((status) => (
                     <section className="register-group" key={status}>
-                      <h4>{status}</h4>
-                      {rows
-                        .filter((r) => r.status === status)
-                        .map((row) => (
-                          <div className="row" key={row.player_id}>
-                            <b>
-                              {state.players.find((p) => p.id === row.player_id)
-                                ?.surname || "Giocatore storico"}{" "}
-                              {
-                                state.players.find(
-                                  (p) => p.id === row.player_id,
-                                )?.name
-                              }
-                            </b>
-                            <span>{row.note}</span>
-                          </div>
-                        ))}
+                      <div className="register-group-head">
+                        <span>
+                          {status === "Presente"
+                            ? "Presenti"
+                            : status === "Assente"
+                              ? "Assenti"
+                              : "Infortunati"}
+                        </span>
+                        <span
+                          className={`badge ${status === "Presente" ? "b-green" : status === "Assente" ? "b-red" : "b-blue"}`}
+                        >
+                          {rows.filter((r) => r.status === status).length}
+                        </span>
+                      </div>
+                      {rows.some((r) => r.status === status) ? (
+                        <div className="register-people">
+                          {rows
+                            .filter((r) => r.status === status)
+                            .map((row) => (
+                              <div className="person-chip" key={row.player_id}>
+                                <b>
+                                  {state.players.find(
+                                    (p) => p.id === row.player_id,
+                                  )?.surname || "Giocatore storico"}{" "}
+                                  {
+                                    state.players.find(
+                                      (p) => p.id === row.player_id,
+                                    )?.name
+                                  }
+                                </b>
+                                {row.note ? <small>{row.note}</small> : null}
+                              </div>
+                            ))}
+                        </div>
+                      ) : (
+                        <div className="row-sub">Nessuno</div>
+                      )}
                     </section>
                   ))}
                 </div>
@@ -1029,7 +1084,7 @@ export function Register({ runtime }: { runtime: Runtime }) {
                     Storico modifiche
                   </Button>
                 </div>
-                <small>
+                <div className="row-sub session-updated">
                   {session.updated_at
                     ? "Ultimo salvataggio: " +
                       new Intl.DateTimeFormat("it-IT", {
@@ -1037,7 +1092,7 @@ export function Register({ runtime }: { runtime: Runtime }) {
                         timeStyle: "short",
                       }).format(new Date(session.updated_at))
                     : "Storico importato · nessuna modifica tracciata"}
-                </small>
+                </div>
               </article>
             );
           })}
@@ -1046,15 +1101,17 @@ export function Register({ runtime }: { runtime: Runtime }) {
               <div className="session-detail-head">
                 <div>
                   <h3>{a.title}</h3>
-                  <p>
+                  <p className="row-sub">
                     {fmt(a.activity_date)} · {a.start_time?.slice(0, 5)}
                     {a.location ? ` · ${a.location}` : ""}
                   </p>
                 </div>
                 <span className="office-status sc-status">{a.status}</span>
               </div>
-              {a.organization_note ? <p>{a.organization_note}</p> : null}
-              <p>
+              {a.organization_note ? (
+                <p className="register-training-note">{a.organization_note}</p>
+              ) : null}
+              <p className="row-sub">
                 {a.status === "Annullato"
                   ? "Allenamento annullato: nessuna presenza da confermare."
                   : a.session_id
@@ -1076,7 +1133,7 @@ export function Register({ runtime }: { runtime: Runtime }) {
               <p>Scegli un altro giorno evidenziato nel calendario.</p>
             </div>
           ) : null}
-        </section>
+        </div>
       </div>
     </>
   );

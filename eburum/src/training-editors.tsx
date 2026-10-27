@@ -1,5 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, X, Minus, ArrowUpRight, Plus } from "lucide-react";
+import {
+  Check,
+  X,
+  Minus,
+  ArrowUpRight,
+  Plus,
+  ClipboardList,
+  CalendarDays,
+  Presentation,
+  ChevronRight,
+} from "lucide-react";
 import { Button } from "./components/ui/button";
 import {
   Field,
@@ -18,7 +28,7 @@ import type {
   Attendance,
 } from "./types";
 import { sortPlayers, fmt, today } from "../app-part1.js";
-import { canOperateRole, canPlanRole } from "../app-roles.js";
+import { canOperateRole, canPlanRole, canTechnicalRole } from "../app-roles.js";
 import { startActualAttendance } from "../app-workflows.js";
 import {
   attendanceCounts,
@@ -80,10 +90,11 @@ export function TrainingScreen({ runtime }: { runtime: Runtime }) {
       <div className="sc-page-heading page-heading">
         <div>
           <h1>Allenamenti</h1>
-          <p>Prima le risposte. Poi le presenze.</p>
+          <p>Programma, presenze e storico</p>
         </div>
         {canPlanRole(runtime.state.team?.role || "") ? (
           <Button
+            className="sc-add"
             aria-label="Nuovo allenamento"
             onClick={runtime.actions.newTraining}
           >
@@ -108,7 +119,7 @@ export function TrainingScreen({ runtime }: { runtime: Runtime }) {
           onClick={() => void change("actual")}
         >
           Da confermare
-          <span>
+          <span className="filter-count">
             {
               activities.filter(
                 (a) =>
@@ -138,12 +149,51 @@ export function TrainingScreen({ runtime }: { runtime: Runtime }) {
       {current ? (
         <>
           <div className="sc-activity-line">
-            <strong>{current.title}</strong>
-            <p>
-              {fmt(current.activity_date)} · {current.start_time?.slice(0, 5)}
-            </p>
-            <span className="office-status">{current.status}</span>
+            <div className="sc-date-tile">
+              <b>{Number(current.activity_date.slice(8))}</b>
+              <small>
+                {new Intl.DateTimeFormat("it-IT", { month: "short" })
+                  .format(new Date(current.activity_date + "T12:00:00"))
+                  .toLocaleUpperCase("it")}
+              </small>
+            </div>
+            <div>
+              <h2>{current.title}</h2>
+              <p>
+                {current.start_time?.slice(0, 5)}
+                {current.location ? ` · ${current.location}` : ""}
+              </p>
+              <div
+                className="training-reply-bars"
+                aria-label="Risposte WhatsApp"
+              >
+                {[
+                  ["Disponibile", "Sì", "text-success"],
+                  ["Indisponibile", "No", "text-destructive"],
+                  ["In attesa", "In attesa", ""],
+                ].map(([value, label, tone]) => (
+                  <span key={value} className={tone}>
+                    {label}{" "}
+                    {
+                      runtime.actions
+                        .pollEntries(current)
+                        .filter((r) => r.row.availability === value).length
+                    }
+                  </span>
+                ))}
+              </div>
+            </div>
+            <span className="office-status sc-status">{current.status}</span>
           </div>
+          {canTechnicalRole(runtime.state.team?.role || "") ? (
+            <NavLink
+              className="utility-link training-whiteboard-link"
+              to={`/whiteboard?activity=${encodeURIComponent(current.id)}`}
+            >
+              <Presentation size={18} />
+              Crea lavagna per l’allenamento
+            </NavLink>
+          ) : null}
           <section
             className="sc-inline-training"
             aria-label="Gestione allenamento"
@@ -177,9 +227,15 @@ export function TrainingScreen({ runtime }: { runtime: Runtime }) {
           </Button>
         </div>
       )}
-      <NavLink className="training-register-link" to="/register">
-        Registro allenamenti
-        <ArrowUpRight size={18} />
+      <NavLink className="utility-link training-register-link" to="/register">
+        <CalendarDays size={20} />
+        <span className="utility-copy">
+          <b>Registro degli allenamenti</b>
+          <small>
+            Presenze, note e schede degli allenamenti passati o annullati
+          </small>
+        </span>
+        <ChevronRight size={18} />
       </NavLink>
     </div>
   );
@@ -312,7 +368,7 @@ export function PlanningEditor({
     if (opened && !inline) await editor.close();
   };
   const content = (
-    <>
+    <div className="training-work-panel">
       <nav
         className="training-phase-tabs"
         aria-label="Fase allenamento"
@@ -418,169 +474,177 @@ export function PlanningEditor({
       >
         <fieldset disabled={editor.busy}>
           {training && a.id ? (
-            <div className="training-replies">
-              <div className="sc-training-grid">
-                <section>
-                  <div
-                    className="workflow-switch"
-                    role="group"
-                    aria-label="Filtra risposte"
-                  >
-                    <button
-                      type="button"
-                      id="allReplyFilter"
-                      aria-pressed={!pendingOnly}
-                      onClick={() => setPendingOnly(false)}
-                    >
-                      Tutti
-                    </button>
-                    <button
-                      type="button"
-                      id="pendingReplyFilter"
-                      aria-pressed={pendingOnly}
-                      onClick={() => setPendingOnly(!pendingOnly)}
-                    >
-                      Non risposto{" "}
-                      <span id="pendingReplyNumber">{pending.length}</span>
-                    </button>
-                  </div>
-                  <p className="sc-helper">
-                    Trascrivi il sondaggio WhatsApp. Queste sono risposte
-                    previste, non presenze effettive.
-                  </p>
-                  <div id="trainingReplies" className="sc-reply-list">
-                    {players
-                      .filter(
-                        (p) =>
-                          (!pendingOnly || v.replies[p.id] === "In attesa") &&
-                          `${p.surname} ${p.name} ${p.role}`
-                            .toLocaleLowerCase("it")
-                            .includes(search.toLocaleLowerCase("it")),
-                      )
-                      .map((p) => (
-                        <article className="sc-reply-row" key={p.id}>
-                          <span
-                            className="sc-person-avatar"
-                            data-role={p.role}
-                            aria-hidden="true"
-                          >
-                            {p.name[0]}
-                            {p.surname[0]}
-                          </span>
-                          <span className="sc-reply-copy">
-                            <b>
-                              {p.surname} {p.name}
-                            </b>
-                            <small>
-                              {v.replies[p.id] === "Disponibile"
-                                ? "Ha risposto sì"
-                                : v.replies[p.id] === "Indisponibile"
-                                  ? "Ha risposto no"
-                                  : "Non ha risposto"}
-                            </small>
-                          </span>
-                          <div className="sc-reply-actions">
-                            {(
-                              [
-                                ["Disponibile", "Sì", Check, "yes"],
-                                ["Indisponibile", "No", X, "no"],
-                                ["In attesa", "Non risposto", Minus, "pending"],
-                              ] as const
-                            ).map(([value, label, Icon, tone]) => (
-                              <button
-                                key={value}
-                                type="button"
-                                disabled={!operate}
-                                className={
-                                  v.replies[p.id] === value ? "sc-" + tone : ""
-                                }
-                                data-training-player={p.id}
-                                data-training-reply={value}
-                                aria-label={`${p.name} ${p.surname}: ${label}`}
-                                aria-pressed={v.replies[p.id] === value}
-                                onClick={() => {
-                                  editor.setValue({
-                                    ...v,
-                                    replies: { ...v.replies, [p.id]: value },
-                                  });
-                                  editor.setError("");
-                                }}
-                              >
-                                <Icon size={18} />
-                              </button>
-                            ))}
-                          </div>
-                        </article>
-                      ))}
-                  </div>
-                </section>
-                <aside className="sc-training-aside">
-                  <h3>Il punto sulle risposte</h3>
-                  <div className="sc-reply-counts">
-                    {[
-                      ["Disponibile", "Sì"],
-                      ["Indisponibile", "No"],
-                      ["In attesa", "In attesa"],
-                    ].map(([value, label]) => (
-                      <div key={value}>
-                        <b>
-                          {
-                            players.filter((p) => v.replies[p.id] === value)
-                              .length
-                          }
-                        </b>
-                        <span>{label}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <CopyText
-                    id="copyTrainingReminder"
-                    label="Copia nomi da sollecitare"
-                    text={[
-                      `ALLENAMENTO EBURUM · ${fmt(v.activity_date)}`,
-                      editor.dirty || !a.id
-                        ? "BOZZA · risposte non ancora salvate"
-                        : "Risposte salvate",
-                      `Non hanno risposto (${pending.length})`,
-                      ...pending.map((p) => `• ${p.surname} ${p.name}`),
-                      pending.length
-                        ? "Da sollecitare a votare al sondaggio WhatsApp."
-                        : "Tutti hanno risposto.",
-                    ].join("\n")}
-                  />
-                  <p className="sc-helper">
-                    Il sondaggio resta su WhatsApp. La dashboard aiuta lo staff
-                    a registrarlo.
-                  </p>
+            <div className="training-replies sc-training-layout">
+              <section>
+                <div
+                  className="sc-segmented"
+                  role="group"
+                  aria-label="Filtra risposte"
+                >
                   <button
                     type="button"
-                    id="openActualPhase"
-                    className="ghost wide"
-                    onClick={() => setPhase("actual")}
+                    id="allReplyFilter"
+                    aria-pressed={!pendingOnly}
+                    onClick={() => setPendingOnly(false)}
                   >
-                    Presenze effettive
-                    <ArrowUpRight size={18} />
+                    Tutti
                   </button>
-                  <details>
-                    <summary>Cerca giocatore</summary>
-                    <Field id="replySearch" label="Cerca giocatore">
-                      <input
-                        id="replySearch"
-                        type="search"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                      />
-                    </Field>
-                  </details>
-                </aside>
-              </div>
+                  <button
+                    type="button"
+                    id="pendingReplyFilter"
+                    aria-pressed={pendingOnly}
+                    onClick={() => setPendingOnly(!pendingOnly)}
+                  >
+                    Non risposto{" "}
+                    <span id="pendingReplyNumber">{pending.length}</span>
+                  </button>
+                </div>
+                <p className="sc-helper">
+                  Trascrivi il sondaggio WhatsApp. Queste sono risposte
+                  previste, non presenze effettive.
+                </p>
+                <div id="trainingReplies" className="sc-player-list">
+                  {players
+                    .filter(
+                      (p) =>
+                        (!pendingOnly || v.replies[p.id] === "In attesa") &&
+                        `${p.surname} ${p.name} ${p.role}`
+                          .toLocaleLowerCase("it")
+                          .includes(search.toLocaleLowerCase("it")),
+                    )
+                    .map((p) => (
+                      <article className="sc-reply-row" key={p.id}>
+                        <span className="sc-person-avatar" aria-hidden="true">
+                          {p.name[0]}
+                          {p.surname[0]}
+                        </span>
+                        <span className="sc-person-copy">
+                          <b>
+                            {p.name} {p.surname}
+                          </b>
+                          <small>
+                            {v.replies[p.id] === "Disponibile"
+                              ? "Ha risposto sì"
+                              : v.replies[p.id] === "Indisponibile"
+                                ? "Ha risposto no"
+                                : "Non ha risposto"}
+                          </small>
+                        </span>
+                        <div
+                          className="sc-reply-buttons"
+                          role="group"
+                          aria-label={`Risposta di ${p.name} ${p.surname}`}
+                        >
+                          {(
+                            [
+                              ["Disponibile", "Sì", Check, "yes"],
+                              ["Indisponibile", "No", X, "no"],
+                              ["In attesa", "Non risposto", Minus, "pending"],
+                            ] as const
+                          ).map(([value, label, Icon, tone]) => (
+                            <button
+                              key={value}
+                              type="button"
+                              disabled={!operate}
+                              className={
+                                v.replies[p.id] === value ? "sc-" + tone : ""
+                              }
+                              data-training-player={p.id}
+                              data-training-reply={value}
+                              aria-label={`${p.name} ${p.surname}: ${label}`}
+                              aria-pressed={v.replies[p.id] === value}
+                              onClick={() => {
+                                editor.setValue({
+                                  ...v,
+                                  replies: { ...v.replies, [p.id]: value },
+                                });
+                                editor.setError("");
+                              }}
+                            >
+                              <Icon size={18} />
+                            </button>
+                          ))}
+                        </div>
+                      </article>
+                    ))}
+                </div>
+              </section>
+              <aside className="sc-training-aside">
+                <h3>Il punto sulle risposte</h3>
+                <div
+                  id="planningReplySummary"
+                  className="sc-count-strip"
+                  aria-live="polite"
+                >
+                  {[
+                    ["Disponibile", "Sì"],
+                    ["Indisponibile", "No"],
+                    ["In attesa", "In attesa"],
+                  ].map(([value, label]) => (
+                    <span key={value}>
+                      <b>
+                        {
+                          players.filter((p) => v.replies[p.id] === value)
+                            .length
+                        }
+                      </b>
+                      {label}
+                    </span>
+                  ))}
+                </div>
+                <CopyText
+                  className="sc-primary border-0"
+                  id="copyTrainingReminder"
+                  label="Copia nomi da sollecitare"
+                  text={[
+                    `ALLENAMENTO EBURUM · ${fmt(v.activity_date)}`,
+                    editor.dirty || !a.id
+                      ? "BOZZA · risposte non ancora salvate"
+                      : "Risposte salvate",
+                    `Non hanno risposto (${pending.length})`,
+                    ...pending.map((p) => `• ${p.surname} ${p.name}`),
+                    pending.length
+                      ? "Da sollecitare a votare al sondaggio WhatsApp."
+                      : "Tutti hanno risposto.",
+                  ].join("\n")}
+                >
+                  Copia nomi da sollecitare
+                  <ClipboardList size={18} />
+                </CopyText>
+                <p className="sc-helper">
+                  Il sondaggio resta su WhatsApp. La dashboard aiuta lo staff a
+                  registrarlo.
+                </p>
+                <button
+                  type="button"
+                  id="openActualPhase"
+                  className="sc-secondary"
+                  onClick={() => setPhase("actual")}
+                >
+                  Presenze effettive
+                  <ArrowUpRight size={18} />
+                </button>
+                <details className="field-space">
+                  <summary>Cerca giocatore</summary>
+                  <Field id="replySearch" label="Cerca giocatore">
+                    <input
+                      id="replySearch"
+                      type="search"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                    />
+                  </Field>
+                </details>
+              </aside>
             </div>
           ) : null}
           <details
             className="planning-details field-space"
             open={!a.id || !training}
           >
-            <summary>Organizzazione</summary>
+            <summary>
+              Organizzazione{a.id ? ` · ${fmt(a.activity_date!)}` : ""}
+            </summary>
             <fieldset disabled={!plan}>
               <div className="form-grid">
                 {(
@@ -683,7 +747,7 @@ export function PlanningEditor({
           </div>
         </fieldset>
       </form>
-    </>
+    </div>
   );
   return inline ? (
     content
@@ -700,6 +764,7 @@ export function PlanningEditor({
             : "Nuova riunione"
       }
       closeLabel="Chiudi allenamento"
+      className="training-planning"
       titleId="planningTitle"
       closeId="closePlanning"
     >

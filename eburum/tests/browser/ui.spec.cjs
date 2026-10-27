@@ -223,3 +223,35 @@ test('React Register correction returns to its selected day after confirming an 
  const confirmation=page.getByRole('alertdialog');await expect(confirmation).toBeVisible();await confirmation.getByRole('button',{name:'Esci dalle presenze',exact:true}).click();
  await expect(page.locator('#registerDetail')).toHaveAttribute('data-selected',date);await expect(page).toHaveURL(new RegExp('date='+date));
 });
+
+test('dashboard preserves the stacked welcome, aligned score and outlined empty-message action',async({page},info)=>{
+ await open(page,'dashboard');
+ const heading=await page.locator('.office-heading').evaluate(el=>{const h=el.querySelector('h1').getBoundingClientRect(),d=el.querySelector('.sc-date-line').getBoundingClientRect();return {headingBottom:h.bottom,dateTop:d.top,headingX:h.x,dateX:d.x};});
+ expect(heading.dateTop).toBeGreaterThanOrEqual(heading.headingBottom);expect(heading.dateX).toBe(heading.headingX);
+ const score=await page.locator('.sc-home-result .match-scoreboard').evaluate(el=>({layout:getComputedStyle(el).display,teams:[...el.querySelectorAll('.match-team')].map(n=>n.getBoundingClientRect().toJSON()),goals:[...el.querySelectorAll('.match-goals')].map(n=>n.getBoundingClientRect().toJSON())}));
+ expect(score.layout).toBe('grid');expect(score.teams).toHaveLength(2);expect(score.goals).toHaveLength(2);expect(score.teams[0].x).toBe(score.teams[1].x);expect(score.goals[0].right).toBe(score.goals[1].right);for(let i=0;i<2;i++)expect(score.goals[i].x).toBeGreaterThan(score.teams[i].right);
+ await page.evaluate(()=>{fixtureMount.runtime.state.staff_communications=[];fixtureMount.runtime.render()});
+ const compose=page.getByRole('link',{name:'Scrivi un messaggio',exact:true});await expect(compose).toBeVisible();const action=await compose.evaluate(el=>{const s=getComputedStyle(el),r=el.getBoundingClientRect();return {height:r.height,display:s.display,border:parseFloat(s.borderTopWidth)}});expect(action.height).toBeGreaterThanOrEqual(44);expect(action.display).toBe('flex');expect(action.border).toBe(1);
+ await info.attach('dashboard-restored',{body:await page.screenshot({fullPage:true}),contentType:'image/png'});
+});
+
+test('training replies preserve player columns, touch targets and three summary columns inline and in the workspace',async({page},info)=>{
+ const check=async name=>{
+  const rows=await page.locator('#trainingReplies .sc-reply-row').evaluateAll(items=>items.map(row=>{const name=row.querySelector('b').getBoundingClientRect(),status=row.querySelector('small').getBoundingClientRect();return {nameBottom:name.bottom,statusTop:status.top,buttons:[...row.querySelectorAll('button')].map(b=>b.getBoundingClientRect().toJSON())}}));
+  expect(rows).toHaveLength(30);for(const row of rows){expect(row.statusTop).toBeGreaterThanOrEqual(row.nameBottom-1);expect(row.buttons).toHaveLength(3);for(const button of row.buttons){expect(button.width).toBeGreaterThanOrEqual(44);expect(button.height).toBeGreaterThanOrEqual(44);expect(button.y).toBe(row.buttons[0].y)}for(let i=1;i<3;i++)expect(row.buttons[i].x-row.buttons[i-1].right).toBeGreaterThanOrEqual(4)}
+  const counts=await page.locator('#planningReplySummary').evaluate(el=>[...el.children].map(n=>{const r=n.getBoundingClientRect(),b=n.querySelector('b').getBoundingClientRect();return {x:r.x,y:r.y,right:r.right,valueBottom:b.bottom,height:r.height}}));expect(counts).toHaveLength(3);for(let i=1;i<3;i++){expect(counts[i].y).toBe(counts[0].y);expect(counts[i].x).toBeGreaterThan(counts[i-1].right)}
+  const panel=await page.locator('.sc-training-layout').evaluate(el=>({display:getComputedStyle(el).display,list:el.querySelector('section').getBoundingClientRect().toJSON(),aside:el.querySelector('aside').getBoundingClientRect().toJSON()}));if(page.viewportSize().width>=1024){expect(panel.display).toBe('grid');expect(panel.aside.x).toBeGreaterThan(panel.list.right)}else expect(panel.aside.y).toBeGreaterThanOrEqual(panel.list.bottom);
+  const copy=page.locator('#copyTrainingReminder');expect(await copy.evaluate(el=>getComputedStyle(el).justifyContent)).toBe('space-between');expect(await copy.evaluate(el=>el.lastElementChild.tagName.toLowerCase())).toBe('svg');
+  const a11y=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(a11y.violations).toEqual([]);expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+  await info.attach(name,{body:await page.screenshot({fullPage:true}),contentType:'image/png'});
+ };
+ await open(page,'training');await check('training-inline-restored');
+ const yes=page.locator('[data-training-player="player-1"][data-training-reply="Disponibile"]');await yes.click();expect(await yes.evaluate(el=>{const no=el.parentElement.querySelector('[data-training-reply="Indisponibile"]');return getComputedStyle(el).backgroundColor!==getComputedStyle(no).backgroundColor})).toBe(true);await page.locator('[data-training-player="player-1"][data-training-reply="In attesa"]').click();
+ await page.evaluate(()=>fixtureMount.runtime.actions.openActivity('review-training'));await expect(page.locator('#planningTitle')).toBeVisible();await check('training-workspace-restored');expect(await page.locator('.workspace-editor').evaluate(el=>getComputedStyle(el).outlineStyle)).toBe('none');
+});
+
+test('reports keep colored chart tracks and the register keeps its seven-day calendar',async({page})=>{
+ await open(page,'reports');await page.locator('#rp').selectOption('player-1');await expect(page.locator('.chart-card')).toHaveCount(3);await expect(page.locator('[data-chart-family=minutes] .chart-bar-row')).toHaveCount(1);
+ const charts=await page.locator('.chart-card').evaluateAll(cards=>cards.map(card=>{const row=card.querySelector('.chart-bar-row'),track=card.querySelector('.chart-track'),fill=card.querySelector('.chart-fill');return {row:row&&getComputedStyle(row).display,height:track?.getBoundingClientRect().height,radius:track&&parseFloat(getComputedStyle(track).borderRadius),color:fill&&getComputedStyle(fill).backgroundColor}}));for(const chart of charts){expect(chart.row).toBe('grid');expect(chart.height).toBeGreaterThan(0);expect(chart.radius).toBeGreaterThan(0);expect(chart.color).not.toBe('rgba(0, 0, 0, 0)')}expect(new Set(charts.map(c=>c.color)).size).toBe(3);
+ await open(page,'register');const days=await page.locator('.calendar-week > span').evaluateAll(items=>items.map(el=>el.getBoundingClientRect().toJSON()));expect(days).toHaveLength(7);expect(new Set(days.map(d=>d.y)).size).toBe(1);for(let i=1;i<7;i++)expect(days[i].x).toBeGreaterThanOrEqual(days[i-1].right-1);expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+});

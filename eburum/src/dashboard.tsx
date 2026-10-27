@@ -9,6 +9,8 @@ import {
   Trophy,
   ClipboardCheck,
 } from "lucide-react";
+import { communicationExpiry } from "../app-communications.js";
+import { isAwayMatch } from "../app-match-display.js";
 import { dayLabel, matchOutcome } from "../app-presentation.js";
 import { today, fmt } from "../app-part1.js";
 import {
@@ -35,6 +37,7 @@ export function Dashboard({ runtime }: { runtime: Runtime }) {
       ),
     );
   const next = upcoming[0],
+    nextMatch = state.matches.find((m) => m.id === next?.match_id),
     latest = state.sessions
       .filter((s) => s.session_type === "Allenamento")
       .sort((a, b) => b.session_date.localeCompare(a.session_date))[0],
@@ -127,36 +130,42 @@ export function Dashboard({ runtime }: { runtime: Runtime }) {
   );
   return (
     <div className="sc-surface club-office-home">
-      <div className="office-heading">
-        <h1>
-          {state.team?.first_name
-            ? `Bentornato, ${state.team.first_name}.`
-            : "Bentornato"}
-        </h1>
-        <p>
-          {new Intl.DateTimeFormat("it-IT", { dateStyle: "full" }).format(
-            new Date(),
-          )}
-        </p>
-      </div>
+      <header className="sc-page-heading office-heading">
+        <div>
+          <h1>
+            {state.team?.first_name
+              ? `Bentornato, ${state.team.first_name}.`
+              : "Bentornato"}
+          </h1>
+          <p className="sc-date-line">
+            {new Intl.DateTimeFormat("it-IT", { dateStyle: "full" })
+              .format(new Date())
+              .replace(/^./, (letter) => letter.toLocaleUpperCase("it"))}
+          </p>
+        </div>
+      </header>
       <div className="sc-home-layout">
         <div className="sc-home-main">
           {next ? (
             <section className="sc-training-focus sc-home-hero">
               <div className="sc-focus-top">
                 <span className="sc-light-tag">
-                  <CalendarDays size={18} />
+                  {next.activity_type === "Partita" ? (
+                    <Trophy size={16} />
+                  ) : (
+                    <CalendarDays size={16} />
+                  )}
                   {next.activity_type === "Partita"
                     ? "Prossima partita"
                     : "Prossimo allenamento"}
                 </span>
-                <b>{dayLabel(next.activity_date, day)}</b>
+                <span>{dayLabel(next.activity_date, day)}</span>
               </div>
-              <h2>
+              <h3>
                 {next.activity_type === "Partita"
                   ? `Eburum vs ${next.title}`
                   : next.title}
-              </h2>
+              </h3>
               <p>{fmt(next.activity_date)}</p>
               <div className="sc-focus-place">
                 <Clock3 size={18} />
@@ -165,6 +174,13 @@ export function Dashboard({ runtime }: { runtime: Runtime }) {
                 <MapPin size={18} />
                 {next.location || "Campo da definire"}
               </div>
+              {next.activity_type === "Partita" && nextMatch ? (
+                <span
+                  className={`badge ${isAwayMatch(nextMatch) ? "venue-away" : "venue-home"}`}
+                >
+                  {nextMatch.venue}
+                </span>
+              ) : null}
               <button
                 className="sc-light-button"
                 data-open-activity={next.id}
@@ -317,25 +333,43 @@ export function Dashboard({ runtime }: { runtime: Runtime }) {
                 <ArrowUpRight size={16} />
               </button>
             </div>
-            {messages.slice(0, 2).map((m) => (
+            {messages.slice(0, 3).map((m) => (
               <button
                 className="sc-communication-preview"
                 key={m.id}
                 onClick={() => void runtime.navigate("communications")}
               >
-                <span className="sc-message-kind">
-                  {actions.communicationAudience(m)}
-                </span>
+                <div>
+                  <span className="sc-category">
+                    {actions.communicationAudience(m)}
+                  </span>
+                  <span className="sc-expiry">
+                    {communicationExpiry(m.expires_at)}
+                  </span>
+                </div>
                 <h3>{m.title}</h3>
-                <p>{m.body.slice(0, 160)}</p>
-                <small>{m.author_label || "Staff"}</small>
+                <p className="sc-message-body">{m.body}</p>
+                <footer>
+                  <span className="sc-mini-avatar">
+                    {(m.author_label || "Staff")
+                      .split(" ")
+                      .map((n) => n[0])
+                      .slice(0, 2)
+                      .join("")}
+                  </span>
+                  {m.author_label || "Staff"}
+                  <ChevronRight size={18} />
+                </footer>
               </button>
             ))}
             {!messages.length ? (
               <div className="sc-communication-preview">
                 <h3>Nessuna comunicazione attiva</h3>
                 <p>Qui trovi gli aggiornamenti condivisi dallo staff.</p>
-                <NavLink className="ghost" to="/communications?compose=1">
+                <NavLink
+                  className="sc-secondary"
+                  to="/communications?compose=1"
+                >
                   Scrivi un messaggio
                 </NavLink>
               </div>
@@ -348,22 +382,47 @@ export function Dashboard({ runtime }: { runtime: Runtime }) {
                 <span>{fmt(lastMatch.match_date)}</span>
               </div>
               <button
-                className="sc-fixture-preview"
+                className="sc-match-preview"
                 onClick={() => actions.openMatch(lastMatch)}
               >
-                <span className="badge tone-neutral">{lastMatch.venue}</span>
-                <div className="sc-fixture-score">
-                  <span>Eburum</span>
-                  <b>{lastMatch.goals_for}</b>
+                <div className="sc-match-meta">
+                  <span
+                    className={`match-outcome outcome-${matchOutcome(lastMatch)}`}
+                  >
+                    {matchOutcome(lastMatch)}
+                  </span>
+                  <span
+                    className={`badge ${isAwayMatch(lastMatch) ? "venue-away" : "venue-home"}`}
+                  >
+                    {lastMatch.venue}
+                  </span>
                 </div>
-                <div className="sc-fixture-score">
-                  <span>{lastMatch.opponent}</span>
-                  <b>{lastMatch.goals_against}</b>
+                <div className="match-scoreboard">
+                  <span
+                    className={`match-team ${isAwayMatch(lastMatch) ? "" : "is-own"}`}
+                  >
+                    {isAwayMatch(lastMatch) ? lastMatch.opponent : "Eburum"}
+                  </span>
+                  <strong className="match-goals">
+                    {isAwayMatch(lastMatch)
+                      ? lastMatch.goals_against
+                      : lastMatch.goals_for}
+                  </strong>
+                  <span
+                    className={`match-team ${isAwayMatch(lastMatch) ? "is-own" : ""}`}
+                  >
+                    {isAwayMatch(lastMatch) ? "Eburum" : lastMatch.opponent}
+                  </span>
+                  <strong className="match-goals">
+                    {isAwayMatch(lastMatch)
+                      ? lastMatch.goals_for
+                      : lastMatch.goals_against}
+                  </strong>
                 </div>
-                <span className="sc-fixture-footer">
+                <footer>
                   Risultato ed eventi
-                  <ArrowUpRight size={18} />
-                </span>
+                  <ArrowUpRight size={20} />
+                </footer>
               </button>
             </section>
           ) : null}
