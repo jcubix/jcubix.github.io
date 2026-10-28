@@ -1,39 +1,36 @@
 /* Eburum club business interface. Brand: #010736 / #ffffff / #22396F / #FCF1D0. */
 :root {
   color-scheme:light;
-  --brand-blue:var(--swatch-22396f);
-  --brand-blue-deep:var(--swatch-010736);
-  --brand-cream:var(--swatch-fcf1d0);
-  --gold:var(--swatch-89651d);
-  --bg:var(--swatch-f7f8fa);
-  --panel:var(--swatch-ffffff);
-  --panel2:var(--swatch-f2f5f9);
-  --text:var(--swatch-14213b);
-  --muted:var(--swatch-606a79);
-  --border:var(--swatch-dce1e8);
-  --control-border:var(--swatch-8292ab);
-  --input-bg:var(--swatch-ffffff);
-  --focus:var(--swatch-966715);
-  --surface-hover:var(--swatch-e4eaf1);
+  --brand-blue:var(--primary-ink);
+  --brand-blue-deep:var(--hero);
+  --brand-cream:var(--warning-soft);
+  --gold:var(--accent-ink);
+  --panel:var(--surface);
+  --panel2:var(--surface-muted);
+  --text:var(--ink);
+  --muted:var(--ink-2);
+  --input-bg:var(--surface);
+  --focus:var(--warning);
+  --surface-hover:var(--primary-soft);
   --space-1:4px;
   --space-2:8px;
   --space-3:12px;
   --space-4:16px;
   --space-5:24px;
   --space-6:32px;
-  --sky:var(--swatch-22396f);
-  --sky-2:var(--swatch-22396f);
-  --navy:var(--swatch-010736);
-  --navy-2:var(--swatch-0d1c42);
-  --blue:var(--swatch-22396f);
-  --green:var(--swatch-23654e);
-  --red:var(--swatch-983a45);
-  --yellow:var(--swatch-815709);
+  --sky:var(--primary);
+  --sky-2:var(--primary);
+  --navy:var(--hero);
+  --navy-2:var(--primary);
+  --blue:var(--primary);
+  --green:var(--success);
+  --red:var(--danger);
+  --yellow:var(--warning);
   --radius:12px;
   --dialog-pad:24px;
   --sidebar-width:232px;
   --page-gutter:clamp(24px,3vw,56px);
-  --shadow:0 12px 32px var(--swatch-rgba13286612)
+  --shadow:0 12px 32px rgb(var(--shadow-rgb) / 0.12)
 }
 * {
   box-sizing:border-box
@@ -107,7 +104,7 @@ button:hover,.btn:hover {
   border-color:var(--sky)
 }
 button:active {
-  background:var(--swatch-e4eaf1)
+  background:var(--primary-soft)
 }
 button:disabled {
   opacity:.6;
@@ -119,22 +116,22 @@ button:focus-visible,summary:focus-visible,a:focus-visible,[tabindex]:focus-visi
 }
 button.primary,.btn.primary {
   background:var(--navy-2);
-  color:var(--swatch-ffffff);
+  color:var(--primary-foreground);
   border:1px solid var(--navy-2);
   font-weight:500
 }
 button.primary:hover,.btn.primary:hover {
-  background:var(--swatch-22396f);
-  border-color:var(--swatch-22396f)
+  background:var(--primary);
+  border-color:var(--primary)
 }
 .ghost {
   background:transparent;
   border-color:var(--border)
 }
 .danger {
-  background:var(--swatch-faecee);
+  background:var(--danger-soft);
   color:var(--red);
-  border-color:var(--swatch-d8acb4)
+  border-color:color-mix(in srgb, var(--danger) 35%, var(--border))
 }
 .wide {
   width:100%
@@ -286,24 +283,24 @@ button.primary:hover,.btn.primary:hover {
   line-height:1.4
 }
 .b-green {
-  background:var(--swatch-e7f3ec);
+  background:var(--success-soft);
   color:var(--green);
-  border-color:var(--swatch-a6c8b4)
+  border-color:color-mix(in srgb, var(--success) 35%, var(--border))
 }
 .b-red {
-  background:var(--swatch-faecee);
+  background:var(--danger-soft);
   color:var(--red);
-  border-color:var(--swatch-d8acb4)
+  border-color:color-mix(in srgb, var(--danger) 35%, var(--border))
 }
 .b-yellow {
-  background:var(--swatch-f8eed5);
+  background:var(--warning-soft);
   color:var(--yellow);
-  border-color:var(--swatch-cfb77e)
+  border-color:color-mix(in srgb, var(--warning) 35%, var(--border))
 }
 .b-blue {
   background:var(--brand-blue);
   color:var(--brand-cream);
-  border-color:var(--swatch-8292ab)
+  border-color:var(--control-border)
 }
 .b-gray {
   background:var(--panel2);
@@ -341,7 +338,7 @@ button.primary:hover,.btn.primary:hover {
 .notice {
   padding:var(--space-4);
   background:var(--panel2);
-  border:1px solid var(--swatch-8292ab);
+  border:1px solid var(--control-border);
   border-left:1px solid var(--gold);
   border-radius:10px;
   color:var(--text);
@@ -387,7 +384,7 @@ input,select,textarea {
   transition:border-color .18s ease-out,background .18s ease-out
 }
 input::placeholder,textarea::placeholder {
-  color:var(--swatch-606a79);
+  color:var(--ink-2);
   opacity:1
 }
 input:focus,select:focus,textarea:focus {
@@ -428,7 +425,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   display:flex;
   align-items:center;
   justify-content:center;
-  background:var(--swatch-rgba173082);
+  background:var(--hero);
   padding:calc(var(--space-5) + var(--safe-area-top,env(safe-area-inset-top,0px))) calc(var(--space-5) + env(safe-area-inset-right,0px)) calc(var(--space-5) + env(safe-area-inset-bottom,0px)) calc(var(--space-5) + env(safe-area-inset-left,0px));
   z-index:50
 }
@@ -442,7 +439,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   background:var(--panel);
   border:1px solid var(--control-border);
   border-radius:18px;
-  box-shadow:0 24px 70px var(--swatch-rgba0003);
+  box-shadow:0 24px 70px rgb(var(--shadow-rgb) / 0.3);
   min-width:0
 }
 .modal-head {
@@ -553,7 +550,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   grid-template-columns:repeat(5,minmax(0,1fr));
   gap:var(--space-1);
   padding:var(--space-2);
-  background:var(--swatch-f2f5f9);
+  background:var(--surface-muted);
   border:1px solid var(--border);
   border-radius:16px;
   z-index:20
@@ -1138,7 +1135,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   padding:24px 16px;
   min-height:280px;
   background:var(--panel);
-  border:1px solid var(--swatch-8292ab);
+  border:1px solid var(--control-border);
   border-radius:14px;
   margin-top:16px
 }
@@ -1299,8 +1296,8 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   background:transparent
 }
 .calendar-day.has-activity {
-  background:var(--swatch-e8eef8);
-  border-color:var(--swatch-a8b7d1);
+  background:var(--primary-soft);
+  border-color:var(--control-border);
   color:var(--brand-blue-deep)
 }
 .calendar-day:hover {
@@ -1308,7 +1305,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   color:var(--text)
 }
 .calendar-day.has-activity:hover {
-  background:var(--swatch-d8e2f3);
+  background:var(--primary-soft);
   border-color:var(--brand-blue)
 }
 .calendar-day i {
@@ -1320,12 +1317,12 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 .calendar-day.selected {
   background:var(--brand-blue);
   border-color:var(--gold);
-  color:var(--swatch-ffffff);
+  color:var(--primary-foreground);
   box-shadow:inset 0 0 0 1px var(--brand-cream)
 }
 .calendar-day.selected:hover {
   background:var(--navy-2);
-  color:var(--swatch-ffffff)
+  color:var(--primary-foreground)
 }
 .calendar-day.selected i {
   background:var(--brand-cream)
@@ -1410,7 +1407,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 }
 .report {
   padding:16px;
-  background:var(--swatch-f2f5f9);
+  background:var(--surface-muted);
   border:1px solid var(--border);
   border-radius:10px;
   white-space:pre-wrap;
@@ -1555,7 +1552,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 .chart-track {
   height:9px;
   border-radius:5px;
-  background:var(--swatch-dce1e8);
+  background:var(--border);
   overflow:hidden
 }
 .chart-fill {
@@ -1613,7 +1610,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
 .discipline-progress span {
   height:8px;
   border-radius:4px;
-  background:var(--swatch-dce1e8);
+  background:var(--border);
   border:1px solid var(--control-border)
 }
 .discipline-progress .filled {
@@ -1735,7 +1732,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   height:36px;
   flex-shrink:0;
   background:var(--brand-blue);
-  border:1px solid var(--swatch-8292ab);
+  border:1px solid var(--control-border);
   color:var(--brand-cream);
   border-radius:9px;
   font-size:13px;
@@ -1752,7 +1749,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   display:inline-block;
   width:fit-content;
   padding:4px 8px;
-  background:var(--swatch-ffffff);
+  background:var(--surface);
   color:var(--muted);
   border:1px solid var(--border);
   border-radius:6px;
@@ -1761,9 +1758,9 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   line-height:1.5
 }
 .communication-expiry.is-urgent {
-  background:var(--swatch-f8eed5);
+  background:var(--warning-soft);
   color:var(--yellow);
-  border-color:var(--swatch-cfb77e)
+  border-color:color-mix(in srgb, var(--warning) 35%, var(--border))
 }
 .communication-card h3 {
   margin:0;
@@ -1824,7 +1821,7 @@ input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit 
   font-size:13px;
   max-width:160px;
   color:var(--red);
-  background:var(--swatch-faecee)
+  background:var(--danger-soft)
 }
 .communication-footnote {
   font-size:13px;

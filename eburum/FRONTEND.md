@@ -33,7 +33,7 @@ Tailwind 4, componenti locali in `components/ui`, primitive Radix e icone Lucide
 
 I fogli globali sono `styles.css` e `design-system.css`. Il CSS di report e lavagna appartiene ai rispettivi moduli caricati su richiesta. Ordine della cascata: `theme, base, legacy, utilities, components, overrides`; le regole applicative condividono `components` per preservare specificità e priorità, incluse quelle importanti. `app.css` rimane importato nel layer `legacy` finché contiene regole necessarie.
 
-I token semantici guidano le nuove superfici. Gli swatch di compatibilità ancora utilizzati non sono una seconda palette da espandere. Le animazioni mantengono un percorso senza movimento; non reintrodurre dipendenze solo per fade o feedback di pressione.
+I token semantici guidano tutte le superfici: i vecchi alias cromatici `--swatch-*` sono stati rimossi. Le tinte delle annotazioni e del campo tattico restano colori del contenuto, indipendenti dal tema. Le animazioni mantengono un percorso senza movimento; non reintrodurre dipendenze solo per fade o feedback di pressione.
 
 ## Dati, permessi e sicurezza
 
@@ -41,9 +41,12 @@ L'applicazione usa il ruolo autorevole della membership; i controlli client mode
 
 Le risposte WhatsApp restano distinte dalle presenze effettive. I report non trasformano dati mancanti in assenze. Gli export seguono periodo e ordinamento; la squadra usa `.xlsx` e PDF. ExcelJS e jsPDF rimangono su richiesta; la cache PWA contiene solo asset statici, mai tabelle o risposte API. La lavagna controlla nuovamente il contesto prima di scaricare un'immagine generata in modo asincrono.
 
+I salvataggi sportivi usano `reloadAffected` con un ambito tipizzato: giocatori, amministrazione, disciplina, attività, gara o sessione. I record collegati sono riletti insieme e applicati soltanto dopo il successo di tutte le letture; le operazioni mirate sono serializzate e subordinate a contesto, stagione e generazione del caricamento completo. Le date iniziali sono rilette solo quando cambiano date o record; eliminare una gara aggiorna anche le conferme disciplinari. Accesso, cambio stagione, recupero da errore e modifiche del contesto utente conservano il caricamento completo. I report reagiscono alle nuove righe senza cambiare periodo o ordinamento.
+
 ## Documenti correnti
 
 - `CODE-REVIEW-IMPLEMENTATION-2026-10-27.md`: confronto con l'handoff, scelte, misure, verifiche e limiti.
+- `TARGETED-REFRESH-PALETTE-2026-10-28.md`: chiusura degli aggiornamenti mirati e della palette di compatibilità.
 - `REACT-MIGRATION-2026-10-27.md`: conclusione della migrazione dei renderer e copertura precedente.
 - `TEAM-REPORT-2026-10-27.md`, `TREASURY.md`, `WHITEBOARD.md`, `STAFF_ROLES.md`: regole delle funzionalità.
 - `tests/README.md`: test effettivamente presenti; `supabase/tests/`: verifiche server separate.

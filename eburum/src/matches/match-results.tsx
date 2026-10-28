@@ -395,7 +395,10 @@ export function MatchResults({
                 if (error) throw error;
                 if (editor.current()) {
                   await editor.close();
-                  await runtime.actions.reload();
+                  await runtime.actions.reloadAffected({
+                    kind: "match",
+                    id: m.id,
+                  });
                 }
               })
             }

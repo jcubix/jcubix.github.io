@@ -182,7 +182,9 @@ export function PlayerSheet({
                 if (error) throw error;
                 if (editor.current()) {
                   editor.clean();
-                  await runtime.actions.reload();
+                  await runtime.actions.reloadAffected({
+                    kind: "administration",
+                  });
                   editor.setError("Scheda salvata");
                 }
               });

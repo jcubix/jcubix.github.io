@@ -112,7 +112,13 @@ export function usePlanningEditor({
       baselineReplies.current = { ...replies };
       editor.reset({ ...v });
       if (!inline) await editor.close();
-      await runtime.actions.reload();
+      if (
+        !(await runtime.actions.reloadAffected({
+          kind: "activity",
+          id: saved.id,
+        }))
+      )
+        return;
       if (!inline && !a.id && training)
         await runtime.actions.openActivity(saved.id);
       ui.notify(

@@ -19,7 +19,7 @@
   .report-view-switch > a[aria-current="page"] {
     background: var(--surface);
     color: var(--ink);
-    box-shadow: 0 2px 6px var(--swatch-0d1c420d);
+    box-shadow: 0 2px 6px rgb(var(--shadow-rgb) / 0.05);
   }
   .team-report-controls {
     display: flex;

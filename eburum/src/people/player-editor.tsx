@@ -77,7 +77,7 @@ export function PlayerEditor({
             if (error) throw error;
             if (editor.current()) {
               await editor.close();
-              await runtime.actions.reload();
+              await runtime.actions.reloadAffected({ kind: "players" });
               ui.notify("Giocatore salvato");
             }
           });

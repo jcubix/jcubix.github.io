@@ -2,20 +2,20 @@
 @import "tailwindcss";
 @import "../app.css" layer(legacy);
 @theme inline {
-  --color-background: var(--swatch-f7f8fa);
-  --color-foreground: var(--swatch-14213b);
-  --color-primary: var(--swatch-0d1c42);
-  --color-primary-foreground: var(--swatch-ffffff);
-  --color-secondary: var(--swatch-f2f5f9);
-  --color-secondary-foreground: var(--swatch-14213b);
-  --color-accent: var(--swatch-22396f);
+  --color-background: var(--bg);
+  --color-foreground: var(--ink);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--surface-muted);
+  --color-secondary-foreground: var(--ink);
+  --color-accent: var(--primary);
   --color-muted-foreground: var(--ink-2);
-  --color-border: var(--swatch-dce1e8);
-  --color-input: var(--swatch-ffffff);
-  --color-ring: var(--swatch-89651d);
-  --color-gold: var(--swatch-89651d);
-  --color-popover: var(--swatch-ffffff);
-  --color-destructive: var(--swatch-8c374e);
+  --color-border: var(--border);
+  --color-input: var(--surface);
+  --color-ring: var(--accent-ink);
+  --color-gold: var(--accent-ink);
+  --color-popover: var(--surface);
+  --color-destructive: var(--danger);
 }
 @layer components {
   :root {
@@ -54,10 +54,10 @@
   }
   .app-nav-item:hover {
     color: var(--text);
-    background: var(--swatch-1b3159);
+    background: var(--primary-soft);
   }
   .app-nav-item.is-active {
-    color: var(--swatch-ffffff);
+    color: var(--primary-foreground);
   }
   .app-nav-item:focus-visible {
     outline: 2px solid var(--gold);
@@ -164,7 +164,7 @@
   }
   .native-tool-list > a:hover,
   .native-tool-list > button:hover {
-    background: var(--swatch-f2f5f9);
+    background: var(--surface-muted);
   }
   .native-tool-list span {
     flex: 1;
@@ -192,7 +192,7 @@
   }
   .auth-panel {
     width: 100%;
-    background: var(--swatch-ffffff);
+    background: var(--surface);
   }
   .auth-panel .app-brand {
     margin-bottom: 32px;
@@ -303,7 +303,7 @@
     gap: 16px;
   }
   .native-message {
-    background: var(--swatch-ffffff);
+    background: var(--surface);
     min-width: 0;
     overflow-wrap: anywhere;
   }
@@ -369,13 +369,13 @@
       padding: calc(8px + var(--safe-area-top))
         calc(16px + var(--safe-area-right)) 8px
         calc(16px + var(--safe-area-left));
-      background: var(--swatch-0d1c42);
-      color: var(--swatch-edf3fa);
-      --text: var(--swatch-edf3fa);
-      --muted: var(--swatch-b9cae0);
-      --gold: var(--swatch-c5a462);
-      --panel2: var(--swatch-162849);
-      --surface-hover: var(--swatch-22396f);
+      background: var(--primary);
+      color: var(--primary-soft);
+      --text: var(--primary-soft);
+      --muted: var(--ink-2);
+      --gold: var(--accent);
+      --panel2: var(--surface-muted);
+      --surface-hover: var(--primary-soft);
     }
     .mobile-brand {
       display: block;
@@ -398,12 +398,12 @@
       bottom: 0;
       left: 0;
       right: 0;
-      background: var(--swatch-0d1c42);
-      --text: var(--swatch-edf3fa);
-      --muted: var(--swatch-b9cae0);
-      --gold: var(--swatch-c5a462);
-      --surface-hover: var(--swatch-22396f);
-      border-top: 1px solid var(--swatch-304466);
+      background: var(--primary);
+      --text: var(--primary-soft);
+      --muted: var(--ink-2);
+      --gold: var(--accent);
+      --surface-hover: var(--primary-soft);
+      border-top: 1px solid var(--border);
       justify-content: space-around;
       z-index: 25;
       gap: 4px;
@@ -611,15 +611,15 @@
     gap: 4px;
     border-radius: 6px;
     padding: 4px 8px;
-    background: var(--swatch-f2f5f9);
+    background: var(--surface-muted);
     color: var(--muted);
     font-size: 13px;
     font-weight: 500;
     white-space: nowrap;
   }
   .office-status.warning {
-    background: var(--swatch-fcf1d0);
-    color: var(--swatch-78551b);
+    background: var(--warning-soft);
+    color: var(--warning);
   }
   .office-training {
     background: var(--panel);
@@ -655,13 +655,13 @@
     margin: 0 0 4px;
   }
   .office-reply-summary .office-pending-count b {
-    color: var(--swatch-85611c);
+    color: var(--warning);
   }
   .office-answer-track {
     display: flex;
     overflow: hidden;
     height: 6px;
-    background: var(--swatch-e2e7ef);
+    background: var(--surface-muted);
     border-radius: 3px;
     margin-bottom: 20px;
   }
@@ -692,7 +692,7 @@
   }
   .office-text-action:hover {
     background: transparent;
-    color: var(--swatch-22396f);
+    color: var(--primary-ink);
   }
   .office-agenda-list .activity-card {
     border: 0;
@@ -940,7 +940,7 @@
     width: 36px;
     height: 36px;
     border-radius: 8px;
-    background: var(--swatch-22396f);
+    background: var(--primary);
     color: white;
     font-size: 13px;
     font-weight: 600;
@@ -1012,7 +1012,7 @@
     padding: 8px 0;
   }
   .training-phase-tabs button[aria-current="page"] {
-    border-bottom-color: var(--swatch-0d1c42);
+    border-bottom-color: var(--primary);
     color: var(--text);
     font-weight: 600;
   }
@@ -1043,9 +1043,9 @@
     font-size: 13px;
   }
   .reply-choice button[aria-pressed="true"] {
-    background: var(--swatch-0d1c42);
+    background: var(--primary);
     color: white;
-    border-color: var(--swatch-0d1c42);
+    border-color: var(--primary);
   }
   #planningReplySummary {
     margin: 20px 0;
@@ -1082,8 +1082,8 @@
     margin: 4px 0 0;
   }
   .player-directory-entry .player-initials {
-    background: var(--swatch-dce3ee);
-    color: var(--swatch-22396f);
+    background: var(--primary-soft);
+    color: var(--primary-ink);
     width: 40px;
     height: 40px;
   }
@@ -1179,7 +1179,7 @@
   }
   .native-message-top time {
     font-size: 13px;
-    background: var(--swatch-f2f5f9);
+    background: var(--surface-muted);
     padding: 4px 8px;
     border-radius: 6px;
     color: var(--muted);
@@ -1390,7 +1390,7 @@
     font-variant-numeric: tabular-nums;
   }
   .attendance-count.pending b {
-    color: var(--swatch-85611c);
+    color: var(--warning);
   }
   .activity-tabs {
     display: flex;
@@ -1410,7 +1410,7 @@
     font-size: 14px;
   }
   .activity-tabs button[aria-selected="true"] {
-    border-bottom-color: var(--swatch-0d1c42);
+    border-bottom-color: var(--primary);
     color: var(--text);
   }
   .match-live-grid {
@@ -1544,8 +1544,8 @@
   }
 
   .header-settings-panel {
-    --panel2: var(--swatch-f2f5f9);
-    --surface-hover: var(--swatch-e4eaf1);
+    --panel2: var(--surface-muted);
+    --surface-hover: var(--primary-soft);
     color: var(--text);
   }
   @media (max-width: 1023px) {
@@ -1553,14 +1553,14 @@
     .header-actions > button,
     .header-settings > summary {
       background: transparent;
-      color: var(--swatch-edf3fa);
-      border-color: var(--swatch-4b6083);
+      color: var(--primary-soft);
+      border-color: var(--control-border);
     }
     .header-settings-panel button {
-      color: var(--swatch-14213b);
+      color: var(--ink);
     }
     .header-settings-panel select {
-      color: var(--swatch-14213b);
+      color: var(--ink);
     }
   }
   .training-work-panel {
@@ -1661,8 +1661,8 @@
   .workspace-editor #planningFeedback:not(:empty) {
     position: fixed;
     padding: 4px 8px;
-    background: var(--swatch-fcf1d0);
-    color: var(--swatch-78551b);
+    background: var(--warning-soft);
+    color: var(--warning);
     z-index: 21;
   }
   .workspace-editor input,
@@ -1745,13 +1745,13 @@
     font-size: 20px;
   }
   .office-answer-track .yes {
-    background: var(--swatch-2d7b62);
+    background: var(--success);
   }
   .office-answer-track .no {
-    background: var(--swatch-b76771);
+    background: var(--danger);
   }
   .office-answer-track .waiting {
-    background: var(--swatch-b9944d);
+    background: var(--accent);
   }
   .activity-tabs {
     flex-wrap: nowrap;
@@ -2166,7 +2166,7 @@
   :is(.match-event-actions, .event-types) > button {
     min-height: 48px;
     border-radius: var(--club-control-radius);
-    background: var(--match-action-bg, var(--swatch-fff));
+    background: var(--match-action-bg, var(--surface));
     color: var(--text);
     border: 1px solid var(--control-border);
   }

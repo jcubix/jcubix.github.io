@@ -1,5 +1,7 @@
 # Eburum — integrazione della code review, 27 ottobre 2026
 
+> Aggiornamento del 28 ottobre: i due richiami sul caricamento mirato e sugli swatch sono stati completati in `TARGETED-REFRESH-PALETTE-2026-10-28.md`. Le misure e le verifiche sotto descrivono la consegna del 27 ottobre.
+
 Base verificata: `ba32dbc`, successiva all'export Excel. Fonti: `CODE-REVIEW-PUNCHLIST.md` (SHA256 `030aab57a6ced149d1909bd0f9593fddb6244e63ea069a733d13696a80ddfc9f`) e `eburum-handoff-completo.zip` (SHA256 `8eb279633fbd72996505e811a9ae0e8c8315ad8ef40612549693e6c8aec8e992`). L'archivio contiene anche proposte del vecchio commit `498863d`: non sono state riapplicate patch superate o ripristinati vecchi renderer.
 
 ## Nuova punch-list

@@ -336,6 +336,15 @@ export async function createRuntime(): Promise<Runtime> {
       hasAttendanceDraft: () =>
         !!state.trainingDraft && parts3.draftChanged(state.trainingDraft),
       reload: core.refresh,
+      reloadAffected: async (change) => {
+        const current = scoped();
+        try {
+          return await core.refreshAffected(change);
+        } catch (cause) {
+          if (current()) core.showTeamLoadError(cause);
+          return false;
+        }
+      },
       logout: async () => {
         const revision = ++navigationRevision;
         if (!(await canLeaveWorkspace()) || revision !== navigationRevision)
