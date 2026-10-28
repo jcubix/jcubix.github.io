@@ -792,7 +792,7 @@ test('Match goals update score in place; editing sides and deleting restore the 
  const {w,runtime,$}=await app(t);$('.sc-match-preview').click();await until(()=>$('#addGoal'));const sheet=$('#activityForm');w.fixtureQueries=[];
  $('#addGoal').click();assert.ok($('#workspaceEditor .inline-match-event'));assert.equal($('#eventForm').tagName,'FORM');assert.equal(w.document.querySelector('form form'),null);eventValue(w,$('#eventPlayer'),'player-1');eventValue(w,$('#eventMinute'),'71');$('#eventPenalty').click();$('[data-save-event]').click();
  await until(()=>!$('#eventForm')&&$('#matchGoalsFor').value==='3');assert.equal($('#activityForm'),sheet);assert.equal($('#matchGoalsAgainst').value,'1');assert.equal(w.fixtureTeamCalls.length,0);
- assert.ok(w.fixtureQueries.every(q=>['matches','activities','match_events','activity_roster'].includes(q.table)));
+ assert.ok(w.fixtureQueries.every(q=>['matches','activities','match_events','activity_roster','activity_technical','sessions','disciplinary_clearances'].includes(q.table)));
  const goal=w.fixtureData.match_events.find(e=>e.event_type==='Gol');assert.equal(goal.detail,'RIG');$(`[data-unified-event="${goal.id}"]`).click();eventValue(w,$('#eventPlayer'),'');$('[data-save-event]').click();
  await until(()=>!$('#eventForm')&&$('#matchGoalsAgainst').value==='2');assert.equal($('#matchGoalsFor').value,'2');assert.match($('#matchEventList').textContent,/Squadra avversaria/);
  assert.equal($(`[data-unified-event="${goal.id}"]`).closest('.event-item').querySelector('.badge').textContent,'Gol avversario');assert.ok($(`[data-unified-event="${goal.id}"]`).closest('.event-item').querySelector('.badge').classList.contains('b-red'));
@@ -1173,4 +1173,29 @@ for(const origin of ['dashboard','training','register'])for(const saved of [fals
 test('Unsaved training replies show the reason attendance cannot start without leaving the activity',async t=>{
  const {w,runtime,$}=await app(t,'admin',data=>data.activities.push({id:'attendance-unsaved',user_id:'demo-user',activity_type:'Allenamento',title:'Presenze da verificare',activity_date:'2026-10-02',status:'Programmato',revision:0}));await runtime.navigate('dashboard');await until(()=>w.location.hash==='#/dashboard');await runtime.actions.openActivity('attendance-unsaved');await until(()=>$('#planningAttendance'));$('[data-training-player="player-1"][data-training-reply="Disponibile"]').click();$('[data-training-phase=actual]').click();$('#planningAttendance').click();
  assert.match($('#planningActualError').textContent,/Salva le modifiche e le risposte/);assert.equal($('#planningActualError').hidden,false);assert.equal($('#trainList'),null);assert.ok($('#planningAttendance'));assert.equal(w.fixtureRpcCalls.length,0);
+});
+
+
+test('targeted session reload updates the open player report without a whole-team read',async t=>{
+ const {w,runtime,$}=await app(t);w.location.hash='#/reports?player=player-1&period=season';
+ await until(()=>$('[data-report-detail=present] b')?.textContent==='1');
+ w.fixtureQueries=[];w.fixtureData.attendance.find(r=>r.player_id==='player-1').status='Assente';
+ assert.equal(await runtime.actions.reloadAffected({kind:'session',id:'session-1'}),true);
+ await until(()=>$('[data-report-detail=present] b')?.textContent==='0');
+ assert.equal($('[data-report-detail=absent] b').textContent,'1');
+ assert.ok(!w.fixtureQueries.some(q=>['players','player_administration','staff_communications'].includes(q.table)));
+});
+
+test('a failed targeted read after player creation offers reload without replaying the insert',async t=>{
+ const {w,runtime,$}=await app(t);runtime.actions.editPlayer();await until(()=>$('#ps'));
+ reactInput(w,$('#ps'),'Nuovo');reactInput(w,$('#pn'),'Giocatore');
+ const from=runtime.db.from;let inserted=0,failed=false;
+ runtime.db.from=table=>{const q=from(table);if(table==='players'){
+  const insert=q.insert.bind(q);q.insert=values=>{inserted++;return insert(values)};
+  const range=q.range.bind(q);q.range=(...args)=>{if(!failed){failed=true;return Promise.resolve({data:null,error:{message:'Lettura offline'}})}return range(...args)};
+ }return q};
+ $('#save').click();await until(()=>runtime.getSnapshot().status==='error');
+ assert.equal(inserted,1);assert.equal(w.fixtureData.players.filter(p=>p.surname==='Nuovo').length,1);
+ await runtime.actions.reload();await until(()=>runtime.getSnapshot().status==='ready');
+ assert.equal(inserted,1);assert.equal(runtime.state.players.filter(p=>p.surname==='Nuovo').length,1);
 });

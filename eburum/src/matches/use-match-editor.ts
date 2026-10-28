@@ -265,7 +265,13 @@ export function useMatchEditor({
         Object.assign(a, saved);
         if (!existing) {
           await editor.close();
-          await runtime.actions.reload();
+          if (
+            !(await runtime.actions.reloadAffected({
+              kind: "activity",
+              id: saved.id,
+            }))
+          )
+            return;
           await runtime.actions.openActivity(saved.id);
           return;
         }

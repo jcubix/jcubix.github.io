@@ -18,3 +18,7 @@ void roleLabels.superadmin;
 // @ts-expect-error Match rows cannot be assigned to attendance records.
 const invalid: Attendance[] = loaded.matches;
 void invalid;
+
+// @ts-expect-error A targeted match reload needs the saved record identifier.
+const missingReloadId: import("../../app-data").DataChange = { kind: "match" };
+void missingReloadId;

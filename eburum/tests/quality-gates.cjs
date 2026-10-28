@@ -12,3 +12,13 @@ test('lint permits a labelled scroll region to remain keyboard reachable',async(
  const [result]=await lint.lintText('export function TableScroll(){return <div role="region" aria-label="Report squadra" tabIndex={0}><table><caption>Report</caption></table></div>}',{filePath:'src/lint-contract.tsx'});
  assert.deepEqual(result.messages,[]);
 });
+
+
+test('UI colours use semantic tokens without hexadecimal compatibility aliases',()=>{
+ const fs=require('node:fs');
+ for(const name of ['app.css','src/styles.css','src/design-system.css','src/whiteboard.css','src/team-reports.css']){
+  const source=fs.readFileSync(path.resolve(__dirname,'..',name),'utf8');
+  assert.doesNotMatch(source,/--swatch-[a-z0-9]+/,name);
+  assert.doesNotMatch(source,/(--[\w-]+):\s*var\(\1\)/,name+' must not contain cyclic aliases');
+ }
+});

@@ -1,3 +1,4 @@
+import type { DataChange } from "../app-data";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 export type Page =
   | "dashboard"
@@ -274,6 +275,7 @@ export interface Runtime {
     resumeAttendance: () => void;
     hasAttendanceDraft: () => boolean;
     reload: () => Promise<boolean>;
+    reloadAffected: (change: DataChange) => Promise<boolean>;
     logout: () => Promise<void>;
     activeCommunications: () => Communication[];
     fetchCommunications: () => Promise<void>;

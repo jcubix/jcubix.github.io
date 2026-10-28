@@ -154,7 +154,11 @@ export function AttendanceReview({
                   runtime.state.trainingMode = "hub";
                   await editor.close();
                   await runtime.navigate("register");
-                  const loaded = await runtime.actions.reload();
+                  const loaded = await runtime.actions.reloadAffected({
+                    kind: "session",
+                    id: data.session.id,
+                    activityId: d.activityId,
+                  });
                   ui.notify(
                     loaded
                       ? d.id

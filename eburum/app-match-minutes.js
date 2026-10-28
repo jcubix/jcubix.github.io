@@ -1,5 +1,4 @@
-import { db, fetchAllRows, state, teamOwner, teamRequestGuard } from './app-part1.js';
-import { loadDismissalSnapshot } from './app-data.ts';
+import { refreshAffected, state } from './app-part1.js';
 
 // Preview only: the database validates and persists the same timeline atomically.
 function calculateMatchMinutes(duration, roster, events, started=true) {
@@ -29,21 +28,9 @@ function calculateMatchMinutes(duration, roster, events, started=true) {
 }
 
 async function refreshMatchTimeline(matchId){
- const current=teamRequestGuard(),owner=teamOwner();
- const [match,activity,events,dismissals]=await Promise.all([
-  db.from('matches').select('*').eq('id',matchId).eq('user_id',owner).single(),
-  db.from('activities').select('*').eq('match_id',matchId).eq('user_id',owner).single(),
-  fetchAllRows(()=>db.from('match_events').select('*').eq('match_id',matchId).eq('user_id',owner).order('id')),loadDismissalSnapshot()
- ]);
- if(!current())return null;
- for(const result of [match,activity,events])if(result.error)throw result.error;
- const roster=await fetchAllRows(()=>db.from('activity_roster').select('*').eq('activity_id',activity.data.id).eq('user_id',owner).order('id'));
- if(!current())return null;if(roster.error)throw roster.error;if(!Array.isArray(roster.data))throw Error("Risposta delle convocazioni non valida");
- Object.assign(state,dismissals);
- state.matches=state.matches.filter(m=>m.id!==matchId).concat(match.data);
- state.activities=state.activities.filter(a=>a.id!==activity.data.id).concat(activity.data);
- state.events=state.events.filter(e=>e.match_id!==matchId).concat(events.data);
- state.roster=state.roster.filter(r=>r.activity_id!==activity.data.id).concat(roster.data);
- return {match:match.data,activity:activity.data,roster:roster.data};
+ if(!await refreshAffected({kind:'match',id:matchId}))return null;
+ const match=state.matches.find(m=>m.id===matchId),activity=state.activities.find(a=>a.match_id===matchId);
+ if(!match||!activity)throw Error('Partita non disponibile nella stagione selezionata');
+ return {match,activity,roster:state.roster.filter(r=>r.activity_id===activity.id)};
 }
 export { calculateMatchMinutes, refreshMatchTimeline };

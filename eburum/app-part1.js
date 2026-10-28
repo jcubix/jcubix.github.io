@@ -2,7 +2,7 @@ import { fetchAllRows } from "./src/data-query.ts";
 import { state } from "./src/domain-state.ts";
 import { createClient } from "@supabase/supabase-js";
 import { canOperateRole, canPlanRole, canManageRole, canViewExpiriesRole, canTechnicalRole } from './app-roles.ts';
-import { loadTeamData } from './app-data.ts';
+import { loadTeamData, loadAffectedData } from './app-data.ts';
 import { notifyCommunications, stopCommunicationsRealtime, syncCommunicationsRealtime } from './app-realtime.js';
 import { ui } from './src/ui-service.ts';
 
@@ -157,7 +157,39 @@ async function syncSession(user) {
 }
 
 
-async function refresh() {
+let fullRefresh = Promise.resolve(false), affectedRefresh = Promise.resolve(false);
+function refresh() {
+  affectedRefresh = Promise.resolve(false);
+  fullRefresh = refreshTeam();
+  return fullRefresh;
+}
+
+function refreshAffected(change) {
+  const context = teamRequestGuard(), season = state.seasonYear, generation = refreshGeneration;
+  // Serialize targeted patches so simultaneous saves cannot replace each other's rows.
+  const pending = affectedRefresh.then(async () => {
+    await fullRefresh;
+    const current = () => context() && state.seasonYear === season && generation === refreshGeneration;
+    if (!current()) return false;
+    const result = await db.rpc("team_context");
+    if (!current()) return false;
+    if (result.error) throw result.error;
+    if (!result.data || result.data.owner_id !== state.team?.owner_id || result.data.role !== state.team?.role) {
+      await refresh();
+      return false;
+    }
+    state.team = result.data;
+    const patch = await loadAffectedData(change, teamOwner());
+    if (!current()) return false;
+    Object.assign(state, patch);
+    render();
+    return true;
+  });
+  affectedRefresh = pending.catch(() => false);
+  return pending;
+}
+
+async function refreshTeam() {
   const actor = state.user?.id;
   if (!actor) return false;
   const generation = ++refreshGeneration,
@@ -206,4 +238,4 @@ function toast(message){ui.notify(message)}
 function fail(error){console.error(error);toast(error?.message||'Operazione non riuscita')}
 for(const key of TEAM_ARRAYS)state[key]=[];
 export {clearTeamState,showTeamLoading,showTeamLoadError,renderLogin,render,toast,fail};
-export { db, ROLE_ORDER, TEAM_ARRAYS, state, presentation, setPresentationAdapter, refreshGeneration, authGeneration, sessionEpoch, teamRequestGuard, esc, today, teamOwner, teamRole, isAdmin, canManage, canPlan, canViewExpiries, canOperate, canTechnical, fmt, roleRank, sortPlayers, activePlayers, badge, boot, syncSession, fetchAllRows, refresh };
+export { db, ROLE_ORDER, TEAM_ARRAYS, state, presentation, setPresentationAdapter, refreshGeneration, authGeneration, sessionEpoch, teamRequestGuard, esc, today, teamOwner, teamRole, isAdmin, canManage, canPlan, canViewExpiries, canOperate, canTechnical, fmt, roleRank, sortPlayers, activePlayers, badge, boot, syncSession, fetchAllRows, refresh, refreshAffected };

@@ -12,7 +12,7 @@
     margin: 0 0 24px;
   }
   .wb-feedback [role="alert"] {
-    color: var(--red, var(--swatch-8e3c47));
+    color: var(--red, var(--danger));
   }
   .wb-fields {
     display: grid;
@@ -104,7 +104,7 @@
     display: flex;
     gap: 4px;
     padding: 4px;
-    background: var(--swatch-141e30);
+    background: var(--hero);
     border-radius: 28px;
   }
   .wb-colors button {
@@ -118,7 +118,7 @@
     border-radius: 50%;
   }
   .wb-colors button[aria-pressed="true"] {
-    border-color: var(--swatch-ffffff);
+    border-color: var(--primary-foreground);
   }
   .wb-colors span {
     width: 24px;
@@ -133,7 +133,7 @@
   .wb-stage {
     overflow: hidden;
     border-radius: 16px;
-    background: var(--swatch-17483e);
+    background: var(--board-field);
   }
   .wb-stage svg {
     display: block;

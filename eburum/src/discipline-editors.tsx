@@ -417,7 +417,8 @@ function YellowUndo({ runtime, id }: { runtime: Runtime; id: string }) {
               .eq("id", id)
               .eq("user_id", teamOwner());
             if (error) throw error;
-            if (current()) await runtime.actions.reload();
+            if (current())
+              await runtime.actions.reloadAffected({ kind: "discipline" });
           } catch (cause) {
             if (current()) setError((cause as Error).message);
           } finally {
@@ -691,7 +692,11 @@ export function DisciplineClearance({
             }
             try {
               if (yellow) {
-                if (!(await runtime.actions.reload()))
+                if (
+                  !(await runtime.actions.reloadAffected({
+                    kind: "discipline",
+                  }))
+                )
                   throw Error("Lettura non riuscita");
               } else await reloadDismissals(editor.current);
               if (editor.current()) await editor.close();

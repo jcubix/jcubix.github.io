@@ -120,7 +120,21 @@ export function TeamReports({ runtime }: { runtime: Runtime }) {
     return () => {
       current = false;
     };
-  }, [runtime, key, valid, retry, from, to]);
+  }, [
+    runtime,
+    key,
+    valid,
+    retry,
+    from,
+    to,
+    runtime.state.players,
+    runtime.state.sessions,
+    runtime.state.attendance,
+    runtime.state.matches,
+    runtime.state.events,
+    runtime.state.roster,
+    runtime.state.dataRange,
+  ]);
   const ready = valid && result?.key === key;
   const rows = ready
     ? sortTeamReport(result.rows, sort.key, sort.direction)

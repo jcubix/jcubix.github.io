@@ -92,7 +92,21 @@ export function PlayerReports({ runtime }: { runtime: Runtime }) {
     return () => {
       alive = false;
     };
-  }, [runtime, player, period, from, to, retry]);
+  }, [
+    runtime,
+    player,
+    period,
+    from,
+    to,
+    retry,
+    runtime.state.players,
+    runtime.state.sessions,
+    runtime.state.attendance,
+    runtime.state.matches,
+    runtime.state.events,
+    runtime.state.roster,
+    runtime.state.dataRange,
+  ]);
   const routedMatch = params.get("match");
   useEffect(() => {
     if (
