@@ -6176,21 +6176,19 @@
     }
   }
 
-  /* Training replies share one floating save bar, including pending changes and errors. */
-  .app-layout :is(.planning-save, .workspace-editor .workspace-save) {
-    position: fixed;
+  /* A separate footer keeps actions visible without covering the scrolling form. */
+  #workspaceActions > .workspace-action-bar {
+    position: static;
     inset: auto;
-    left: 50%;
-    bottom: var(--dock-clearance);
-    transform: translateX(-50%);
+    transform: none;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: flex-end;
     gap: 12px;
-    width: calc(100% - 40px - var(--safe-area-left) - var(--safe-area-right));
+    width: 100%;
     max-width: 1120px;
-    margin: 0;
+    margin: 0 auto;
     padding: 12px 16px;
     background: var(--surface);
     border: 0;
@@ -6233,11 +6231,64 @@
     font-size: 13px;
     overflow-wrap: anywhere;
   }
-  @media (min-width: 1024px) {
-    .app-layout :is(.planning-save, .workspace-editor .workspace-save) {
-      left: calc(50% + 120px);
-      width: calc(100% - 280px);
-      bottom: 24px;
+  #workspaceActions:empty {
+    display: none;
+  }
+  .app-layout:has(#workspaceActions > .workspace-action-bar),
+  .app-layout:has(#workspaceActions > .workspace-action-bar) .app-workspace {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .app-layout:has(#workspaceActions > .workspace-action-bar) .app-workspace {
+    display: flex;
+    flex-direction: column;
+  }
+  .app-layout:has(#workspaceActions > .workspace-action-bar) .app-header {
+    flex: none;
+  }
+  .app-layout:has(#workspaceActions > .workspace-action-bar)
+    :is(.workspace-content, .workspace-editor-host) {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scroll-padding-block: 24px;
+  }
+  .app-layout:has(#workspaceActions > .workspace-action-bar)
+    .workspace-content {
+    width: 100%;
+    padding-bottom: 24px;
+  }
+  .app-layout:has(#workspaceActions > .workspace-action-bar)
+    :is(.workspace-content, .workspace-editor-host):empty {
+    display: none;
+  }
+  #workspaceEditor:has(~ #workspaceActions > .workspace-action-bar)
+    .workspace-editor.workspace-view {
+    padding-bottom: 24px;
+  }
+  #workspaceActions {
+    flex: none;
+    padding: 12px 24px 24px;
+    background: var(--bg);
+  }
+  .app-layout .workspace-editor .modal-actions:not(.workspace-action-bar) {
+    position: static;
+    inset: auto;
+    transform: none;
+    width: auto;
+    max-width: none;
+    margin-top: 24px;
+  }
+  @media (max-width: 1023px) {
+    #workspaceActions {
+      padding: 12px calc(20px + var(--safe-area-right))
+        calc(var(--dock-height) + 24px + var(--safe-area-bottom))
+        calc(20px + var(--safe-area-left));
+    }
+    .app-layout:has(#workspaceActions > .workspace-action-bar) .app-mobile-nav {
+      display: flex;
     }
   }
   /* Report previews and editable events use the same chronological reading axis. */
@@ -6492,5 +6543,16 @@
     background: var(--neutral-soft);
     color: var(--neutral);
     border-color: var(--control-border);
+  }
+  .app-layout .sc-reply-buttons button {
+    display: grid;
+    place-items: center;
+    flex: none;
+    padding: 0;
+    line-height: 1;
+  }
+  .app-layout .sc-reply-buttons button svg {
+    display: block;
+    margin: 0;
   }
 }

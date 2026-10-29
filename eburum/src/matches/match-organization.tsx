@@ -2,7 +2,7 @@ import { Fragment } from "react";
 import { dismissalAlert } from "../../app-dismissals.js";
 import { callupMessage } from "../../app-operations.js";
 import { Button } from "../components/ui/button";
-import { CopyText, Feedback, Field } from "../operational-ui";
+import { ActionBar, CopyText, Feedback, Field } from "../operational-ui";
 import type { RosterRow } from "../types";
 import { ui } from "../ui-service";
 import { useMatchEditor } from "./use-match-editor";
@@ -405,21 +405,27 @@ export function MatchOrganization({
             ) : null}
           </section>
         </section>
-        <div className="modal-actions workspace-save">
+        <ActionBar
+          className="modal-actions workspace-save"
+          hidden={tab === "results"}
+        >
           <Button
             id="cancelActivity"
             variant="secondary"
+            disabled={editor.busy}
             onClick={() => void ui.close(surface.id)}
           >
             Annulla
           </Button>
           <Button
             type="submit"
+            form="activityForm"
+            disabled={editor.busy}
             aria-label={!plan ? "Salva osservazioni tecniche" : undefined}
           >
             {a.id ? "Salva" : "Crea partita"}
           </Button>
-        </div>
+        </ActionBar>
       </fieldset>
       <Feedback id="activityFeedback" error={editor.error} />
     </form>

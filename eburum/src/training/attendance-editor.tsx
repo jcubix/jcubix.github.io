@@ -9,7 +9,7 @@ import {
 } from "../../app-part3.js";
 import { canOperateRole, canPlanRole } from "../../app-roles.ts";
 import { Button } from "../components/ui/button";
-import { Feedback, Field } from "../operational-ui";
+import { ActionBar, Feedback, Field } from "../operational-ui";
 import type { Runtime, TrainingDraft } from "../types";
 import { ui } from "../ui-service";
 
@@ -134,7 +134,7 @@ export function AttendanceEditor({ runtime }: { runtime: Runtime }) {
                     await runtime.actions.openActivity(d.activityId);
                 }}
               >
-                Assenze comunicate
+                Disponibilità
               </button>
               <button aria-current="page">Presenze effettive</button>
             </nav>
@@ -245,7 +245,7 @@ export function AttendanceEditor({ runtime }: { runtime: Runtime }) {
                     {d.planned ? (
                       <small className="planned-reply">
                         {d.planned.get(p.id) === "Indisponibile"
-                          ? "Assenza comunicata"
+                          ? "Aveva avvisato: assente"
                           : "Atteso all’allenamento"}
                       </small>
                     ) : null}
@@ -295,7 +295,7 @@ export function AttendanceEditor({ runtime }: { runtime: Runtime }) {
           </div>
         </fieldset>
       </section>
-      <div className="training-save">
+      <ActionBar className="training-save">
         <Button id="saveTraining" disabled={d.saving} onClick={review}>
           {d.id ? "Riepilogo correzioni" : "Riepilogo e salva"}
         </Button>
@@ -303,7 +303,7 @@ export function AttendanceEditor({ runtime }: { runtime: Runtime }) {
           id="trainingSaveStatus"
           error={error || "Bozza · I report si aggiornano dopo la conferma"}
         />
-      </div>
+      </ActionBar>
     </>
   );
 }

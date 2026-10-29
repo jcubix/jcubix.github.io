@@ -128,7 +128,7 @@ export function TrainingScreen({ runtime }: { runtime: Runtime }) {
               >
                 {[
                   ["Disponibile", "Attesi", ""],
-                  ["Indisponibile", "Assenze comunicate", "text-destructive"],
+                  ["Indisponibile", "Assenti previsti", "text-destructive"],
                 ].map(([value, label, tone]) => (
                   <span key={value} className={tone}>
                     {label}{" "}

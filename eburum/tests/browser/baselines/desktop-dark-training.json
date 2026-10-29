@@ -15,7 +15,7 @@
     "x": 240,
     "width": 1040,
     "paddingTop": 32,
-    "paddingBottom": 128
+    "paddingBottom": 24
   },
   "palette": {
     "--bg": "#0b1426",

@@ -153,7 +153,7 @@ test('match notes are visible without opening a disclosure and save with the res
  await expect.poll(()=>page.evaluate(()=>fixtureData.matches.find(m=>m.id==='future-match').note)).toBe('Nota gara sintetica sempre visibile');
 });
 
-test('absence notices keep save and a reversible change counter in one floating bar',async({page})=>{
+test('availability keeps save and a reversible change counter in the reserved footer',async({page})=>{
  await open(page,'training');
  const bar=page.locator('.planning-save'),save=bar.locator('#savePlanning'),counter=bar.locator('#planningChanges');
  await expect(save).toBeVisible();await expect(save).toHaveText('Salva');await expect(save).toBeDisabled();await expect(counter).toBeHidden();
@@ -168,13 +168,37 @@ test('absence notices keep save and a reversible change counter in one floating 
  await page.evaluate(()=>{document.documentElement.style.setProperty('--safe-area-bottom','34px')});
  await page.locator('.sc-training-aside').scrollIntoViewIfNeeded();
  const geometry=await bar.evaluate(el=>{const r=el.getBoundingClientRect(),nav=document.querySelector('.app-mobile-nav'),n=nav.getBoundingClientRect();return {position:getComputedStyle(el).position,x:r.x,right:r.right,bottom:r.bottom,top:r.top,height:r.height,navVisible:n.height>0&&getComputedStyle(nav).display!=='none',navTop:n.top,navRight:n.right,overflow:document.documentElement.scrollWidth>innerWidth}});
- expect(geometry.position).toBe('fixed');expect(geometry.x).toBeGreaterThanOrEqual(0);expect(geometry.right).toBeLessThanOrEqual(page.viewportSize().width);expect(geometry.bottom).toBeLessThanOrEqual(page.viewportSize().height-24);expect(geometry.height).toBeLessThan(100);expect(geometry.overflow).toBe(false);
+ expect(geometry.position).toBe('static');expect(geometry.x).toBeGreaterThanOrEqual(0);expect(geometry.right).toBeLessThanOrEqual(page.viewportSize().width);expect(geometry.bottom).toBeLessThanOrEqual(page.viewportSize().height-24);expect(geometry.height).toBeLessThan(100);expect(geometry.overflow).toBe(false);
  if(geometry.navVisible&&geometry.navRight>geometry.x)expect(geometry.bottom).toBeLessThanOrEqual(geometry.navTop);
  await expect(page.locator('#planningFeedback')).toBeEmpty();
  await page.evaluate(()=>window.fixtureSaveError={message:'Connessione interrotta. Riprova.'});await save.click();await expect(bar.locator('#planningFeedback')).toContainText('Connessione interrotta');await expect(counter).toHaveText('1');await expect(save).toBeEnabled();expect(await bar.locator('#planningFeedback').evaluate(el=>getComputedStyle(el).position)).toBe('static');
  await page.evaluate(()=>delete window.fixtureSaveError);await save.click();await expect(save).toBeDisabled();await expect(counter).toBeHidden();
  expect(await page.evaluate(()=>fixtureData.activity_roster.find(r=>r.activity_id==='review-training'&&r.player_id==='player-1').availability)).toBe('Indisponibile');
  await page.locator('[data-training-phase=actual]').click();await expect(bar).toBeHidden();await page.locator('[data-training-phase=replies]').click();await expect(save).toBeVisible();
+});
+
+test('save footer reserves content space and availability icons are centered',async({page})=>{
+ await open(page,'training');await expect(page.locator('#workspaceActions > .workspace-action-bar')).toBeVisible();
+ const geometry=async selector=>{
+  const result=await page.evaluate(selector=>{const pane=document.querySelector(selector).getBoundingClientRect(),footer=document.querySelector('#workspaceActions').getBoundingClientRect(),bar=document.querySelector('.workspace-action-bar').getBoundingClientRect();return {paneBottom:pane.bottom,footerTop:footer.top,footerBottom:footer.bottom,barTop:bar.top,height:innerHeight,overflow:document.documentElement.scrollWidth>innerWidth}},selector);
+  expect(result.paneBottom).toBeLessThanOrEqual(result.footerTop+1);expect(result.barTop).toBeGreaterThanOrEqual(result.footerTop);expect(result.footerBottom).toBeLessThanOrEqual(result.height+1);expect(result.overflow).toBe(false);
+ };
+ await geometry('#mainContent');await expect(page.locator('[data-training-phase=replies]')).toHaveText('Disponibilità');await expect(page.locator('#pendingReplyFilter')).toContainText('Assenti');
+ await page.evaluate(()=>fixtureMount.runtime.actions.openActivity('review-training'));await expect(page.locator('#planningTitle')).toBeVisible();await geometry('#workspaceEditor');
+ const icons=await page.locator('.sc-reply-buttons button').evaluateAll(buttons=>buttons.map(button=>{const b=button.getBoundingClientRect(),s=button.querySelector('svg').getBoundingClientRect();return {dx:Math.abs(s.x+s.width/2-b.x-b.width/2),dy:Math.abs(s.y+s.height/2-b.y-b.height/2)}}));
+ expect(icons).toHaveLength(60);for(const icon of icons){expect(icon.dx).toBeLessThanOrEqual(1);expect(icon.dy).toBeLessThanOrEqual(1);}
+ await page.locator('.planning-details summary').click();await page.locator('#planningNote').fill('Nota visibile sopra la barra');await page.locator('#planningNote').scrollIntoViewIfNeeded();
+ if(page.viewportSize().width<1024){await page.evaluate(()=>{document.documentElement.style.setProperty('--safe-area-top','59px');document.documentElement.style.setProperty('--safe-area-bottom','34px')});await page.setViewportSize({width:page.viewportSize().width,height:640});await page.locator('#planningNote').scrollIntoViewIfNeeded();}
+ await geometry('#workspaceEditor');const note=await page.locator('#planningNote').boundingBox(),footer=await page.locator('#workspaceActions').boundingBox();expect(note.y+note.height).toBeLessThanOrEqual(footer.y);
+ expect(await page.locator('#savePlanning').evaluate(button=>button.form?.id)).toBe('planningForm');await page.locator('#savePlanning').click();await expect.poll(()=>page.evaluate(()=>fixtureData.activities.find(a=>a.id==='review-training').organization_note)).toBe('Nota visibile sopra la barra');
+});
+
+test('new training retains native required-field validation from the separate save footer',async({page})=>{
+ await open(page,'training');await page.getByRole('button',{name:'Nuovo allenamento',exact:true}).click();await expect(page.locator('#planningTitle')).toHaveText('Nuovo allenamento');
+ await page.locator('#planningName').fill('');const before=await page.evaluate(()=>fixtureData.activities.length);await page.locator('#savePlanning').click();expect(await page.locator('#planningName').evaluate(input=>input.validity.valueMissing)).toBe(true);expect(await page.evaluate(()=>fixtureData.activities.length)).toBe(before);
+ await page.locator('#planningName').fill('Allenamento con barra separata');await page.locator('#planningDate').fill('2026-10-31');await page.locator('#planningNote').fill('Ultimo campo raggiungibile');await page.locator('#planningNote').scrollIntoViewIfNeeded();
+ const boxes=await page.evaluate(()=>({field:document.querySelector('#planningNote').getBoundingClientRect().toJSON(),footer:document.querySelector('#workspaceActions').getBoundingClientRect().toJSON()}));expect(boxes.field.bottom).toBeLessThanOrEqual(boxes.footer.top);
+ await page.locator('#savePlanning').click();await expect.poll(()=>page.evaluate(()=>fixtureData.activities.filter(a=>a.title==='Allenamento con barra separata').length)).toBe(1);await expect(page.locator('#savePlanning')).toHaveText('Salva');
 });
 
 test('whiteboard tools stay compact and the field can draw, undo, save and export',async({page},info)=>{
@@ -206,7 +230,7 @@ test('React editors retain rounded controls, readable contrast and accessible fo
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await open(page,'matches');await page.locator('.sc-match-preview').filter({hasText:'Atletico Battipaglia 2018'}).click();await expect(page.locator('#activityForm')).toBeVisible();
  const check=async name=>{const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(result.violations,name).toEqual([]);const folder=path.resolve(__dirname,'../../output/react-review');fs.mkdirSync(folder,{recursive:true});await info.attach(name,{body:await page.screenshot({path:path.join(folder,info.project.name+'-'+name+'.png'),fullPage:true}),contentType:'image/png'});expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);};
- const saveBar=page.locator('#activityForm .workspace-save');await expect(saveBar).toBeVisible();
+ const saveBar=page.locator('#workspaceActions .workspace-save');await expect(saveBar).toBeVisible();
  const dock=await saveBar.evaluate(el=>({bar:el.getBoundingClientRect().toJSON(),nav:document.querySelector('.app-mobile-nav').getBoundingClientRect().toJSON()}));if(dock.nav.height>300)expect(dock.bar.x).toBeGreaterThanOrEqual(dock.nav.right);else expect(dock.bar.bottom).toBeLessThanOrEqual(dock.nav.top);expect(dock.bar.x).toBeGreaterThanOrEqual(0);expect(dock.bar.right).toBeLessThanOrEqual(page.viewportSize().width);
  await check('match-roster-react');await page.locator('[data-activity-tab=results]').click();const widths=await page.locator('.match-score-fields input').evaluateAll(inputs=>inputs.map(input=>input.getBoundingClientRect().width));expect(Math.abs(widths[0]-widths[1])).toBeLessThanOrEqual(1);expect(Math.min(...widths)).toBeGreaterThan(100);await page.locator('#addOpponentGoal').click();await check('event-react');await page.locator('#close').click();await page.locator('#closeActivity').click();
  await page.locator('.app-mobile-nav a[href="#/more"]').click();await page.locator('.sc-tool-list a[href="#/players"]').click();await page.locator('.player-directory-entry, .roster-table td button').first().click();await expect(page.locator('#playerSheetTitle')).toBeVisible();await check('player-react');await page.getByRole('button',{name:'Chiudi scheda',exact:true}).click();
