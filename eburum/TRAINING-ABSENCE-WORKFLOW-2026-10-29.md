@@ -4,7 +4,7 @@
 
 ## Come si usa
 
-1. Crea o apri l’allenamento in Allenamenti. In **Assenze comunicate** tutti i giocatori sono inizialmente attesi; premi la X soltanto per chi ha avvisato. Puoi inserire un motivo facoltativo. Il segno di spunta ritira una segnalazione. Il filtro Assenze comunicate e il riepilogo mostrano i due gruppi.
+1. Crea o apri l’allenamento in Allenamenti. In **Disponibilità** tutti i giocatori sono inizialmente attesi; premi la X soltanto per chi ha avvisato. Puoi inserire un motivo facoltativo. Il segno di spunta ritira una segnalazione. Il filtro **Assenti** e il riepilogo mostrano i due gruppi.
 2. Premi **Salva** nella barra di lavoro: il contatore indica quanti giocatori hanno una disponibilità o un motivo modificato. Questo salvataggio conserva la previsione, senza creare una presenza effettiva.
 3. Il giorno dell’allenamento o successivamente, apri **Presenze effettive → Conferma presenze**. La bozza propone Presente per gli attesi e Assente per chi aveva avvisato, riportando l’eventuale motivo. Correggi chi ha partecipato diversamente o si è infortunato, apri il riepilogo e conferma tutta la squadra. Solo questa conferma aggiorna il Registro e i report.
 4. Le correzioni successive si aprono dal Registro. Il sistema carica gli stati effettivamente salvati, senza ricostruirli dalla previsione. Le comunicazioni precedenti restano consultabili e non si modificano dopo la conferma.
@@ -30,3 +30,5 @@ Le date future consentono di registrare le assenze comunicate, senza confermare 
 - Nessuna nuova segnalazione di sicurezza Supabase. Restano le segnalazioni preesistenti: [tabella privata con RLS e nessuna policy](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy), quindi accesso diretto negato, e [protezione dalle password compromesse disabilitata](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection), coerente con la scelta di mantenere il piano gratuito.
 
 Le verifiche browser usano fixture; le prove server usano transazioni con rollback sul progetto configurato. Non costituiscono un nuovo collaudo dell’autenticazione fra due account reali. Nessuna dipendenza, modifica al piano o riscrittura dei dati della squadra.
+
+Rifinitura successiva dello stesso giorno: `SAVE-BARS-LAYOUT-2026-10-29.md` documenta la barra separata, la centratura delle icone e le etichette più brevi Disponibilità / Assenti.

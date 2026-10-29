@@ -2,7 +2,13 @@ import { ArrowUpRight, Check, ClipboardList, Minus, X } from "lucide-react";
 import { fmt, today } from "../../app-part1.js";
 import { attendanceMessage } from "../../app-workflow-tools.js";
 import { Button } from "../components/ui/button";
-import { CopyText, EditorFrame, Feedback, Field } from "../operational-ui";
+import {
+  ActionBar,
+  CopyText,
+  EditorFrame,
+  Feedback,
+  Field,
+} from "../operational-ui";
 import { ui } from "../ui-service";
 import { usePlanningEditor } from "./use-planning-editor";
 export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
@@ -42,7 +48,7 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
           aria-current={phase === "poll" ? "page" : undefined}
           onClick={() => setPhase("poll")}
         >
-          {legacy ? "Risposte WhatsApp · storico" : "Assenze comunicate"}
+          {legacy ? "Risposte WhatsApp · storico" : "Disponibilità"}
         </button>
         <button
           data-training-phase="actual"
@@ -161,7 +167,7 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
                     aria-pressed={pendingOnly}
                     onClick={() => setPendingOnly(!pendingOnly)}
                   >
-                    {legacy ? "Non risposto" : "Assenze comunicate"}{" "}
+                    {legacy ? "Non risposto" : "Assenti"}{" "}
                     <span id="pendingReplyNumber">{pending.length}</span>
                   </button>
                 </div>
@@ -199,7 +205,7 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
                                   ? "Aveva risposto no"
                                   : "Risposta non registrata"
                               : v.replies[p.id] === "Indisponibile"
-                                ? "Assenza comunicata"
+                                ? "Ha avvisato: assente"
                                 : "Atteso all’allenamento"}
                           </small>
                         </span>
@@ -216,12 +222,7 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
                               ] as const)
                             : ([
                                 ["Disponibile", "Atteso", Check, "expected"],
-                                [
-                                  "Indisponibile",
-                                  "Assenza comunicata",
-                                  X,
-                                  "no",
-                                ],
+                                ["Indisponibile", "Segna assente", X, "no"],
                               ] as const)
                           ).map(([value, label, Icon, tone]) => (
                             <button
@@ -298,7 +299,7 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
                       ]
                     : [
                         ["Disponibile", "Attesi"],
-                        ["Indisponibile", "Assenze comunicate"],
+                        ["Indisponibile", "Assenti"],
                       ]
                   ).map(([value, label]) => (
                     <span key={value}>
@@ -316,16 +317,14 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
                   className="sc-primary border-0"
                   id="copyTrainingReminder"
                   label={
-                    legacy
-                      ? "Copia riepilogo storico"
-                      : "Copia assenze comunicate"
+                    legacy ? "Copia riepilogo storico" : "Copia elenco assenti"
                   }
                   text={[
                     `ALLENAMENTO EBURUM · ${fmt(v.activity_date)}`,
                     editor.dirty || !a.id
                       ? "BOZZA · modifiche non ancora salvate"
                       : "Dati salvati",
-                    `${legacy ? "Risposte non registrate" : "Assenze comunicate"} (${pending.length})`,
+                    `${legacy ? "Risposte non registrate" : "Assenti previsti"} (${pending.length})`,
                     ...pending.map(
                       (p) =>
                         `• ${p.surname} ${p.name}${v.notes[p.id] ? " · " + v.notes[p.id] : ""}`,
@@ -335,9 +334,7 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
                       : "Gli altri giocatori sono attesi. Presenze da confermare dopo l’allenamento.",
                   ].join("\n")}
                 >
-                  {legacy
-                    ? "Copia riepilogo storico"
-                    : "Copia assenze comunicate"}
+                  {legacy ? "Copia riepilogo storico" : "Copia elenco assenti"}
                   <ClipboardList size={18} />
                 </CopyText>
                 <p className="sc-helper">
@@ -447,11 +444,15 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
               </Button>
             ) : null}
           </details>
-          <div className="modal-actions planning-save">
+          <ActionBar
+            className="modal-actions planning-save"
+            hidden={phase === "actual" && training}
+          >
             <Button
               id="cancelPlanning"
               variant="secondary"
               hidden={inline}
+              disabled={editor.busy}
               onClick={() => void ui.close(surface.id)}
             >
               Annulla
@@ -468,13 +469,14 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
             </span>
             <Button
               type="submit"
+              form="planningForm"
               id="savePlanning"
               disabled={!operate || editor.busy || (!!a.id && !editor.dirty)}
             >
               {a.id ? "Salva" : "Crea allenamento"}
             </Button>
             <Feedback id="planningFeedback" error={editor.error} />
-          </div>
+          </ActionBar>
         </fieldset>
       </form>
     </div>

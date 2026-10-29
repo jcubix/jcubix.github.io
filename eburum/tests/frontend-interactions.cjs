@@ -1081,15 +1081,15 @@ test('Operational report drills keep four observed dates newest-first across pla
   data.match_events=data.matches.flatMap((m,i)=>['player-1','player-2'].map(player_id=>({id:'chronology-goal-'+i+player_id,user_id:'demo-user',match_id:m.id,player_id,event_type:'Gol',minute:10,created_at:m.match_date+'T12:00:00Z'})));
  });
  await runtime.navigate('reports');await until(()=>$('#rp'));
- const choose=id=>{$('#rp').value=id;$('#rp').dispatchEvent(new w.Event('change',{bubbles:true}))};
+ const choose=async id=>{$('#rp').value=id;$('#rp').dispatchEvent(new w.Event('change',{bubbles:true}));await until(()=>new URLSearchParams(w.location.hash.split('?')[1]).get('player')===id&&runtime.state.reportView?.player===id&&!$('#reportLoading')&&$('[data-report-detail=present] b')?.textContent==='4')};
  const expectDates=async(key,expected)=>{
   $('[data-report-detail="'+key+'"]').click();await until(()=>$('#reportDetailTitle'));
   const modal=$('#reportDetailTitle').closest('.modal'),observed=[...modal.querySelectorAll('.list article b')].map(n=>n.textContent.slice(0,10));assert.deepEqual(observed,expected);
   if(['called','minutes','goals'].includes(key))assert.equal(modal.querySelectorAll('[data-drill-match]').length,expected.length);
   $('[aria-label="Chiudi dettagli report"]').click();await until(()=>!$('#reportDetailTitle')&&!w.location.hash.includes('detail='));
  };
- for(const player of ['player-1','player-2']){choose(player);await until(()=>$('[data-report-detail=present] b').textContent==='4');for(const key of ['present','called','minutes','goals'])await expectDates(key,['08/10/2026','06/10/2026','01/10/2026','30/09/2026']);}
- eventValue(w,$('#rf'),'2026-10-02');eventValue(w,$('#rt'),'2026-10-09');await until(()=>$('[data-report-detail=present] b').textContent==='2');await expectDates('present',['08/10/2026','06/10/2026']);assert.equal($('#rp').value,'player-2');
+ for(const player of ['player-1','player-2']){await choose(player);for(const key of ['present','called','minutes','goals'])await expectDates(key,['08/10/2026','06/10/2026','01/10/2026','30/09/2026']);}
+ eventValue(w,$('#rf'),'2026-10-02');await until(()=>new URLSearchParams(w.location.hash.split('?')[1]).get('from')==='2026-10-02');eventValue(w,$('#rt'),'2026-10-09');await until(()=>!$('#reportLoading')&&$('[data-report-detail=present] b')?.textContent==='2');await expectDates('present',['08/10/2026','06/10/2026']);assert.equal($('#rp').value,'player-2');
 });
 
 test('Control audit match tabs have one tab stop and preserve keyboard selection with unsaved events',async t=>{

@@ -810,6 +810,7 @@ function Workspace({
         <div id="workspaceEditor" className="workspace-editor-host">
           <OperationalSurfaces runtime={runtime} workspace />
         </div>
+        <div id="workspaceActions" />
       </div>
       <OperationalSurfaces runtime={runtime} />
       <Toast />

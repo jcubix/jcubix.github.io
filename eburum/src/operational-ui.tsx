@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { confirmDialog } from "../app-confirm.js";
+import { createPortal } from "react-dom";
 import { Button } from "./components/ui/button";
 import { Dialog } from "./components/ui/dialog";
 import type { Runtime } from "./types";
@@ -142,6 +143,31 @@ export function Feedback({ error, id }: { error: string; id?: string }) {
       {error}
     </p>
   );
+}
+export function ActionBar({
+  children,
+  className = "",
+  hidden = false,
+}: {
+  children: ReactNode;
+  className?: string;
+  hidden?: boolean;
+}) {
+  const [host, setHost] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    setHost(document.getElementById("workspaceActions"));
+    if (!hidden) {
+      for (const id of ["mainContent", "workspaceEditor"]) {
+        const pane = document.getElementById(id);
+        if (pane) pane.scrollTop = 0;
+      }
+    }
+  }, [hidden]);
+  if (hidden) return null;
+  const bar = (
+    <div className={`workspace-action-bar ${className}`}>{children}</div>
+  );
+  return host ? createPortal(bar, host) : bar;
 }
 export function EditorFrame({
   surface,

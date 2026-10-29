@@ -11,7 +11,7 @@ import { teamOwner } from "../../app-part1.js";
 import { eventTone } from "../../app-part4.js";
 import { matchReview } from "../../app-workflow-tools.js";
 import { Button } from "../components/ui/button";
-import { Feedback, Field } from "../operational-ui";
+import { ActionBar, Feedback, Field } from "../operational-ui";
 import { ui } from "../ui-service";
 import { EventEditor } from "./event-editor";
 import { useMatchEditor } from "./use-match-editor";
@@ -407,7 +407,10 @@ export function MatchResults({
           </Button>
         </details>
       ) : null}
-      <div className="match-save-row workspace-save">
+      <ActionBar
+        className="match-save-row workspace-save"
+        hidden={tab !== "results"}
+      >
         <Button
           id="saveMatchResult"
           disabled={editor.busy || !!composer || !!reloadError}
@@ -416,7 +419,7 @@ export function MatchResults({
           Salva partita
         </Button>
         <Feedback id="matchResultStatus" error={editor.error} />
-      </div>
+      </ActionBar>
     </section>
   );
 }
