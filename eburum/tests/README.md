@@ -42,4 +42,6 @@ Le baseline geometriche in `browser/baselines/` ammettono 2 px di tolleranza. No
 
 `managed-auth-live.cjs` e gli script `../supabase/tests/` sono verifiche separate dei servizi reali e non fanno parte dei test locali. I test SQL in transazione terminano con rollback; vanno eseguiti consapevolmente, preferibilmente su staging. Le prove persistenti richiedono account sintetici dedicati e pulizia: non usare utenze dello staff o registrare credenziali nei log.
 
+`../supabase/tests/training_absence_notices.sql` verifica pianificazione senza presenze, nuovo metodo di registrazione, intera rosa, assenza di risposte al sondaggio inventate, retry, revisioni, correzioni e compatibilità dei client precedenti. Crea attività e sessioni sintetiche in transazione e termina con rollback, senza modificare le presenze reali. Richiede la migrazione `training_absence_notices` e la configurazione bootstrap del progetto.
+
 Il passaggio dei test con fixture non equivale a un nuovo collaudo di RLS, inviti tra due account o hardware iPhone. Lo stato dell'ultima integrazione è in `../CODE-REVIEW-IMPLEMENTATION-2026-10-27.md`.

@@ -1,17 +1,17 @@
 # Flussi quotidiani dello staff
 
-Estensione dello stile Soft Club, 11 ottobre 2026. La navigazione e tutte le funzioni di Altro restano disponibili.
+Flussi correnti, aggiornati al 29 ottobre 2026. La navigazione e tutte le funzioni di Altro restano disponibili. Le sezioni di verifica e pubblicazione datate sotto documentano esecuzioni precedenti.
 
 ## Percorsi
 
-- Home: priorità coerenti con il ruolo, risposte degli allenamenti futuri, presenze trascorse ancora da confermare, avvisi importanti da leggere e documenti da verificare. Un allenamento con presenze registrate mostra il registro effettivo e non solleciti di vecchi sondaggi.
-- Allenamenti: Risposte WhatsApp, Presenze da confermare, Storico. Lo storico apre le presenze effettive, con riepilogo, copia per WhatsApp e cronologia; le eventuali risposte originali rimangono consultabili separatamente. Una risposta storica mancante non viene trattata come assenza.
+- Home: priorità coerenti con il ruolo, presenze trascorse ancora da confermare, risultati mancanti, avvisi importanti da leggere e documenti da verificare. Non richiede risposte a un sondaggio per gli allenamenti futuri.
+- Allenamenti: Prossimi e Da confermare. Prima dell’allenamento si registrano soltanto le assenze comunicate, con motivo facoltativo; tutti gli altri giocatori sono attesi. Dopo l’attività lo staff apre Presenze effettive: la bozza propone presenti gli attesi e assenti quelli che avevano avvisato. Lo staff corregge eventuali variazioni o infortuni, rivede il riepilogo e conferma esplicitamente tutta la squadra. Solo questa conferma scrive il registro. Le sessioni registrate si consultano dal Registro in Altro, senza uno storico duplicato negli Allenamenti.
 - Partite: Gara, Convocati, Impostazioni. La gara apre direttamente risultato ed eventi; nella distinta si assegnano titolari e panchina senza aprire schede aggiuntive. Organizzazione e stato si modificano nelle impostazioni. Il riepilogo controlla risultato, titolari, durata ed entrate/uscite; la conclusione senza risultato è rifiutata anche dal database. Lo 0–0 è valido. I controlli segnalano le anomalie della distinta senza riscrivere i dati storici.
 - Rosa: la scheda collega presenze effettive, convocazioni, minuti, gol, cartellini e il report individuale con esportazione PDF. Le statistiche sintetiche seguono la stagione; nel report si può selezionare tutto lo storico.
 - Comunicazioni: filtri Generali, Per giocatore, Da confermare e In scadenza. Alla pubblicazione si può richiedere una conferma di lettura. Aprire un avviso non lo conferma: ogni utente registra esplicitamente la propria lettura. Nomi e data delle conferme sono consultabili dallo staff della stessa squadra. La scadenza originale di 1/3/7 giorni resta valida.
 - Scadenze: distingue Mancante, Da verificare, In scadenza e Scaduto. Il presidente continua a vedere soltanto la proiezione sintetica, senza date e contatti riservati.
 
-Le risposte non sono nuovi sondaggi interni: il sondaggio rimane su WhatsApp. Nessuna chat IA o monitoraggio dei ritardi è stato aggiunto. I permessi dei sei ruoli restano quelli di STAFF_ROLES.md.
+Il metodo corrente non usa sondaggi WhatsApp o interni. I sondaggi delle sessioni già confermate restano consultabili come dati storici, senza conversione in assenze. I permessi dei sei ruoli restano quelli di STAFF_ROLES.md. Dettagli e verifiche della modifica: `TRAINING-ABSENCE-WORKFLOW-2026-10-29.md`.
 
 ## Database
 

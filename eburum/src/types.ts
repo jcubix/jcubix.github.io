@@ -92,6 +92,7 @@ export interface Communication {
   meeting_location?: string | null;
 }
 export interface Session {
+  attendance_mode?: "poll" | "absence_notice";
   id: string;
   session_date: string;
   session_type: string;
@@ -172,7 +173,12 @@ export interface TrainingDraft {
   userId: string;
   id: string | null;
   revision: number;
-  session: { session_date: string; session_type: string; note: string | null };
+  session: {
+    attendance_mode?: "poll" | "absence_notice";
+    session_date: string;
+    session_type: string;
+    note: string | null;
+  };
   players: Player[];
   entries: Map<string, Attendance>;
   search: string;

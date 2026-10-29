@@ -21,7 +21,6 @@ import {
   canViewExpiriesRole,
 } from "../app-roles.ts";
 import type { Runtime } from "./types";
-import { ui } from "./ui-service";
 
 export function Dashboard({ runtime }: { runtime: Runtime }) {
   const { state, actions } = runtime,
@@ -64,15 +63,6 @@ export function Dashboard({ runtime }: { runtime: Runtime }) {
           (r) => r.communication_id === m.id && r.reader_id === state.user?.id,
         ),
     ).length;
-  const pending = upcoming
-    .filter((a) => a.activity_type === "Allenamento" && !a.session_id)
-    .reduce(
-      (n, a) =>
-        n +
-        actions.pollEntries(a).filter((x) => x.row.availability === "In attesa")
-          .length,
-      0,
-    );
   const overdue = state.activities.filter(
     (a) =>
       a.activity_type === "Allenamento" &&
@@ -224,15 +214,6 @@ export function Dashboard({ runtime }: { runtime: Runtime }) {
                     () => actions.openMatch(missing[0]),
                   )
                 : null}
-              {(operate || role === "president") && pending
-                ? task(
-                    MessageSquare,
-                    "Risposte da registrare",
-                    "Risposte WhatsApp ancora in attesa",
-                    pending,
-                    () => ui.open("priority", { kind: "poll" }),
-                  )
-                : null}
               {operate && overdue.length
                 ? task(
                     ClipboardCheck,
@@ -260,11 +241,7 @@ export function Dashboard({ runtime }: { runtime: Runtime }) {
                     actions.expiries,
                   )
                 : null}
-              {!missing.length &&
-              !pending &&
-              !overdue.length &&
-              !unread &&
-              !docs.review ? (
+              {!missing.length && !overdue.length && !unread && !docs.review ? (
                 <div className="sc-empty-state">
                   <h3>Nessuna verifica in elenco</h3>
                   <p>Le attività controllate qui non richiedono interventi.</p>

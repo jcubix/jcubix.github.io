@@ -22,7 +22,11 @@ export function usePlanningEditor({
       rows?: RosterRow[];
     },
     a = useRef(data.activity).current,
-    rows = data.rows || [];
+    rows = data.rows || [],
+    legacy =
+      !!a.session_id &&
+      runtime.state.sessions.find((s) => s.id === a.session_id)
+        ?.attendance_mode !== "absence_notice";
   const ids = new Set(rows.map((r) => r.player_id)),
     players = sortPlayers(
       runtime.state.players.filter((p) => p.active || ids.has(p.id)),
@@ -30,6 +34,12 @@ export function usePlanningEditor({
     revision = useRef(a.revision ?? null),
     request = useRef(a.request_id || crypto.randomUUID());
   const initial: PlanValues = {
+    notes: Object.fromEntries(
+      players.map((p) => [
+        p.id,
+        rows.find((r) => r.player_id === p.id)?.response_note || "",
+      ]),
+    ),
     title: a.title || "Allenamento",
     activity_date: a.activity_date || today(),
     start_time: a.start_time?.slice(0, 5) || "",
@@ -40,12 +50,18 @@ export function usePlanningEditor({
     replies: Object.fromEntries(
       players.map((p) => [
         p.id,
-        rows.find((r) => r.player_id === p.id)?.availability || "In attesa",
+        legacy
+          ? rows.find((r) => r.player_id === p.id)?.availability || "In attesa"
+          : rows.find((r) => r.player_id === p.id)?.availability ===
+              "Indisponibile"
+            ? "Indisponibile"
+            : "Disponibile",
       ]),
     ),
   };
   const editor = useEditor(runtime, surface, initial),
     baselineReplies = useRef(initial.replies),
+    baselineNotes = useRef(initial.notes),
     [phase, setPhase] = useState(a.session_id ? "actual" : "poll"),
     [search, setSearch] = useState(""),
     [pendingOnly, setPendingOnly] = useState(false);
@@ -58,9 +74,13 @@ export function usePlanningEditor({
     return () => runtime.setNavigationGuard(null);
   }, [runtime, inline, editor.canLeave]);
   const v = editor.value,
-    pending = players.filter((p) => v.replies[p.id] === "In attesa"),
+    pending = players.filter(
+      (p) => v.replies[p.id] === (legacy ? "In attesa" : "Indisponibile"),
+    ),
     count = Object.keys(v.replies).filter(
-      (id) => v.replies[id] !== baselineReplies.current[id],
+      (id) =>
+        v.replies[id] !== baselineReplies.current[id] ||
+        v.notes[id] !== baselineNotes.current[id],
     ).length;
   const save = () =>
     editor.run(async () => {
@@ -69,7 +89,7 @@ export function usePlanningEditor({
         throw Error("Inserisci titolo e data");
       if (v.start_time && v.end_time && v.end_time <= v.start_time)
         throw Error("La fine deve essere successiva all’inizio");
-      const { replies, ...fields } = v;
+      const { replies, notes, ...fields } = v;
       const { data: saved, error } = await runtime.db.rpc(
         "save_team_activity",
         {
@@ -89,8 +109,7 @@ export function usePlanningEditor({
             ? players.map((p) => ({
                 player_id: p.id,
                 availability: replies[p.id],
-                response_note:
-                  rows.find((r) => r.player_id === p.id)?.response_note || null,
+                response_note: notes[p.id]?.trim() || null,
               }))
             : rows
           ).map((r) => ({
@@ -110,6 +129,7 @@ export function usePlanningEditor({
       if (!editor.current()) return;
       revision.current = saved.revision;
       baselineReplies.current = { ...replies };
+      baselineNotes.current = { ...notes };
       editor.reset({ ...v });
       if (!inline) await editor.close();
       if (
@@ -124,7 +144,7 @@ export function usePlanningEditor({
       ui.notify(
         training
           ? a.id
-            ? "Allenamento e risposte salvati"
+            ? "Allenamento e assenze salvati"
             : "Allenamento creato"
           : "Riunione salvata",
       );
@@ -133,7 +153,7 @@ export function usePlanningEditor({
     if (editor.busy || !operate) return;
     if (editor.dirty)
       return editor.setError(
-        "Salva le modifiche e le risposte prima di aprire le presenze",
+        "Salva le modifiche e le assenze comunicate prima di aprire le presenze",
       );
     if (!a.id) return editor.setError("Salva prima l’allenamento");
     const opened = await startActualAttendance(
@@ -157,6 +177,7 @@ export function usePlanningEditor({
     count,
     editor,
     inline,
+    legacy,
     operate,
     pending,
     pendingOnly,

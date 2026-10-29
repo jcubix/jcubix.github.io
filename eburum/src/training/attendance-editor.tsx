@@ -51,7 +51,7 @@ export function AttendanceEditor({ runtime }: { runtime: Runtime }) {
   const review = () => {
     if (!d.session.session_date || d.session.session_date > today())
       return setError(
-        "Le presenze effettive non possono essere registrate per una data futura. Usa il sondaggio.",
+        "Le presenze effettive non possono essere registrate per una data futura. Registra invece le assenze comunicate.",
       );
     if (!d.id && !d.activityId)
       return setError("Apri un allenamento salvato per registrare le presenze");
@@ -134,7 +134,7 @@ export function AttendanceEditor({ runtime }: { runtime: Runtime }) {
                     await runtime.actions.openActivity(d.activityId);
                 }}
               >
-                Risposte WhatsApp
+                Assenze comunicate
               </button>
               <button aria-current="page">Presenze effettive</button>
             </nav>
@@ -244,12 +244,9 @@ export function AttendanceEditor({ runtime }: { runtime: Runtime }) {
                     </small>
                     {d.planned ? (
                       <small className="planned-reply">
-                        WhatsApp:{" "}
-                        {d.planned.get(p.id) === "Disponibile"
-                          ? "Sì"
-                          : d.planned.get(p.id) === "Indisponibile"
-                            ? "No"
-                            : "Non risposto"}
+                        {d.planned.get(p.id) === "Indisponibile"
+                          ? "Assenza comunicata"
+                          : "Atteso all’allenamento"}
                       </small>
                     ) : null}
                     {a.note ? (

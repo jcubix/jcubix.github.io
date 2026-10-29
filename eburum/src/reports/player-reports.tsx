@@ -185,7 +185,11 @@ export function PlayerReports({ runtime }: { runtime: Runtime }) {
     `Minuti giocati: ${drills.minutes.value}`,
     `Gol dei giocatori: ${goals.length}`,
     `Cartellini: ${cards.length}`,
-    `Risposte WhatsApp: ${attendance.filter((r) => r.notified === true).length} risposto - ${attendance.filter((r) => r.notified === false).length} non risposto - ${attendance.filter((r) => r.notified == null).length} da verificare`,
+    ...(model?.legacyReplyCount
+      ? [
+          `Risposte WhatsApp · storico: ${(model.replies as [string, number][]).map(([label, n]) => `${label}: ${n}`).join(" · ")}`,
+        ]
+      : []),
   ].join("\n");
   useEffect(() => {
     if (!data || loading) return;
@@ -399,8 +403,8 @@ export function PlayerReports({ runtime }: { runtime: Runtime }) {
             </section>
           </div>
           <p className="row-sub report-facts-help">
-            Presenze effettive, distinte dalle risposte WhatsApp. Seleziona un
-            indicatore per i dettagli.
+            Presenze effettive confermate dallo staff. Seleziona un indicatore
+            per i dettagli.
           </p>
           <div className="report-reading-grid">
             <section className="report-chart-region">
@@ -429,11 +433,13 @@ export function PlayerReports({ runtime }: { runtime: Runtime }) {
                   title="Presenze effettive"
                   rows={model.attendance as [string, number][]}
                 />
-                <Bars
-                  family="replies"
-                  title="Risposte WhatsApp registrate"
-                  rows={model.replies as [string, number][]}
-                />
+                {model.legacyReplyCount ? (
+                  <Bars
+                    family="replies"
+                    title="Risposte WhatsApp · storico"
+                    rows={model.replies as [string, number][]}
+                  />
+                ) : null}
                 <Bars
                   family="minutes"
                   title="Minuti giocati per mese"
@@ -444,9 +450,9 @@ export function PlayerReports({ runtime }: { runtime: Runtime }) {
                   unit=" min"
                 />
                 <p className="row-sub">
-                  Le barre confrontano i valori all’interno di ogni grafico. Le
-                  risposte WhatsApp non determinano automaticamente la presenza.
-                  I minuti sono quelli registrati dallo staff.
+                  Le barre confrontano i valori all’interno di ogni grafico. Gli
+                  eventuali sondaggi WhatsApp si riferiscono solo al metodo
+                  precedente. I minuti sono quelli registrati dallo staff.
                 </p>
               </div>
             </section>

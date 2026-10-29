@@ -551,7 +551,7 @@ test("Workspace editors protect unsaved replies and preserve the React navigatio
  const {w,runtime,$}=await app(t,"admin",data=>{data.activities.push({id:"training-port",user_id:"demo-user",activity_date:"2026-10-01",activity_type:"Allenamento",title:"Allenamento test",status:"Programmato",revision:0})});
  await runtime.actions.openActivity("training-port");await until(()=>$("#planningForm"));
  assert.ok($("#workspaceEditor #planningForm"));assert.equal($("#planningForm").closest(".modal").getAttribute("role"),"region");assert.equal($("#app").hasAttribute("inert"),false);
- $("[data-training-reply=Disponibile]").click();w.confirm=()=>false;assert.equal(await runtime.navigate("players"),false);assert.ok($("#planningForm"));
+ $("[data-training-reply=Indisponibile]").click();w.confirm=()=>false;assert.equal(await runtime.navigate("players"),false);assert.ok($("#planningForm"));
  $("[data-training-phase=actual]").click();assert.equal($("#planningForm").hidden,true);assert.equal($(".training-actual-entry").hidden,false);$("[data-training-phase=replies]").click();assert.equal($("#planningForm").hidden,false);
  w.confirm=()=>true;assert.equal(await runtime.navigate("players"),true);await until(()=>$(".sc-directory"));assert.equal($("#planningForm"),null);assert.ok($(".app-mobile-nav"));
 });
@@ -598,7 +598,7 @@ test("Collaborator records replies and observations without planning or lineup c
  assert.equal(w.fixtureData.activity_technical[0].formation,'4-3-3');$('#closeActivity').click();
  await runtime.navigate('training');await until(()=>$('.sc-inline-training'));
  assert.equal($('#planningDate').matches(":disabled"),true);assert.equal($('#planningAttendance').matches(":disabled"),false);
- $('[data-training-player="player-1"][data-training-reply="Disponibile"]').click();$('#savePlanning').click();
+ $('[data-training-player="player-1"][data-training-reply="Indisponibile"]').click();$('#savePlanning').click();
  await until(()=>w.fixtureTeamCalls.some(c=>c.p_id==='assistant-training'));
  const training=w.fixtureTeamCalls.find(c=>c.p_id==='assistant-training');assert.equal(training.p_activity.title,'Allenamento');assert.equal(training.p_roster.length,2);
 });
@@ -1127,7 +1127,7 @@ test('Player activation updates the authoritative row without reloading sporting
 test('React actual attendance saves only after full review and preserves the complete draft on retry',async t=>{
  const {w,runtime,$}=await app(t,'admin',data=>data.activities.push({id:'react-actual',user_id:'demo-user',activity_type:'Allenamento',title:'Allenamento',activity_date:'2026-10-02',status:'Programmato',revision:0}));
  await runtime.actions.openActivity('react-actual');await until(()=>$('#planningForm'));$('[data-training-phase=actual]').click();$('#planningAttendance').click();await until(()=>$('#trainList'));
- const before=w.fixtureData.attendance.length;$('[data-presence-player="player-1"][data-presence="Presente"]').click();$('#saveTraining').click();assert.equal($('#reviewTitle'),null);assert.equal(w.fixtureData.attendance.length,before);
+ const before=w.fixtureData.attendance.length;assert.equal(runtime.state.trainingDraft.entries.get('player-1').status,'Presente');assert.equal(runtime.state.trainingDraft.entries.get('player-2').status,'Presente');assert.equal(runtime.state.trainingDraft.session.attendance_mode,'absence_notice');assert.equal(w.fixtureData.attendance.length,before);
  $('[data-presence-player="player-2"][data-presence="Assente"]').click();$('#saveTraining').click();await until(()=>$('#reviewTitle'));w.fixtureSaveError={message:'Errore rete'};$('#confirmTraining').click();$('#confirmTraining').click();await until(()=>$('#reviewStatus').textContent.includes('Errore rete'));assert.ok(runtime.state.trainingDraft);assert.equal(w.fixtureData.attendance.length,before);w.fixtureSaveError=null;$('#confirmTraining').click();await until(()=>!$('#reviewTitle')&&runtime.state.page==='register');assert.equal(runtime.state.trainingDraft,null);assert.equal(w.fixtureRpcCalls.at(-1).p_attendance.length,2);assert.equal(w.fixtureRpcCalls.at(-1).p_activity_id,'react-actual');
 });
 test('React attendance conflicts require reopening the Register and never replay a stale revision',async t=>{
@@ -1171,8 +1171,8 @@ for(const origin of ['dashboard','training','register'])for(const saved of [fals
 });
 
 test('Unsaved training replies show the reason attendance cannot start without leaving the activity',async t=>{
- const {w,runtime,$}=await app(t,'admin',data=>data.activities.push({id:'attendance-unsaved',user_id:'demo-user',activity_type:'Allenamento',title:'Presenze da verificare',activity_date:'2026-10-02',status:'Programmato',revision:0}));await runtime.navigate('dashboard');await until(()=>w.location.hash==='#/dashboard');await runtime.actions.openActivity('attendance-unsaved');await until(()=>$('#planningAttendance'));$('[data-training-player="player-1"][data-training-reply="Disponibile"]').click();$('[data-training-phase=actual]').click();$('#planningAttendance').click();
- assert.match($('#planningActualError').textContent,/Salva le modifiche e le risposte/);assert.equal($('#planningActualError').hidden,false);assert.equal($('#trainList'),null);assert.ok($('#planningAttendance'));assert.equal(w.fixtureRpcCalls.length,0);
+ const {w,runtime,$}=await app(t,'admin',data=>data.activities.push({id:'attendance-unsaved',user_id:'demo-user',activity_type:'Allenamento',title:'Presenze da verificare',activity_date:'2026-10-02',status:'Programmato',revision:0}));await runtime.navigate('dashboard');await until(()=>w.location.hash==='#/dashboard');await runtime.actions.openActivity('attendance-unsaved');await until(()=>$('#planningAttendance'));$('[data-training-player="player-1"][data-training-reply="Indisponibile"]').click();$('[data-training-phase=actual]').click();$('#planningAttendance').click();
+ assert.match($('#planningActualError').textContent,/Salva le modifiche e le assenze/);assert.equal($('#planningActualError').hidden,false);assert.equal($('#trainList'),null);assert.ok($('#planningAttendance'));assert.equal(w.fixtureRpcCalls.length,0);
 });
 
 
@@ -1198,4 +1198,33 @@ test('a failed targeted read after player creation offers reload without replayi
  assert.equal(inserted,1);assert.equal(w.fixtureData.players.filter(p=>p.surname==='Nuovo').length,1);
  await runtime.actions.reload();await until(()=>runtime.getSnapshot().status==='ready');
  assert.equal(inserted,1);assert.equal(runtime.state.players.filter(p=>p.surname==='Nuovo').length,1);
+});
+
+
+test('absence notices save optional reasons, can be withdrawn and seed only an unsaved attendance draft',async t=>{
+ const {w,runtime,$}=await app(t,'admin',data=>data.activities.push({id:'absence-workflow',user_id:'demo-user',activity_type:'Allenamento',title:'Allenamento',activity_date:'2026-10-02',status:'Programmato',revision:0}));
+ await runtime.actions.openActivity('absence-workflow');await until(()=>$('#planningForm'));
+ assert.equal(w.document.querySelectorAll('[data-training-reply="In attesa"]').length,0);
+ assert.equal($('#savePlanning').disabled,true);assert.equal($('#planningReplySummary').children.length,2);
+ $('[data-training-player="player-1"][data-training-reply="Indisponibile"]').click();reactInput(w,$('#absence-player-1'),'Lavoro');
+ assert.equal($('#planningChanges').textContent,'1');
+ $('[data-training-player="player-1"][data-training-reply="Disponibile"]').click();assert.equal($('#absence-player-1'),null);assert.equal($('#savePlanning').disabled,true);
+ $('[data-training-player="player-1"][data-training-reply="Indisponibile"]').click();reactInput(w,$('#absence-player-1'),'Lavoro');$('#savePlanning').click();
+ await until(()=>$('#savePlanning').disabled&&$('#planningChanges').hidden);
+ const row=w.fixtureData.activity_roster.find(r=>r.activity_id==='absence-workflow'&&r.player_id==='player-1');assert.equal(row.response_note,'Lavoro');assert.equal(row.availability,'Indisponibile');
+ const before=w.fixtureData.attendance.length;$('[data-training-phase=actual]').click();$('#planningAttendance').click();await until(()=>$('#trainList'));
+ const draft=runtime.state.trainingDraft;assert.equal(draft.entries.get('player-1').status,'Assente');assert.equal(draft.entries.get('player-1').note,'Lavoro');assert.equal(draft.entries.get('player-2').status,'Presente');assert.equal(draft.session.attendance_mode,'absence_notice');
+ assert.ok([...draft.entries.values()].every(r=>r.notified===null));assert.equal(w.fixtureData.attendance.length,before);
+});
+
+test('historical surveys remain read-only and corrections keep their original method',async t=>{
+ const {w,runtime,$}=await app(t,'admin',data=>{
+  data.activities.push({id:'old-poll',user_id:'demo-user',activity_type:'Allenamento',title:'Vecchio sondaggio',activity_date:'2026-10-06',session_id:'session-1',status:'Concluso',revision:0});
+  data.activity_roster.push({activity_id:'old-poll',user_id:'demo-user',player_id:'player-1',availability:'In attesa'});
+ });
+ const before=JSON.stringify(w.fixtureData.attendance);await runtime.actions.openActivity('old-poll');await until(()=>$('#planningForm'));
+ $('[data-training-phase=replies]').click();assert.match($('#planningForm').textContent,/metodo precedente/);
+ assert.ok([...w.document.querySelectorAll('[data-training-reply]')].every(b=>b.disabled));
+ $('[data-training-phase=actual]').click();$('#planningAttendance').click();await until(()=>$('#trainList'));
+ assert.equal(runtime.state.trainingDraft.session.attendance_mode,'poll');assert.equal(JSON.stringify(w.fixtureData.attendance),before);
 });

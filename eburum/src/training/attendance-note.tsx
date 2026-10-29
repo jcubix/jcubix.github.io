@@ -38,7 +38,11 @@ export function AttendanceNote({
           </button>
         ))}
       </div>
-      <p>La risposta WhatsApp si modifica nella scheda dell’allenamento.</p>
+      <p>
+        {draft.session.attendance_mode === "absence_notice"
+          ? "Qui registri la partecipazione effettiva, che può essere diversa dall’assenza comunicata prima dell’allenamento."
+          : "La risposta WhatsApp storica si consulta nella scheda dell’allenamento."}
+      </p>
       <Field id="note" label="Nota">
         <textarea
           id="note"

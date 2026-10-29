@@ -39,12 +39,13 @@ I token semantici guidano tutte le superfici: i vecchi alias cromatici `--swatch
 
 L'applicazione usa il ruolo autorevole della membership; i controlli client modellano la UI e non sostituiscono RLS, RPC e autorizzazioni server. Ogni risposta asincrona e ogni conferma deve ricontrollare utente, proprietario, ruolo e sessione. Conservare revisioni, richieste idempotenti, audit, retry e atomicità.
 
-Le risposte WhatsApp restano distinte dalle presenze effettive. I report non trasformano dati mancanti in assenze. Gli export seguono periodo e ordinamento; la squadra usa `.xlsx` e PDF. ExcelJS e jsPDF rimangono su richiesta; la cache PWA contiene solo asset statici, mai tabelle o risposte API. La lavagna controlla nuovamente il contesto prima di scaricare un'immagine generata in modo asincrono.
+Gli allenamenti correnti raccolgono soltanto le assenze comunicate: gli altri giocatori sono attesi, ma il registro viene scritto solo alla conferma finale dello staff. `sessions.attendance_mode` distingue il nuovo metodo `absence_notice` dai vecchi sondaggi `poll`; la modalità resta immutabile nelle correzioni e le vecchie risposte non vengono riscritte. I report non trasformano dati mancanti in assenze e contano come risposte WhatsApp soltanto lo storico `poll`. Gli export seguono periodo e ordinamento; la squadra usa `.xlsx` e PDF. ExcelJS e jsPDF rimangono su richiesta; la cache PWA contiene solo asset statici, mai tabelle o risposte API. La lavagna controlla nuovamente il contesto prima di scaricare un'immagine generata in modo asincrono.
 
 I salvataggi sportivi usano `reloadAffected` con un ambito tipizzato: giocatori, amministrazione, disciplina, attività, gara o sessione. I record collegati sono riletti insieme e applicati soltanto dopo il successo di tutte le letture; le operazioni mirate sono serializzate e subordinate a contesto, stagione e generazione del caricamento completo. Le date iniziali sono rilette solo quando cambiano date o record; eliminare una gara aggiorna anche le conferme disciplinari. Accesso, cambio stagione, recupero da errore e modifiche del contesto utente conservano il caricamento completo. I report reagiscono alle nuove righe senza cambiare periodo o ordinamento.
 
 ## Documenti correnti
 
+- `TRAINING-ABSENCE-WORKFLOW-2026-10-29.md`: assenze comunicate, conferma effettiva, compatibilità storica e prove server.
 - `CODE-REVIEW-IMPLEMENTATION-2026-10-27.md`: confronto con l'handoff, scelte, misure, verifiche e limiti.
 - `TARGETED-REFRESH-PALETTE-2026-10-28.md`: chiusura degli aggiornamenti mirati e della palette di compatibilità.
 - `REACT-MIGRATION-2026-10-27.md`: conclusione della migrazione dei renderer e copertura precedente.

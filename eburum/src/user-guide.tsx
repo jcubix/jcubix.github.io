@@ -23,13 +23,13 @@ const topics = [
     ],
   },
   {
-    title: "Allenamenti: risposte WhatsApp e presenze",
-    text: "Il sondaggio resta su WhatsApp. Una risposta Sì indica una disponibilità prevista, non certifica la partecipazione. Non risposto identifica chi deve ancora votare.",
+    title: "Allenamenti: assenze comunicate e presenze",
+    text: "Non serve votare un sondaggio: chi non può partecipare avvisa lo staff. Gli altri giocatori sono attesi; nessuna presenza è registrata prima della conferma finale.",
     steps: [
-      "Apri l’allenamento e trascrivi Sì, No o Non risposto nella sezione Risposte WhatsApp.",
-      "Filtra Non risposto e copia i nomi per il sollecito nel gruppo interno.",
+      "Apri l’allenamento e segna Assenza comunicata solo per chi ha avvisato. Puoi aggiungere un motivo facoltativo.",
+      "Filtra Assenze comunicate per consultare l’elenco; Atteso annulla una segnalazione errata o ritirata.",
       "Dopo l’allenamento registra le Presenze effettive: presente, assente o infortunato, poi salva.",
-      "Nel Registro in Altro trovi presenze e schede degli allenamenti passati o annullati. Apri la scheda per note e risposte WhatsApp; Storico modifiche mostra autore e variazione delle correzioni.",
+      "Nel Registro in Altro trovi presenze e schede degli allenamenti passati o annullati. Apri la scheda per note e comunicazioni; i vecchi sondaggi restano indicati come dati storici; Storico modifiche mostra autore e variazione delle correzioni.",
     ],
   },
   {
@@ -68,7 +68,7 @@ const topics = [
   },
   {
     title: "Messaggi dello staff",
-    text: "Sono aggiornamenti condivisi fra gli utenti della squadra, anche quando riguardano un singolo giocatore. Non sono una chat privata e non sostituiscono i sondaggi WhatsApp.",
+    text: "Sono aggiornamenti condivisi fra gli utenti della squadra, anche quando riguardano un singolo giocatore. Non sono una chat privata. Le assenze dagli allenamenti si registrano nella scheda dell’allenamento.",
     steps: [
       "Premi +, inserisci il contenuto e scegli eventualmente un giocatore.",
       "Per un avviso scegli 1, 3 o 7 giorni dalla pubblicazione. Amministratore, team manager e allenatore possono scegliere Riunione, inserire data, ora, luogo e ordine del giorno: l’invito resta fino all’appuntamento e per 1, 3 o 7 giorni successivi.",
@@ -80,7 +80,7 @@ const topics = [
   },
   {
     title: "Report dei giocatori e della squadra",
-    text: "Scegli Giocatore per il dettaglio individuale o Squadra per confrontare tutti i giocatori in una tabella. Risposte WhatsApp e presenze effettive sono indicatori distinti.",
+    text: "Scegli Giocatore per il dettaglio individuale o Squadra per confrontare tutti i giocatori in una tabella. Le presenze effettive sono quelle confermate dallo staff. Gli eventuali grafici dei sondaggi riguardano solo lo storico precedente.",
     steps: [
       "Apri Report da Altro oppure dalla scheda del giocatore.",
       "Seleziona la vista e il periodo: stagione, ultimo mese oppure intervallo personalizzato.",
