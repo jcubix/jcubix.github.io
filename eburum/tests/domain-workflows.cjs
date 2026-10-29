@@ -10,9 +10,9 @@ test('Yellow cycles exclude future, cancelled, opponent and old-season cards and
  run("state.events.push({id:'yellow-9',match_id:'served',player_id:'player-1',minute:5,event_type:'Ammonizione'})");assert.equal(run("playerDiscipline('player-1').cycles"),2);
  run("state.events=state.events.filter(e=>e.id!=='yellow-0')");assert.equal(run("playerDiscipline('player-1').valid.length"),0);assert.equal(run("playerDiscipline('player-1').review.length"),1);
 });
-test('Survey seeding changes a full attendance draft without persisting actual attendance',async t=>{
+test('Absence notices seed expected attendance without persisting actual attendance',async t=>{
  const {w,run}=await app(t),before=JSON.stringify(w.fixtureData.attendance);run("state.activities.push({id:'train',activity_type:'Allenamento',activity_date:'2026-10-08',status:'Programmato',revision:3});state.roster.push({activity_id:'train',player_id:'player-1',availability:'Indisponibile'},{activity_id:'train',player_id:'player-2',availability:'In attesa'});window.d=makeTrainingDraft();seedPlannedReplies(d,state.activities.at(-1))");
- assert.equal(run("d.entries.get('player-1').status"),'Assente');assert.equal(run("d.entries.get('player-1').notified"),true);assert.equal(run("d.entries.get('player-2').status"),'Da confermare');assert.equal(run("attendanceCounts(d.entries.values()).pending"),1);assert.equal(run('draftRows(d).length'),2);assert.equal(run('d.activityRevision'),3);assert.equal(JSON.stringify(w.fixtureData.attendance),before);assert.equal(w.fixtureRpcCalls.length,0);
+ assert.equal(run("d.entries.get('player-1').status"),'Assente');assert.equal(run("d.entries.get('player-1').notified"),null);assert.equal(run("d.entries.get('player-2').status"),'Presente');assert.equal(run("attendanceCounts(d.entries.values()).pending"),0);assert.equal(run('draftRows(d).length'),2);assert.equal(run('d.activityRevision'),3);assert.equal(JSON.stringify(w.fixtureData.attendance),before);assert.equal(w.fixtureRpcCalls.length,0);
 });
 test('Complete player history loads archived rows without replacing the selected season',async t=>{
  const {w,run}=await app(t);w.fixtureData.sessions.push({id:'old-session',user_id:'demo-user',session_date:'2025-10-06',session_type:'Allenamento'});w.fixtureData.attendance.push({id:'old-attendance',user_id:'demo-user',session_id:'old-session',player_id:'player-1',status:'Assente'});await run('refresh()');assert.equal(run('state.sessions.length'),1);
@@ -29,4 +29,14 @@ test('Private realtime broadcasts merge new and deleted messages without duplica
 });
 test('Realtime reconnect recovers missed data and expiration updates active messages without polling',async t=>{
  const {w,run}=await app(t);run('initCommunicationsLifecycle()');w.Date.now=Date.now;const channel=w.fixtureChannels[0];w.fixtureData.staff_communications.push({id:'missed',user_id:'demo-user',title:'Recuperato',body:'Avviso',created_by:'other',created_at:new Date().toISOString(),expires_at:new Date(Date.now()+600).toISOString()});channel.status('SUBSCRIBED');await wait(150);assert.equal(run('activeCommunications().length'),1);const queries=w.fixtureQueries?.length;await wait(650);assert.equal(run('activeCommunications().length'),0);assert.equal(w.fixtureQueries?.length,queries);
+});
+
+
+test('new attendance never becomes missing survey replies in mixed historical reports',async t=>{
+ const {run}=await app(t);
+ run(`state.sessions.push({id:'notice-session',session_type:'Allenamento',session_date:'2026-10-08',attendance_mode:'absence_notice'});state.attendance.push({id:'notice-row',session_id:'notice-session',player_id:'player-1',status:'Assente',notified:null});window.mixed=playerReportModel(reportData('2026-10-01','2026-10-09','player-1'));window.fresh=playerReportModel(reportData('2026-10-08','2026-10-09','player-1'))`);
+ assert.equal(run('mixed.attendance.reduce((n,r)=>n+r[1],0)'),2);
+ assert.equal(run('mixed.legacyReplyCount'),1);assert.equal(run('mixed.replies.reduce((n,r)=>n+r[1],0)'),1);
+ assert.equal(run('fresh.legacyReplyCount'),0);assert.equal(run('fresh.replies.reduce((n,r)=>n+r[1],0)'),0);
+ assert.equal(run('fresh.history.some(line=>line.includes("Da verificare"))'),false);
 });

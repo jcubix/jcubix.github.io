@@ -10,6 +10,7 @@ const attendanceValues = (a) => ({
 });
 
 const sessionValues = (s) => ({
+  attendance_mode: s.attendance_mode || "poll",
   session_date: s.session_date,
   session_type: s.session_type,
   note: s.note || null,

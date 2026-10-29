@@ -153,18 +153,18 @@ test('match notes are visible without opening a disclosure and save with the res
  await expect.poll(()=>page.evaluate(()=>fixtureData.matches.find(m=>m.id==='future-match').note)).toBe('Nota gara sintetica sempre visibile');
 });
 
-test('training replies keep save and a reversible pending counter in one floating bar',async({page})=>{
+test('absence notices keep save and a reversible change counter in one floating bar',async({page})=>{
  await open(page,'training');
  const bar=page.locator('.planning-save'),save=bar.locator('#savePlanning'),counter=bar.locator('#planningChanges');
  await expect(save).toBeVisible();await expect(save).toHaveText('Salva');await expect(save).toBeDisabled();await expect(counter).toBeHidden();
  expect(await page.locator('.sc-training-aside #savePlanning').count()).toBe(0);
  const reply=(player,value)=>page.locator(`[data-training-player="${player}"][data-training-reply="${value}"]`);
- await reply('player-1','Disponibile').click();await expect(counter).toHaveText('1');await expect(counter).toHaveAccessibleName('1 risposta da salvare');await expect(save).toBeEnabled();
+ await reply('player-1','Indisponibile').click();await expect(counter).toHaveText('1');await expect(counter).toHaveAccessibleName('1 modifica da salvare');await expect(save).toBeEnabled();
  await reply('player-1','Indisponibile').click();await expect(counter).toHaveText('1');
- await reply('player-2','Disponibile').click();await expect(counter).toHaveText('2');
- await reply('player-1','In attesa').click();await expect(counter).toHaveText('1');
- await reply('player-2','In attesa').click();await expect(counter).toBeHidden();await expect(save).toBeDisabled();
- await reply('player-1','Disponibile').click();
+ await reply('player-2','Indisponibile').click();await expect(counter).toHaveText('2');
+ await reply('player-1','Disponibile').click();await expect(counter).toHaveText('1');
+ await reply('player-2','Disponibile').click();await expect(counter).toBeHidden();await expect(save).toBeDisabled();
+ await reply('player-1','Indisponibile').click();
  await page.evaluate(()=>{document.documentElement.style.setProperty('--safe-area-bottom','34px')});
  await page.locator('.sc-training-aside').scrollIntoViewIfNeeded();
  const geometry=await bar.evaluate(el=>{const r=el.getBoundingClientRect(),nav=document.querySelector('.app-mobile-nav'),n=nav.getBoundingClientRect();return {position:getComputedStyle(el).position,x:r.x,right:r.right,bottom:r.bottom,top:r.top,height:r.height,navVisible:n.height>0&&getComputedStyle(nav).display!=='none',navTop:n.top,navRight:n.right,overflow:document.documentElement.scrollWidth>innerWidth}});
@@ -173,7 +173,7 @@ test('training replies keep save and a reversible pending counter in one floatin
  await expect(page.locator('#planningFeedback')).toBeEmpty();
  await page.evaluate(()=>window.fixtureSaveError={message:'Connessione interrotta. Riprova.'});await save.click();await expect(bar.locator('#planningFeedback')).toContainText('Connessione interrotta');await expect(counter).toHaveText('1');await expect(save).toBeEnabled();expect(await bar.locator('#planningFeedback').evaluate(el=>getComputedStyle(el).position)).toBe('static');
  await page.evaluate(()=>delete window.fixtureSaveError);await save.click();await expect(save).toBeDisabled();await expect(counter).toBeHidden();
- expect(await page.evaluate(()=>fixtureData.activity_roster.find(r=>r.activity_id==='review-training'&&r.player_id==='player-1').availability)).toBe('Disponibile');
+ expect(await page.evaluate(()=>fixtureData.activity_roster.find(r=>r.activity_id==='review-training'&&r.player_id==='player-1').availability)).toBe('Indisponibile');
  await page.locator('[data-training-phase=actual]').click();await expect(bar).toBeHidden();await page.locator('[data-training-phase=replies]').click();await expect(save).toBeVisible();
 });
 
@@ -235,18 +235,18 @@ test('dashboard preserves the stacked welcome, aligned score and outlined empty-
  await info.attach('dashboard-restored',{body:await page.screenshot({fullPage:true}),contentType:'image/png'});
 });
 
-test('training replies preserve player columns, touch targets and three summary columns inline and in the workspace',async({page},info)=>{
+test('absence notices preserve player columns, touch targets and two summary columns inline and in the workspace',async({page},info)=>{
  const check=async name=>{
   const rows=await page.locator('#trainingReplies .sc-reply-row').evaluateAll(items=>items.map(row=>{const name=row.querySelector('b').getBoundingClientRect(),status=row.querySelector('small').getBoundingClientRect();return {nameBottom:name.bottom,statusTop:status.top,buttons:[...row.querySelectorAll('button')].map(b=>b.getBoundingClientRect().toJSON())}}));
-  expect(rows).toHaveLength(30);for(const row of rows){expect(row.statusTop).toBeGreaterThanOrEqual(row.nameBottom-1);expect(row.buttons).toHaveLength(3);for(const button of row.buttons){expect(button.width).toBeGreaterThanOrEqual(44);expect(button.height).toBeGreaterThanOrEqual(44);expect(button.y).toBe(row.buttons[0].y)}for(let i=1;i<3;i++)expect(row.buttons[i].x-row.buttons[i-1].right).toBeGreaterThanOrEqual(4)}
-  const counts=await page.locator('#planningReplySummary').evaluate(el=>[...el.children].map(n=>{const r=n.getBoundingClientRect(),b=n.querySelector('b').getBoundingClientRect();return {x:r.x,y:r.y,right:r.right,valueBottom:b.bottom,height:r.height}}));expect(counts).toHaveLength(3);for(let i=1;i<3;i++){expect(counts[i].y).toBe(counts[0].y);expect(counts[i].x).toBeGreaterThan(counts[i-1].right)}
+  expect(rows).toHaveLength(30);for(const row of rows){expect(row.statusTop).toBeGreaterThanOrEqual(row.nameBottom-1);expect(row.buttons).toHaveLength(2);for(const button of row.buttons){expect(button.width).toBeGreaterThanOrEqual(44);expect(button.height).toBeGreaterThanOrEqual(44);expect(button.y).toBe(row.buttons[0].y)}for(let i=1;i<2;i++)expect(row.buttons[i].x-row.buttons[i-1].right).toBeGreaterThanOrEqual(4)}
+  const counts=await page.locator('#planningReplySummary').evaluate(el=>[...el.children].map(n=>{const r=n.getBoundingClientRect(),b=n.querySelector('b').getBoundingClientRect();return {x:r.x,y:r.y,right:r.right,valueBottom:b.bottom,height:r.height}}));expect(counts).toHaveLength(2);for(let i=1;i<2;i++){expect(counts[i].y).toBe(counts[0].y);expect(counts[i].x).toBeGreaterThan(counts[i-1].right)}
   const panel=await page.locator('.sc-training-layout').evaluate(el=>({display:getComputedStyle(el).display,list:el.querySelector('section').getBoundingClientRect().toJSON(),aside:el.querySelector('aside').getBoundingClientRect().toJSON()}));if(page.viewportSize().width>=1024){expect(panel.display).toBe('grid');expect(panel.aside.x).toBeGreaterThan(panel.list.right)}else expect(panel.aside.y).toBeGreaterThanOrEqual(panel.list.bottom);
   const copy=page.locator('#copyTrainingReminder');expect(await copy.evaluate(el=>getComputedStyle(el).justifyContent)).toBe('space-between');expect(await copy.evaluate(el=>el.lastElementChild.tagName.toLowerCase())).toBe('svg');
   const a11y=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(a11y.violations).toEqual([]);expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
   await info.attach(name,{body:await page.screenshot({fullPage:true}),contentType:'image/png'});
  };
  await open(page,'training');await check('training-inline-restored');
- const yes=page.locator('[data-training-player="player-1"][data-training-reply="Disponibile"]');await yes.click();expect(await yes.evaluate(el=>{const no=el.parentElement.querySelector('[data-training-reply="Indisponibile"]');return getComputedStyle(el).backgroundColor!==getComputedStyle(no).backgroundColor})).toBe(true);await page.locator('[data-training-player="player-1"][data-training-reply="In attesa"]').click();
+ const yes=page.locator('[data-training-player="player-1"][data-training-reply="Indisponibile"]');await yes.click();expect(await yes.evaluate(el=>{const no=el.parentElement.querySelector('[data-training-reply="Disponibile"]');return getComputedStyle(el).backgroundColor!==getComputedStyle(no).backgroundColor})).toBe(true);await page.locator('[data-training-player="player-1"][data-training-reply="Disponibile"]').click();
  await page.evaluate(()=>fixtureMount.runtime.actions.openActivity('review-training'));await expect(page.locator('#planningTitle')).toBeVisible();await check('training-workspace-restored');expect(await page.locator('.workspace-editor').evaluate(el=>getComputedStyle(el).outlineStyle)).toBe('none');
 });
 

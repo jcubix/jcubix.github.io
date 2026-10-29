@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { fmt, teamOwner } from "../app-part1.js";
-import { activityPollPending } from "../app-workflows.js";
+import { fmt, teamOwner, today } from "../app-part1.js";
+
 import { Button } from "./components/ui/button";
 import { EditorFrame, Feedback } from "./operational-ui";
 import type { Runtime } from "./types";
@@ -34,10 +34,11 @@ export function History({
     alive = useRef(true);
   const labels: Record<string, string> = {
     status: "Stato",
-    notified: "Risposta al sondaggio",
+    notified: "Risposta al sondaggio storico",
     note: "Nota",
     session_date: "Data",
     session_type: "Tipo",
+    attendance_mode: "Metodo di registrazione",
     title: "Titolo",
     activity_date: "Data",
     start_time: "Inizio",
@@ -55,8 +56,8 @@ export function History({
     lineup: "Impiego",
     position: "Posizione",
     minutes_played: "Minuti",
-    availability: "Risposta WhatsApp",
-    response_note: "Nota risposta",
+    availability: "Disponibilità / assenza comunicata",
+    response_note: "Nota comunicazione",
     event_type: "Evento",
     minute: "Minuto",
     player_id: "Giocatore",
@@ -195,17 +196,17 @@ export function Priorities({
   runtime: Runtime;
   surface: Surface;
 }) {
-  const { kind } = surface.data as { kind: string },
-    activities = runtime.state.activities.filter(
-      (a) =>
-        a.activity_type === "Allenamento" &&
-        a.status === "Programmato" &&
-        activityPollPending(a) > 0,
-    );
+  const activities = runtime.state.activities.filter(
+    (a) =>
+      a.activity_type === "Allenamento" &&
+      a.status === "Programmato" &&
+      !a.session_id &&
+      a.activity_date <= today(),
+  );
   return (
     <EditorFrame
       surface={surface}
-      title="Risposte WhatsApp da registrare"
+      title="Presenze da confermare"
       closeLabel="Chiudi priorità"
     >
       <div className="list">
@@ -222,10 +223,7 @@ export function Priorities({
             <span>
               <b>{a.title}</b>
               <small>
-                {fmt(a.activity_date)} ·{" "}
-                {kind === "poll"
-                  ? activityPollPending(a) + " risposte in attesa"
-                  : "Stato da aggiornare"}
+                {fmt(a.activity_date)} · Presenze effettive da confermare
               </small>
             </span>
           </button>

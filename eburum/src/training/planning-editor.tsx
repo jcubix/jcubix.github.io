@@ -13,6 +13,7 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
     count,
     editor,
     inline,
+    legacy,
     operate,
     pending,
     pendingOnly,
@@ -41,7 +42,7 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
           aria-current={phase === "poll" ? "page" : undefined}
           onClick={() => setPhase("poll")}
         >
-          Risposte WhatsApp
+          {legacy ? "Risposte WhatsApp · storico" : "Assenze comunicate"}
         </button>
         <button
           data-training-phase="actual"
@@ -58,8 +59,8 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
         >
           <h3>{a.session_id ? "Presenze confermate" : "Presenze effettive"}</h3>
           <p>
-            Le risposte WhatsApp restano separate dal registro: conferma le
-            presenze solo dopo aver verificato chi ha partecipato.
+            Gli attesi non sono ancora presenze registrate. Verifica chi ha
+            partecipato e conferma il registro dopo l’allenamento.
           </p>
           <Feedback id="planningActualError" error={editor.error} />
           <Button
@@ -142,7 +143,9 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
                 <div
                   className="sc-segmented"
                   role="group"
-                  aria-label="Filtra risposte"
+                  aria-label={
+                    legacy ? "Filtra risposte storiche" : "Filtra giocatori"
+                  }
                 >
                   <button
                     type="button"
@@ -158,19 +161,22 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
                     aria-pressed={pendingOnly}
                     onClick={() => setPendingOnly(!pendingOnly)}
                   >
-                    Non risposto{" "}
+                    {legacy ? "Non risposto" : "Assenze comunicate"}{" "}
                     <span id="pendingReplyNumber">{pending.length}</span>
                   </button>
                 </div>
                 <p className="sc-helper">
-                  Trascrivi il sondaggio WhatsApp. Queste sono risposte
-                  previste, non presenze effettive.
+                  {legacy
+                    ? "Risposte del metodo precedente, conservate per consultazione."
+                    : "Segna solo chi ha comunicato un’assenza. Gli altri sono attesi; le presenze effettive si confermano dopo l’allenamento."}
                 </p>
                 <div id="trainingReplies" className="sc-player-list">
                   {players
                     .filter(
                       (p) =>
-                        (!pendingOnly || v.replies[p.id] === "In attesa") &&
+                        (!pendingOnly ||
+                          v.replies[p.id] ===
+                            (legacy ? "In attesa" : "Indisponibile")) &&
                         `${p.surname} ${p.name} ${p.role}`
                           .toLocaleLowerCase("it")
                           .includes(search.toLocaleLowerCase("it")),
@@ -186,29 +192,42 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
                             {p.name} {p.surname}
                           </b>
                           <small>
-                            {v.replies[p.id] === "Disponibile"
-                              ? "Ha risposto sì"
+                            {legacy
+                              ? v.replies[p.id] === "Disponibile"
+                                ? "Aveva risposto sì"
+                                : v.replies[p.id] === "Indisponibile"
+                                  ? "Aveva risposto no"
+                                  : "Risposta non registrata"
                               : v.replies[p.id] === "Indisponibile"
-                                ? "Ha risposto no"
-                                : "Non ha risposto"}
+                                ? "Assenza comunicata"
+                                : "Atteso all’allenamento"}
                           </small>
                         </span>
                         <div
                           className="sc-reply-buttons"
                           role="group"
-                          aria-label={`Risposta di ${p.name} ${p.surname}`}
+                          aria-label={`${legacy ? "Risposta storica" : "Previsione"} di ${p.name} ${p.surname}`}
                         >
-                          {(
-                            [
-                              ["Disponibile", "Sì", Check, "yes"],
-                              ["Indisponibile", "No", X, "no"],
-                              ["In attesa", "Non risposto", Minus, "pending"],
-                            ] as const
+                          {(legacy
+                            ? ([
+                                ["Disponibile", "Sì", Check, "yes"],
+                                ["Indisponibile", "No", X, "no"],
+                                ["In attesa", "Non risposto", Minus, "pending"],
+                              ] as const)
+                            : ([
+                                ["Disponibile", "Atteso", Check, "expected"],
+                                [
+                                  "Indisponibile",
+                                  "Assenza comunicata",
+                                  X,
+                                  "no",
+                                ],
+                              ] as const)
                           ).map(([value, label, Icon, tone]) => (
                             <button
                               key={value}
                               type="button"
-                              disabled={!operate}
+                              disabled={!operate || !!a.session_id}
                               className={
                                 v.replies[p.id] === value ? "sc-" + tone : ""
                               }
@@ -220,6 +239,13 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
                                 editor.setValue({
                                   ...v,
                                   replies: { ...v.replies, [p.id]: value },
+                                  notes: {
+                                    ...v.notes,
+                                    [p.id]:
+                                      value === "Disponibile"
+                                        ? ""
+                                        : v.notes[p.id],
+                                  },
                                 });
                                 editor.setError("");
                               }}
@@ -228,22 +254,53 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
                             </button>
                           ))}
                         </div>
+                        {!legacy && v.replies[p.id] === "Indisponibile" ? (
+                          <Field
+                            className="training-absence-note"
+                            id={`absence-${p.id}`}
+                            label="Motivo · Facoltativo"
+                          >
+                            <input
+                              id={`absence-${p.id}`}
+                              maxLength={10000}
+                              disabled={!operate || !!a.session_id}
+                              value={v.notes[p.id]}
+                              onChange={(e) =>
+                                editor.setValue({
+                                  ...v,
+                                  notes: { ...v.notes, [p.id]: e.target.value },
+                                })
+                              }
+                              placeholder="Es. lavoro, visita medica…"
+                            />
+                          </Field>
+                        ) : null}
                       </article>
                     ))}
                 </div>
               </section>
               <aside className="sc-training-aside">
-                <h3>Il punto sulle risposte</h3>
+                <h3>
+                  {legacy
+                    ? "Risposte del vecchio sondaggio"
+                    : "Prima dell’allenamento"}
+                </h3>
                 <div
                   id="planningReplySummary"
-                  className="sc-count-strip"
+                  className={`sc-count-strip ${!legacy ? "training-absence-summary" : ""}`}
                   aria-live="polite"
                 >
-                  {[
-                    ["Disponibile", "Sì"],
-                    ["Indisponibile", "No"],
-                    ["In attesa", "In attesa"],
-                  ].map(([value, label]) => (
+                  {(legacy
+                    ? [
+                        ["Disponibile", "Sì"],
+                        ["Indisponibile", "No"],
+                        ["In attesa", "In attesa"],
+                      ]
+                    : [
+                        ["Disponibile", "Attesi"],
+                        ["Indisponibile", "Assenze comunicate"],
+                      ]
+                  ).map(([value, label]) => (
                     <span key={value}>
                       <b>
                         {
@@ -258,25 +315,35 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
                 <CopyText
                   className="sc-primary border-0"
                   id="copyTrainingReminder"
-                  label="Copia nomi da sollecitare"
+                  label={
+                    legacy
+                      ? "Copia riepilogo storico"
+                      : "Copia assenze comunicate"
+                  }
                   text={[
                     `ALLENAMENTO EBURUM · ${fmt(v.activity_date)}`,
                     editor.dirty || !a.id
-                      ? "BOZZA · risposte non ancora salvate"
-                      : "Risposte salvate",
-                    `Non hanno risposto (${pending.length})`,
-                    ...pending.map((p) => `• ${p.surname} ${p.name}`),
-                    pending.length
-                      ? "Da sollecitare a votare al sondaggio WhatsApp."
-                      : "Tutti hanno risposto.",
+                      ? "BOZZA · modifiche non ancora salvate"
+                      : "Dati salvati",
+                    `${legacy ? "Risposte non registrate" : "Assenze comunicate"} (${pending.length})`,
+                    ...pending.map(
+                      (p) =>
+                        `• ${p.surname} ${p.name}${v.notes[p.id] ? " · " + v.notes[p.id] : ""}`,
+                    ),
+                    legacy
+                      ? "Riepilogo del metodo precedente."
+                      : "Gli altri giocatori sono attesi. Presenze da confermare dopo l’allenamento.",
                   ].join("\n")}
                 >
-                  Copia nomi da sollecitare
+                  {legacy
+                    ? "Copia riepilogo storico"
+                    : "Copia assenze comunicate"}
                   <ClipboardList size={18} />
                 </CopyText>
                 <p className="sc-helper">
-                  Il sondaggio resta su WhatsApp. La dashboard aiuta lo staff a
-                  registrarlo.
+                  {legacy
+                    ? "Questi dati restano consultabili; non viene richiesto un nuovo sondaggio."
+                    : "Una comunicazione di assenza è una previsione: il registro viene aggiornato soltanto alla conferma dello staff."}
                 </p>
                 <button
                   type="button"
@@ -376,7 +443,7 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
                   ui.open("history", { id: a.id, kind: "activity" })
                 }
               >
-                Storico risposte e organizzazione
+                Storico modifiche e organizzazione
               </Button>
             ) : null}
           </details>
@@ -395,7 +462,7 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
               hidden={!count}
               role="status"
               aria-live="polite"
-              aria-label={`${count} ${count === 1 ? "risposta" : "risposte"} da salvare`}
+              aria-label={`${count} ${count === 1 ? "modifica" : "modifiche"} da salvare`}
             >
               {count}
             </span>

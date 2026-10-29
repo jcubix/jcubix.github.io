@@ -54,10 +54,16 @@ export function AttendanceReview({
         ))}
       </div>
       <p className="notice">
-        Confermi le presenze effettive di tutta la sessione. Risposte al
-        sondaggio: {rows.filter((r) => r.notified === true).length} risposto ·{" "}
-        {rows.filter((r) => r.notified === false).length} non risposto ·{" "}
-        {rows.filter((r) => r.notified === null).length} da verificare.
+        {d.session.attendance_mode === "absence_notice" ? (
+          "Confermi le presenze effettive di tutta la squadra. La bozza parte dagli attesi e dalle assenze comunicate: verifica eventuali variazioni prima di salvare."
+        ) : (
+          <>
+            Confermi le presenze effettive di tutta la sessione. Risposte al
+            sondaggio: {rows.filter((r) => r.notified === true).length} risposto
+            · {rows.filter((r) => r.notified === false).length} non risposto ·{" "}
+            {rows.filter((r) => r.notified === null).length} da verificare.
+          </>
+        )}
       </p>
       {shown.map((row) => (
         <article className="review-person" key={row.player_id}>

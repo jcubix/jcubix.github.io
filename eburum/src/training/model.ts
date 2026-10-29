@@ -7,4 +7,5 @@ export type PlanValues = {
   status: string;
   organization_note: string;
   replies: Record<string, string>;
+  notes: Record<string, string>;
 };

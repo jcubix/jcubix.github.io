@@ -6474,3 +6474,23 @@
     margin-top: 0;
   }
 }
+
+@layer components {
+  .training-absence-note {
+    grid-column: 2 / -1;
+    width: 100%;
+    margin: 8px 0 0;
+  }
+  .training-absence-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@layer components {
+  .sc-reply-buttons .sc-expected {
+    background: var(--neutral-soft);
+    color: var(--neutral);
+    border-color: var(--control-border);
+  }
+}

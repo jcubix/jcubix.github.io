@@ -80,19 +80,13 @@ function activityHasEnded(a) {
 function seedPlannedReplies(d, a) {
   d.activityId = a.id;
   d.activityRevision = a.revision;
-  d.planned = new Map(
-    activityRows(a.id).map((r) => [r.player_id, r.availability]),
-  );
+  d.session.attendance_mode = 'absence_notice';
+  d.planned = new Map(activityRows(a.id).map(r => [r.player_id, r.availability]));
   for (const [id, row] of d.entries) {
-    const response = activityRows(a.id).find((r) => r.player_id === id);
-    row.notified = !!response && response.availability !== "In attesa";
-    row.status =
-      response?.availability === "Disponibile"
-        ? "Presente"
-        : response?.availability === "Indisponibile"
-          ? "Assente"
-          : "Da confermare";
-    row.note = response?.response_note || null;
+    const response = activityRows(a.id).find(r => r.player_id === id);
+    row.notified = null;
+    row.status = response?.availability === 'Indisponibile' ? 'Assente' : 'Presente';
+    row.note = response?.availability === 'Indisponibile' ? response.response_note || null : null;
   }
 }
 
@@ -104,7 +98,7 @@ async function startActualAttendance(a, discardConfirmed = false) {
   if (a.status === "Annullato") return toast("L’allenamento è annullato");
   if (a.activity_date > today())
     return toast(
-      "Per una data futura registra le disponibilità nel sondaggio. Le presenze si confermano dopo l’attività.",
+      "Per una data futura registra le assenze comunicate. Le presenze si confermano dopo l’attività.",
     );
   if (a.session_id)
     return editAttendanceSession(a.session_id, discardConfirmed);

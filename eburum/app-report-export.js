@@ -6,6 +6,7 @@ function playerReportModel(d) {
   const sessions = new Map(d.sessions.map((s) => [s.id, s])),
     matches = new Map(d.matches.map((m) => [m.id, m])),
     activities = new Map(d.activities.map((a) => [a.id, a]));
+  const legacyReplies = d.attendance.filter(r => sessions.get(r.session_id)?.attendance_mode !== "absence_notice");
   const count = (status) =>
     d.attendance.filter((r) => r.status === status).length;
   const months = new Map();
@@ -37,13 +38,14 @@ function playerReportModel(d) {
       ["Assenze", count("Assente")],
       ["Infortuni", count("Infortunato")],
     ],
+    legacyReplyCount: legacyReplies.length,
     replies: [
-      ["Ha risposto", d.attendance.filter((r) => r.notified === true).length],
+      ["Ha risposto", legacyReplies.filter((r) => r.notified === true).length],
       [
         "Non ha risposto",
-        d.attendance.filter((r) => r.notified === false).length,
+        legacyReplies.filter((r) => r.notified === false).length,
       ],
-      ["Da verificare", d.attendance.filter((r) => r.notified == null).length],
+      ["Da verificare", legacyReplies.filter((r) => r.notified == null).length],
     ],
     sport: [
       ["Convocazioni", sport.filter((r) => r.called).length],
@@ -94,7 +96,7 @@ function playerReportModel(d) {
       )
       .map(
         (r) =>
-          `${fmt(sessions.get(r.session_id).session_date)} | ${sessions.get(r.session_id).session_type} | ${r.status} | ${r.notified === true ? "Risposto" : r.notified === false ? "Non risposto" : "Da verificare"}`,
+          `${fmt(sessions.get(r.session_id).session_date)} | ${sessions.get(r.session_id).session_type} | ${r.status} | ${sessions.get(r.session_id).attendance_mode === "absence_notice" ? "Registro confermato dallo staff" : r.notified === true ? "Risposto" : r.notified === false ? "Non risposto" : "Da verificare"}`,
       ),
     events: [...d.events]
       .sort(
@@ -193,7 +195,7 @@ function createPlayerReportPdf(m) {
     true,
   );
   text(
-    "La disponibilità comunicata su WhatsApp e la presenza effettiva sono dati separati. Gli infortuni indicano lo stato registrato nelle singole sessioni.",
+    "Le presenze sono quelle confermate dallo staff. Gli eventuali sondaggi WhatsApp si riferiscono al metodo precedente; gli infortuni indicano lo stato registrato nelle singole sessioni.",
   );
   heading("Partite e impiego");
   for (let i = 0; i < m.sport.length; i += 2)
@@ -201,7 +203,7 @@ function createPlayerReportPdf(m) {
       `${m.sport[i][0]}: ${m.sport[i][1]}     |     ${m.sport[i + 1][0]}: ${m.sport[i + 1][1]}`,
     );
   chart("Presenze effettive", m.attendance);
-  chart("Risposte WhatsApp registrate", m.replies);
+  if (m.legacyReplyCount) chart("Risposte WhatsApp · storico", m.replies);
   chart(
     "Minuti giocati per mese",
     m.months.map((x) => [x.label, x.minutes]),

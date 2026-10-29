@@ -124,19 +124,22 @@ export function TrainingScreen({ runtime }: { runtime: Runtime }) {
               </p>
               <div
                 className="training-reply-bars"
-                aria-label="Risposte WhatsApp"
+                aria-label="Previsione presenze"
               >
                 {[
-                  ["Disponibile", "Sì", "text-success"],
-                  ["Indisponibile", "No", "text-destructive"],
-                  ["In attesa", "In attesa", ""],
+                  ["Disponibile", "Attesi", ""],
+                  ["Indisponibile", "Assenze comunicate", "text-destructive"],
                 ].map(([value, label, tone]) => (
                   <span key={value} className={tone}>
                     {label}{" "}
                     {
                       runtime.actions
                         .pollEntries(current)
-                        .filter((r) => r.row.availability === value).length
+                        .filter((r) =>
+                          value === "Indisponibile"
+                            ? r.row.availability === value
+                            : r.row.availability !== "Indisponibile",
+                        ).length
                     }
                   </span>
                 ))}
