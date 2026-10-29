@@ -193,6 +193,25 @@ test('save footer reserves content space and availability icons are centered',as
  expect(await page.locator('#savePlanning').evaluate(button=>button.form?.id)).toBe('planningForm');await page.locator('#savePlanning').click();await expect.poll(()=>page.evaluate(()=>fixtureData.activities.find(a=>a.id==='review-training').organization_note)).toBe('Nota visibile sopra la barra');
 });
 
+test('confirmed training has counted filters, readable names and spaced actions',async({page},info)=>{
+ await open(page,'training');
+ await page.evaluate(()=>{
+  const session={id:'confirmed-review',user_id:fixtureUser.id,session_date:'2026-10-22',session_type:'Allenamento',attendance_mode:'poll',revision:0};
+  const rows=fixtureData.players.map((player,index)=>({id:'confirmed-row-'+index,user_id:fixtureUser.id,session_id:session.id,player_id:player.id,status:index<24?'Presente':'Assente',notified:null,delay_minutes:0,note:null}));
+  for(const target of [fixtureData,fixtureMount.runtime.state]){target.sessions.push(session);target.attendance.push(...rows);const activity=target.activities.find(a=>a.id==='review-training');activity.activity_date='2026-10-22';activity.session_id=session.id;activity.status='Concluso';}
+ });
+ await page.evaluate(()=>fixtureMount.runtime.actions.openActivity('review-training'));await expect(page.locator('.training-confirmed-summary')).toBeVisible();
+ await expect(page.locator('.training-actual-description')).toContainText('Registro salvato');await expect(page.locator('[data-training-phase=replies]')).toHaveText('Sondaggio');await expect(page.locator('[data-training-phase=actual]')).toHaveText('Presenze');
+ const filters=page.getByRole('group',{name:'Filtra presenze confermate'});await expect(filters.getByRole('button',{name:'Assenti: 6',exact:true})).toHaveAttribute('aria-pressed','true');await expect(page.locator('.training-attendance-names li')).toHaveCount(6);
+ const geometry=await filters.locator('button').evaluateAll(buttons=>buttons.map(el=>{const r=el.getBoundingClientRect();return {y:r.y,width:r.width,height:r.height}}));for(const box of geometry){expect(box.y).toBe(geometry[0].y);expect(box.width).toBeGreaterThanOrEqual(44);expect(box.height).toBeGreaterThanOrEqual(44);}
+ const a11y=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(a11y.violations).toEqual([]);expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+ await info.attach('confirmed-training',{body:await page.screenshot({fullPage:true}),contentType:'image/png'});
+ await page.locator('#actualHistory').scrollIntoViewIfNeeded();const spacing=await page.evaluate(()=>{const copy=document.querySelector('#copyActualAttendance').getBoundingClientRect(),history=document.querySelector('#actualHistory').getBoundingClientRect(),nav=document.querySelector('.app-mobile-nav').getBoundingClientRect();return {gap:history.top-copy.bottom,inlineGap:history.left-copy.right,history:history.toJSON(),nav:nav.toJSON()}});expect(Math.max(spacing.gap,spacing.inlineGap)).toBeGreaterThanOrEqual(12);if(page.viewportSize().width<1024)expect(spacing.history.bottom).toBeLessThanOrEqual(spacing.nav.top);
+ await filters.getByRole('button',{name:'Presenti: 24',exact:true}).click();await expect(page.locator('.training-attendance-names li')).toHaveCount(24);const names=await page.locator('.training-attendance-names li').allTextContents();expect(names).toEqual([...names].sort((a,b)=>a.localeCompare(b,'it')));
+ await filters.getByRole('button',{name:'Infortunati: 0',exact:true}).click();await expect(page.getByText('Nessun infortunato registrato.',{exact:true})).toBeVisible();
+ expect(await page.evaluate(()=>fixtureRpcCalls.length)).toBe(0);await page.locator('#planningAttendance').click();await expect(page.locator('#trainList .attendance-row')).toHaveCount(30);expect(await page.evaluate(()=>fixtureRpcCalls.length)).toBe(0);
+});
+
 test('new training retains native required-field validation from the separate save footer',async({page})=>{
  await open(page,'training');await page.getByRole('button',{name:'Nuovo allenamento',exact:true}).click();await expect(page.locator('#planningTitle')).toHaveText('Nuovo allenamento');
  await page.locator('#planningName').fill('');const before=await page.evaluate(()=>fixtureData.activities.length);await page.locator('#savePlanning').click();expect(await page.locator('#planningName').evaluate(input=>input.validity.valueMissing)).toBe(true);expect(await page.evaluate(()=>fixtureData.activities.length)).toBe(before);
