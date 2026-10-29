@@ -45,6 +45,7 @@ I salvataggi sportivi usano `reloadAffected` con un ambito tipizzato: giocatori,
 
 ## Documenti correnti
 
+- `CONFIRMED-TRAINING-UI-2026-10-29.md`: riepilogo leggibile delle presenze salvate, filtri per stato e azioni distanziate.
 - `SAVE-BARS-LAYOUT-2026-10-29.md`: zona di salvataggio separata dal modulo, icone centrate e disponibilità degli allenamenti.
 - `TRAINING-ABSENCE-WORKFLOW-2026-10-29.md`: assenze comunicate, conferma effettiva, compatibilità storica e prove server.
 - `CODE-REVIEW-IMPLEMENTATION-2026-10-27.md`: confronto con l'handoff, scelte, misure, verifiche e limiti.

@@ -1940,14 +1940,93 @@
     flex: 1;
     min-height: 44px;
   }
-  .training-confirmed-summary .sc-count-strip {
-    margin: 24px 0;
+  .training-confirmed-summary {
+    margin-block: 24px;
   }
-  .training-confirmed-summary .row {
+  .training-confirmed-filters.segmented {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    max-width: 560px;
+    margin: 0 0 24px;
+    padding: 4px;
+  }
+  .training-confirmed-filters.segmented button {
     display: flex;
-    justify-content: space-between;
-    gap: 16px;
+    grid-column: auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
+    min-height: 64px;
+    padding: 8px 4px;
+    text-align: center;
+  }
+  .training-confirmed-filters b {
+    font-size: 22px;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+  }
+  .training-confirmed-filters span {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .training-attendance-people > h4 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 8px;
+    color: var(--ink);
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .training-attendance-people > h4 span {
+    color: var(--ink-2);
+    font-size: 13px;
+    font-weight: 400;
+  }
+  .training-attendance-names {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0 24px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .training-attendance-names li {
+    min-width: 0;
+    min-height: 44px;
+    padding-block: 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--ink);
+    font-size: 15px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+  .training-attendance-empty,
+  .training-actual-entry .training-actual-description {
+    color: var(--ink-2);
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 8px 0 16px;
+    max-width: 65ch;
+  }
+  .training-confirmed-actions {
+    display: flex;
     flex-wrap: wrap;
+    gap: 12px;
+    padding-top: 4px;
+  }
+  @media (min-width: 700px) {
+    .training-attendance-names {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 600px) {
+    .training-confirmed-actions > button {
+      width: 100%;
+    }
   }
   .workflow-tools,
   .communication-ack {

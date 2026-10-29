@@ -1024,7 +1024,7 @@
     color: var(--muted);
   }
   .training-actual-entry {
-    padding: 20px 0 !important;
+    padding: 0;
     background: transparent !important;
     border: 0 !important;
     border-radius: 0 !important;

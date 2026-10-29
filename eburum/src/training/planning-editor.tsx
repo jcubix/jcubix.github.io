@@ -11,6 +11,7 @@ import {
 } from "../operational-ui";
 import { ui } from "../ui-service";
 import { usePlanningEditor } from "./use-planning-editor";
+import { ConfirmedAttendance } from "./confirmed-attendance";
 export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
   const model = usePlanningEditor(props);
   const {
@@ -48,14 +49,15 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
           aria-current={phase === "poll" ? "page" : undefined}
           onClick={() => setPhase("poll")}
         >
-          {legacy ? "Risposte WhatsApp · storico" : "Disponibilità"}
+          {legacy ? "Sondaggio" : "Disponibilità"}
         </button>
         <button
           data-training-phase="actual"
+          aria-label="Presenze effettive"
           aria-current={phase === "actual" ? "page" : undefined}
           onClick={() => setPhase("actual")}
         >
-          Presenze effettive
+          Presenze
         </button>
       </nav>
       {training ? (
@@ -64,9 +66,10 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
           hidden={phase !== "actual" || !a.id}
         >
           <h3>{a.session_id ? "Presenze confermate" : "Presenze effettive"}</h3>
-          <p>
-            Gli attesi non sono ancora presenze registrate. Verifica chi ha
-            partecipato e conferma il registro dopo l’allenamento.
+          <p className="training-actual-description">
+            {a.session_id
+              ? `Registro salvato per il ${fmt(a.activity_date!)}. Consulta gli elenchi o correggi eventuali errori.`
+              : "Gli attesi non sono ancora presenze registrate. Verifica chi ha partecipato e conferma il registro dopo l’allenamento."}
           </p>
           <Feedback id="planningActualError" error={editor.error} />
           <Button
@@ -83,51 +86,30 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
           </Button>
           {a.session_id ? (
             <>
-              <div className="training-confirmed-summary">
-                {["Presente", "Assente", "Infortunato"].map((status) => (
-                  <section key={status}>
-                    <h4>{status}</h4>
-                    <p>
-                      {runtime.state.attendance
-                        .filter(
-                          (r) =>
-                            r.session_id === a.session_id &&
-                            r.status === status,
-                        )
-                        .map((r) => {
-                          const p = runtime.state.players.find(
-                            (p) => p.id === r.player_id,
-                          );
-                          return p
-                            ? `${p.surname} ${p.name}`
-                            : "Giocatore archiviato";
-                        })
-                        .join(", ") || "Nessuno"}
-                    </p>
-                  </section>
-                ))}
+              <ConfirmedAttendance runtime={runtime} sessionId={a.session_id} />
+              <div className="training-confirmed-actions">
+                <CopyText
+                  id="copyActualAttendance"
+                  text={attendanceMessage(
+                    a,
+                    runtime.state.attendance.filter(
+                      (r) => r.session_id === a.session_id,
+                    ),
+                    runtime.state.players,
+                    fmt,
+                  )}
+                  label="Copia presenze"
+                />
+                <Button
+                  id="actualHistory"
+                  variant="secondary"
+                  onClick={() =>
+                    ui.open("history", { kind: "session", id: a.session_id })
+                  }
+                >
+                  Storico modifiche
+                </Button>
               </div>
-              <CopyText
-                id="copyActualAttendance"
-                text={attendanceMessage(
-                  a,
-                  runtime.state.attendance.filter(
-                    (r) => r.session_id === a.session_id,
-                  ),
-                  runtime.state.players,
-                  fmt,
-                )}
-                label="Copia presenze"
-              />
-              <Button
-                id="actualHistory"
-                variant="secondary"
-                onClick={() =>
-                  ui.open("history", { kind: "session", id: a.session_id })
-                }
-              >
-                Storico modifiche
-              </Button>
             </>
           ) : null}
         </section>
