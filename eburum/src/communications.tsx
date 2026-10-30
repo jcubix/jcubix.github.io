@@ -23,7 +23,6 @@ import { useSearchParams } from "react-router-dom";
 import { confirmDialog } from "../app-confirm.js";
 import { communicationDeadline, relativeTime } from "../app-presentation.js";
 import { canPlanRole, roleLabels } from "../app-roles.ts";
-import "./communications.css";
 import { Button } from "./components/ui/button";
 import { Dialog } from "./components/ui/dialog";
 import { Input } from "./components/ui/input";

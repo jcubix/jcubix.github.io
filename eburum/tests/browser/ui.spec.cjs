@@ -287,6 +287,20 @@ test('whiteboard tools stay compact and the field can draw, undo, save and expor
 });
 
 
+test('whiteboard descriptions preserve keyboard editing and photo PNG exports use Figtree with fallback',async({page},info)=>{
+ await open(page,'whiteboard');await page.getByRole('button',{name:'Nuova lavagna',exact:true}).click();
+ const png=await page.evaluate(()=>{const canvas=document.createElement('canvas');canvas.width=160;canvas.height=100;const context=canvas.getContext('2d');context.fillStyle='#17483e';context.fillRect(0,0,160,100);return canvas.toDataURL('image/png').split(',')[1]});
+ await page.locator('input[type=file]').setInputFiles({name:'azione.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});
+ const svg=page.getByRole('application',{name:/Lavagna interattiva/});await expect(svg.locator('image')).toHaveAttribute('href',/^data:image\/jpeg;base64,/);await expect(svg).toHaveAccessibleDescription(/frecce della tastiera/);
+ const controls=page.locator('.wb-controls');await page.getByRole('button',{name:'Freccia',exact:true}).click();await svg.scrollIntoViewIfNeeded();const box=await svg.boundingBox(),c=await controls.boundingBox(),x=box.x+box.width*.3,y=Math.max(box.y+40,c.y+c.height+16);
+ await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x+45,y+40,{steps:4});await page.mouse.up();const mark=svg.getByRole('img',{name:'1. Freccia',exact:true});await expect(mark).toBeVisible();
+ await page.locator('.wb-elements > summary').click();const select=page.getByRole('button',{name:'1. Freccia',exact:true});await select.click();await expect(svg).toBeFocused();const before=await mark.locator('path').first().getAttribute('d');await page.keyboard.press('ArrowRight');await expect(mark.locator('path').first()).not.toHaveAttribute('d',before);await page.keyboard.press('Control+z');await expect(mark.locator('path').first()).toHaveAttribute('d',before);
+ await select.click();await page.keyboard.press('Delete');await expect(mark).toHaveCount(0);await page.keyboard.press('Control+z');await expect(mark).toBeVisible();
+ await page.evaluate(()=>{window.exportFonts=[];const draw=CanvasRenderingContext2D.prototype.fillText;CanvasRenderingContext2D.prototype.fillText=function(...args){window.exportFonts.push(this.font);return draw.apply(this,args)};document.fonts.load=font=>{window.exportFontRequest=font;return Promise.reject(Error('Font temporaneamente non disponibile'))}});
+ const downloaded=page.waitForEvent('download');await page.getByRole('button',{name:'Esporta immagine',exact:true}).click();const file=await downloaded;expect(fs.readFileSync(await file.path()).subarray(0,8).toString('hex')).toBe('89504e470d0a1a0a');expect(await page.evaluate(()=>window.exportFontRequest)).toBe('700 32px "Figtree"');expect(await page.evaluate(()=>window.exportFonts)).toEqual([expect.stringContaining('Figtree')]);await expect(page.locator('.wb-feedback')).toContainText('Immagine esportata');
+ const a11y=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(a11y.violations).toEqual([]);expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);await info.attach('whiteboard-photo',{body:await page.screenshot(),contentType:'image/png'});
+});
+
 test('React editors retain rounded controls, readable contrast and accessible form names',async({page},info)=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await open(page,'matches');await page.locator('.sc-match-preview').filter({hasText:'Atletico Battipaglia 2018'}).click();await expect(page.locator('#activityForm')).toBeVisible();

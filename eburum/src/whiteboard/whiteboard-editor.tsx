@@ -14,7 +14,7 @@ import { Input } from "../components/ui/input";
 import { boardColors, boardPhoto, moveMark } from "../whiteboard-model";
 import "../whiteboard.css";
 import { Ink } from "./ink";
-import { colorNames, date, tools } from "./model";
+import { colorNames, date, markLabel, tools } from "./model";
 import { Pitch } from "./pitch";
 import { useWhiteboard } from "./use-whiteboard";
 export function WhiteboardEditor({
@@ -227,6 +227,7 @@ export function WhiteboardEditor({
             data-tool={tool}
             role="application"
             aria-label="Lavagna interattiva: usa gli strumenti per disegnare o seleziona un elemento dall’elenco sottostante"
+            aria-describedby={`${markerId}-help`}
             tabIndex={0}
             onPointerDown={pointerDown}
             onPointerMove={pointerMove}
@@ -315,10 +316,12 @@ export function WhiteboardEditor({
                   />
                 </>
               )}
-              {shown.map((m) => (
+              {shown.map((m, i) => (
                 <g
                   key={m.id}
                   data-mark={m.id}
+                  role="img"
+                  aria-label={markLabel(m, i)}
                   style={{
                     cursor: tool === "select" ? "grab" : "crosshair",
                   }}
@@ -423,7 +426,7 @@ export function WhiteboardEditor({
       </p>
       <details className="wb-elements">
         <summary>Elementi sulla lavagna ({doc.marks.length}/200)</summary>
-        <p className="sc-helper">
+        <p id={`${markerId}-help`} className="sc-helper">
           Seleziona un elemento, poi usa Sposta e le frecce della tastiera. Canc
           elimina l’elemento.
         </p>
@@ -440,10 +443,7 @@ export function WhiteboardEditor({
                 svg.current?.focus();
               }}
             >
-              {i + 1}. {tools.find((t) => t.kind === m.kind)?.label}
-              {m.label && ["text", "home", "away"].includes(m.kind)
-                ? ` · ${m.label}`
-                : ""}
+              {markLabel(m, i)}
             </Button>
           ))}
         </div>

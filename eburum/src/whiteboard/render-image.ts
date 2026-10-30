@@ -3,6 +3,7 @@ export async function renderWhiteboardImage(
   title: string,
   portrait: boolean,
 ): Promise<Blob> {
+  await document.fonts?.load('700 32px "Figtree"').catch(() => []);
   const copy = svg.cloneNode(true) as SVGSVGElement;
   copy
     .querySelectorAll("[data-selection], [data-hit]")
@@ -30,7 +31,7 @@ export async function renderWhiteboardImage(
     context.fillStyle = "#0b1220";
     context.fillRect(0, 0, width, height + 100);
     context.fillStyle = "#ffffff";
-    context.font = "bold 32px Arial";
+    context.font = '700 32px "Figtree", system-ui, sans-serif';
     context.fillText(title || "Lavagna Eburum", 32, 60, width - 64);
     context.drawImage(image, 0, 100, width, height);
     const blob = await new Promise<Blob | null>((resolve) =>

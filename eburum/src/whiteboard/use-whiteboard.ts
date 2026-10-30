@@ -60,7 +60,7 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
     [notice, setNotice] = useState("");
   const pending = useRef(false),
     alive = useRef(true),
-    baseline = useRef("");
+    baseline = useRef<ReturnType<typeof fingerprint> | null>(null);
   const svg = useRef<SVGSVGElement>(null),
     photo = useRef<HTMLInputElement>(null);
   const drag = useRef<{
@@ -87,11 +87,21 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
     media.addEventListener("change", resize);
     return () => media.removeEventListener("change", resize);
   }, []);
+  const snapshot = useMemo(
+    () => fingerprint(title, activity, doc),
+    [title, activity, doc],
+  );
   const dirty =
-    !!board && fingerprint(title, activity, doc) !== baseline.current;
+    !!board &&
+    (snapshot.background !== baseline.current?.background ||
+      snapshot.content !== baseline.current?.content);
   const current = useCallback(() => alive.current && api.current(), [api]);
   const commit = (next: BoardDocument) => {
-    if (JSON.stringify(next) === JSON.stringify(doc)) return;
+    if (
+      next.background === snapshot.background &&
+      fingerprint(title, activity, next).content === snapshot.content
+    )
+      return;
     setHistory((h) => ({
       past: [...h.past.slice(-39), h.doc],
       doc: next,
