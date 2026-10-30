@@ -14,7 +14,7 @@ export function WhiteboardPage(props: Parameters<typeof useWhiteboard>[0]) {
     board,
     boards,
     busy,
-    canLeave,
+    close,
 
     create,
 
@@ -24,18 +24,8 @@ export function WhiteboardPage(props: Parameters<typeof useWhiteboard>[0]) {
 
     loadList,
     loading,
-    location,
-
-    navigate,
     notice,
     open,
-    params,
-
-    setBoard,
-
-    setError,
-
-    setParams,
   } = model;
   if (!allowed)
     return (
@@ -57,26 +47,7 @@ export function WhiteboardPage(props: Parameters<typeof useWhiteboard>[0]) {
         description="Metti a fuoco l’azione. Spiega cosa migliorare."
       >
         {board ? (
-          <Button
-            disabled={busy}
-            aria-label="Chiudi lavagna"
-            onClick={async () => {
-              if (await canLeave()) {
-                if (params.get("board")) {
-                  if (location.state?.boardEntry) navigate(-1);
-                  else
-                    setParams(
-                      (p) => {
-                        p.delete("board");
-                        return p;
-                      },
-                      { replace: true },
-                    );
-                } else setBoard(null);
-                setError("");
-              }
-            }}
-          >
+          <Button disabled={busy} aria-label="Chiudi lavagna" onClick={close}>
             <X />
             <span className="page-add-label">Chiudi</span>
           </Button>

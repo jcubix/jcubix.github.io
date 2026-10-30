@@ -120,7 +120,7 @@ const topics = [
     steps: [
       "In Altro → Lavagna tattica crea una lavagna libera o collegala a un allenamento o a una partita. Amministratore, allenatore e collaboratore tecnico condividono le lavagne della squadra.",
       "Usa il campo o carica una foto JPG, PNG o WebP fino a 10 MB. La foto viene ridimensionata e salvata in modo privato insieme ai disegni.",
-      "Su smartphone il campo è verticale, con pedine e note leggibili. Apri Dettagli lavagna per titolo e attività. Gli strumenti restano visibili mentre lavori: Scorri muove la pagina, Sposta trascina gli elementi; scegli un altro strumento per disegnare. Le foto mantengono il proprio orientamento.",
+      "Su smartphone il campo è verticale, con pedine e note leggibili. Eburum usa pedine circolari azzurre, Avversari pedine a rombo rosa. Scegli la squadra, indica un numero o lascia la numerazione automatica, poi tocca il campo. Da Attrezzi scegli cinesine, conetti, aste, sagome da barriera, palloni, ostacoli, scaletta, porticina o cerchi agilità: ogni tocco inserisce un altro elemento. Scorri muove la pagina, Sposta trascina gli elementi. Le foto mantengono il proprio orientamento; titolo e attività sono in Dettagli lavagna.",
       "Scegli freccia, penna o cerchio e trascina; con Nota scrivi il testo e tocca il punto desiderato. Eburum e Avversario aggiungono giocatori numerati; Sposta permette di trascinarli.",
       "Annulla e Ripristina correggono il disegno. Salva lavagna conserva il lavoro per lo staff; Esporta immagine scarica una PNG anche della bozza. Le modifiche di un collega richiedono di riaprire la lavagna; non c’è modifica simultanea in diretta.",
       "Apri l’attività prevista per consultare o compilare il materiale tecnico disponibile.",

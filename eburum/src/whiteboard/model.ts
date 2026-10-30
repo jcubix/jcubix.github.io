@@ -5,12 +5,13 @@ import {
   MousePointer2,
   Pencil,
   Type,
-  UserRound,
 } from "lucide-react";
 import {
   type BoardDocument,
   type Mark,
   type MarkKind,
+  boardEquipment,
+  isEquipmentKind,
 } from "../whiteboard-model";
 import "../whiteboard.css";
 export type Tool = MarkKind | "select" | "pan";
@@ -20,8 +21,6 @@ export const tools = [
   { kind: "arrow", label: "Freccia", icon: ArrowUpRight },
   { kind: "circle", label: "Cerchio", icon: Circle },
   { kind: "text", label: "Nota", icon: Type },
-  { kind: "home", label: "Eburum", icon: UserRound },
-  { kind: "away", label: "Avversario", icon: UserRound },
   { kind: "pan", label: "Scorri", icon: Hand },
 ] as const;
 export const colorNames = ["Bianco", "Rosso", "Giallo", "Azzurro"];
@@ -34,7 +33,7 @@ export const fingerprint = (
   content: JSON.stringify([title.trim(), activity, doc.marks]),
 });
 export const markLabel = (mark: Mark, index: number) =>
-  `${index + 1}. ${tools.find((tool) => tool.kind === mark.kind)?.label}${
+  `${index + 1}. ${isEquipmentKind(mark.kind) ? boardEquipment[mark.kind].label : mark.kind === "home" ? "Eburum" : mark.kind === "away" ? "Avversario" : tools.find((tool) => tool.kind === mark.kind)?.label}${
     mark.label && ["text", "home", "away"].includes(mark.kind)
       ? ` · ${mark.label}`
       : ""

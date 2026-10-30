@@ -5,7 +5,24 @@ export const boardColors = [
   "#80caff",
 ] as const;
 export type Point = { x: number; y: number };
-export type MarkKind = "pen" | "arrow" | "circle" | "text" | "home" | "away";
+export const boardEquipment = {
+  disc: { label: "Cinesina", width: 32, height: 13 },
+  cone: { label: "Conetto", width: 24, height: 30 },
+  pole: { label: "Asta", width: 12, height: 40 },
+  mannequin: { label: "Sagoma barriera", width: 24, height: 40 },
+  ball: { label: "Pallone", width: 23, height: 23 },
+  hurdle: { label: "Ostacolo", width: 36, height: 24 },
+  ladder: { label: "Scaletta", width: 28, height: 45 },
+  mini_goal: { label: "Porticina", width: 44, height: 28 },
+  hoop: { label: "Cerchio agilità", width: 27, height: 27 },
+} as const;
+export type EquipmentKind = keyof typeof boardEquipment;
+export const isEquipmentKind = (kind: string): kind is EquipmentKind =>
+  Object.hasOwn(boardEquipment, kind);
+export const isPointMark = (kind: string) =>
+  ["text", "home", "away"].includes(kind) || isEquipmentKind(kind);
+export type MarkKind =
+  "pen" | "arrow" | "circle" | "text" | "home" | "away" | EquipmentKind;
 export type Mark = {
   id: string;
   kind: MarkKind;
@@ -76,12 +93,23 @@ export function moveMark(
   const token = mark.kind === "home" || mark.kind === "away";
   const note = boardNoteLayout(mark.label, portrait);
   const radius = portrait ? 28 : 22;
+  const equipment = isEquipmentKind(mark.kind)
+    ? boardEquipment[mark.kind]
+    : null;
+  const scale = portrait ? 1.2 : 1;
   let [left, right, top, bottom] = token
     ? [radius, radius, radius, radius]
     : mark.kind === "text"
       ? [8, note.width - 8, note.top, note.height - note.top]
-      : [0, 0, 0, 0];
-  if (portrait && mark.kind === "text")
+      : equipment
+        ? [
+            equipment.width * scale,
+            equipment.width * scale,
+            equipment.height * scale,
+            equipment.height * scale,
+          ]
+        : [0, 0, 0, 0];
+  if (portrait && (mark.kind === "text" || equipment))
     [left, right, top, bottom] = [top, bottom, right, left];
   dx = Math.max(
     left - Math.min(...xs),
@@ -118,7 +146,7 @@ export function validateBoard(value: unknown): asserts value is BoardDocument {
       !m.id ||
       m.id.length > 64 ||
       ids.has(m.id) ||
-      !["pen", "arrow", "circle", "text", "home", "away"].includes(m.kind) ||
+      (!["pen", "arrow", "circle"].includes(m.kind) && !isPointMark(m.kind)) ||
       !(boardColors as readonly string[]).includes(m.color) ||
       typeof m.label !== "string" ||
       m.label.length > 80 ||
@@ -126,7 +154,7 @@ export function validateBoard(value: unknown): asserts value is BoardDocument {
       m.points.length < 1 ||
       m.points.length > 600 ||
       (["arrow", "circle"].includes(m.kind) && m.points.length !== 2) ||
-      (["text", "home", "away"].includes(m.kind) && m.points.length !== 1) ||
+      (isPointMark(m.kind) && m.points.length !== 1) ||
       m.points.some(
         (p) =>
           !p ||

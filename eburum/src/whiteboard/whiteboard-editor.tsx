@@ -11,11 +11,17 @@ import {
 import { confirmDialog } from "../../app-confirm.js";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { boardColors, boardPhoto, moveMark } from "../whiteboard-model";
+import {
+  boardColors,
+  boardPhoto,
+  isEquipmentKind,
+  moveMark,
+} from "../whiteboard-model";
 import "../whiteboard.css";
 import { Ink } from "./ink";
 import { colorNames, date, markLabel, tools } from "./model";
 import { Pitch } from "./pitch";
+import { PlacementTools } from "./placement-tools";
 import { useWhiteboard } from "./use-whiteboard";
 export function WhiteboardEditor({
   model,
@@ -28,7 +34,7 @@ export function WhiteboardEditor({
     api,
     board,
     busy,
-    canLeave,
+    close,
     color,
     commit,
     compact,
@@ -169,28 +175,42 @@ export function WhiteboardEditor({
               </Button>
             ))}
           </div>
+          <PlacementTools
+            tool={tool}
+            busy={busy}
+            color={color}
+            onSelect={(kind) => {
+              setTool(kind);
+              setSelected("");
+              setError("");
+            }}
+          />
           <div className="wb-options">
-            <div
-              className="wb-colors"
-              role="group"
-              aria-label="Colore del disegno"
-            >
-              {boardColors.map((c, i) => (
-                <button
-                  key={c}
-                  style={{ "--swatch": c } as React.CSSProperties}
-                  aria-label={colorNames[i]}
-                  aria-pressed={color === c}
-                  disabled={busy}
-                  onClick={() => setColor(c)}
-                >
-                  <span />
-                </button>
-              ))}
-            </div>
+            {tool !== "home" && tool !== "away" ? (
+              <div
+                className="wb-colors"
+                role="group"
+                aria-label="Colore del disegno"
+              >
+                {boardColors.map((c, i) => (
+                  <button
+                    key={c}
+                    style={{ "--swatch": c } as React.CSSProperties}
+                    aria-label={colorNames[i]}
+                    aria-pressed={color === c}
+                    disabled={busy}
+                    onClick={() => setColor(c)}
+                  >
+                    <span />
+                  </button>
+                ))}
+              </div>
+            ) : null}
             {["text", "home", "away"].includes(tool) ? (
               <label className="wb-label">
-                {tool === "text" ? "Testo della nota" : "Numero o sigla"}
+                {tool === "text"
+                  ? "Testo della nota"
+                  : `Numero o sigla · ${tool === "home" ? "Eburum" : "Avversari"}`}
                 <Input
                   value={label}
                   maxLength={tool === "text" ? 80 : 4}
@@ -205,17 +225,19 @@ export function WhiteboardEditor({
               </label>
             ) : (
               <p className="sc-helper">
-                {compact
-                  ? tool === "pan"
-                    ? "Scorri: muovi la pagina."
-                    : tool === "select"
-                      ? "Sposta: trascina gli elementi."
-                      : "Trascina sul campo per disegnare."
-                  : tool === "pan"
-                    ? "Scorri sul campo per muoverti nella pagina. Scegli uno strumento per disegnare."
-                    : tool === "select"
-                      ? "Trascina pedine e annotazioni. Per muoverti nella pagina scegli Scorri."
-                      : "Trascina sul campo per disegnare. Il rosso aiuta a evidenziare gli errori."}
+                {isEquipmentKind(tool)
+                  ? "Tocca il campo per posizionare l’attrezzo. Ripeti per aggiungerne altri."
+                  : compact
+                    ? tool === "pan"
+                      ? "Scorri: muovi la pagina."
+                      : tool === "select"
+                        ? "Sposta: trascina gli elementi."
+                        : "Trascina sul campo per disegnare."
+                    : tool === "pan"
+                      ? "Scorri sul campo per muoverti nella pagina. Scegli uno strumento per disegnare."
+                      : tool === "select"
+                        ? "Trascina pedine e annotazioni. Per muoverti nella pagina scegli Scorri."
+                        : "Trascina sul campo per disegnare. Il rosso aiuta a evidenziare gli errori."}
               </p>
             )}
           </div>
@@ -331,7 +353,7 @@ export function WhiteboardEditor({
                       data-hit="true"
                       cx={m.points[0].x}
                       cy={m.points[0].y}
-                      r={compact ? (portrait ? 42 : 64) : 28}
+                      r={compact ? (portrait ? 56 : 80) : 48}
                       fill="transparent"
                     />
                   ) : null}
@@ -449,16 +471,7 @@ export function WhiteboardEditor({
         </div>
       </details>
       <div className="wb-close">
-        <Button
-          variant="ghost"
-          disabled={busy}
-          onClick={async () => {
-            if (await canLeave()) {
-              setBoard(null);
-              setError("");
-            }
-          }}
-        >
+        <Button variant="ghost" disabled={busy} onClick={close}>
           <X />
           Chiudi lavagna
         </Button>
