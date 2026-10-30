@@ -199,22 +199,6 @@ export function TeamReports({ runtime }: { runtime: Runtime }) {
           <h1>Report squadra</h1>
           <p>Allenamenti, impiego e rendimento di tutti i giocatori.</p>
         </div>
-        <div className="report-export-actions">
-          <Button
-            variant="secondary"
-            disabled={!ready || !rows.length || exportKind !== null}
-            onClick={() => void exportReport("excel")}
-          >
-            <Download size={18} />
-            {exportKind === "excel" ? "Creo il file Excel…" : "Esporta Excel"}
-          </Button>
-          <Button
-            disabled={!ready || !rows.length || exportKind !== null}
-            onClick={() => void exportReport("pdf")}
-          >
-            {exportKind === "pdf" ? "Creo il PDF…" : "Scarica PDF"}
-          </Button>
-        </div>
       </div>
       <ReportViewSwitch />
       <section
@@ -411,6 +395,22 @@ export function TeamReports({ runtime }: { runtime: Runtime }) {
           </details>
         </>
       ) : null}
+      <div className="report-export-actions" hidden={!ready || !rows.length}>
+        <Button
+          variant="secondary"
+          disabled={!ready || !rows.length || exportKind !== null}
+          onClick={() => void exportReport("excel")}
+        >
+          <Download size={18} />
+          {exportKind === "excel" ? "Creo il file Excel…" : "Esporta Excel"}
+        </Button>
+        <Button
+          disabled={!ready || !rows.length || exportKind !== null}
+          onClick={() => void exportReport("pdf")}
+        >
+          {exportKind === "pdf" ? "Creo il PDF…" : "Scarica PDF"}
+        </Button>
+      </div>
     </>
   );
 }

@@ -9,6 +9,9 @@ export type Page =
   | "register"
   | "meetings"
   | "more"
+  | "users"
+  | "expiries"
+  | "discipline"
   | "communications"
   | "finance"
   | "whiteboard";

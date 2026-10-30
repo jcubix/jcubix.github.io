@@ -340,14 +340,14 @@ export function Dashboard({ runtime }: { runtime: Runtime }) {
               </button>
             ))}
             {!messages.length ? (
-              <div className="sc-communication-preview">
-                <h3>Nessuna comunicazione attiva</h3>
-                <p>Qui trovi gli aggiornamenti condivisi dallo staff.</p>
+              <div className="sc-communication-preview is-empty">
+                <span>Nessun messaggio</span>
                 <NavLink
                   className="sc-secondary"
+                  aria-label="Scrivi un messaggio"
                   to="/communications?compose=1"
                 >
-                  Scrivi un messaggio
+                  Scrivi
                 </NavLink>
               </div>
             ) : null}
@@ -415,10 +415,10 @@ export function Dashboard({ runtime }: { runtime: Runtime }) {
               [latest ? clear : "—", "Senza segnalazioni", "success"],
               [
                 latest ? players.filter((p) => injured.has(p.id)).length : "—",
-                "Infortunati all’ultimo allenamento",
+                "Infortunati",
                 "danger",
               ],
-              [suspended.size, "Squalifiche aperte", "warning"],
+              [suspended.size, "Squalificati", "warning"],
             ])}
             <button
               className="ghost wide"

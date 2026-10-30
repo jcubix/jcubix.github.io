@@ -37,6 +37,13 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
     training,
     v,
   } = model;
+  const minutes = (value: string) =>
+    Number(value.slice(0, 2)) * 60 + Number(value.slice(3, 5));
+  const duration =
+    v.start_time && v.end_time
+      ? minutes(v.end_time) - minutes(v.start_time)
+      : 0;
+  const suggested = v.start_time ? minutes(v.start_time) + 90 : 1440;
   const content = (
     <div className="training-work-panel">
       <nav
@@ -128,8 +135,21 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
           {training && a.id ? (
             <div className="training-replies sc-training-layout">
               <section>
+                <Field
+                  id="replySearch"
+                  label="Cerca giocatore"
+                  className="training-player-search"
+                >
+                  <input
+                    id="replySearch"
+                    type="search"
+                    placeholder="Nome o cognome"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </Field>
                 <div
-                  className="sc-segmented"
+                  className="training-player-filters"
                   role="group"
                   aria-label={
                     legacy ? "Filtra risposte storiche" : "Filtra giocatori"
@@ -217,6 +237,7 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
                               data-training-player={p.id}
                               data-training-reply={value}
                               aria-label={`${p.name} ${p.surname}: ${label}`}
+                              title={label}
                               aria-pressed={v.replies[p.id] === value}
                               onClick={() => {
                                 editor.setValue({
@@ -333,17 +354,6 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
                   Presenze effettive
                   <ArrowUpRight size={18} />
                 </button>
-                <details className="field-space">
-                  <summary>Cerca giocatore</summary>
-                  <Field id="replySearch" label="Cerca giocatore">
-                    <input
-                      id="replySearch"
-                      type="search"
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                    />
-                  </Field>
-                </details>
               </aside>
             </div>
           ) : null}
@@ -372,10 +382,19 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
                       required={key === "title" || key === "activity_date"}
                       maxLength={key === "location" ? 500 : 160}
                       value={v[key]}
+                      placeholder={
+                        key === "title" ? "Es. Allenamento tecnico" : undefined
+                      }
                       onChange={(e) =>
                         editor.setValue({ ...v, [key]: e.target.value })
                       }
                     />
+                    {key === "title" ? (
+                      <small>Puoi personalizzare il titolo.</small>
+                    ) : null}
+                    {key === "activity_date" && v.activity_date ? (
+                      <small>{fmt(v.activity_date)}</small>
+                    ) : null}
                   </Field>
                 ))}
                 <Field id="planningState" label="Stato">
@@ -397,6 +416,26 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
                   ? "La fine deve essere successiva all’inizio"
                   : ""}
               </p>
+              {training ? (
+                <div className="training-duration">
+                  {duration > 0 ? (
+                    <p role="status">Durata: {duration} minuti</p>
+                  ) : null}
+                  {!a.id && v.start_time && !v.end_time && suggested < 1440 ? (
+                    <Button
+                      variant="secondary"
+                      onClick={() =>
+                        editor.setValue({
+                          ...v,
+                          end_time: `${String(Math.floor(suggested / 60)).padStart(2, "0")}:${String(suggested % 60).padStart(2, "0")}`,
+                        })
+                      }
+                    >
+                      Imposta durata di 90 minuti
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
               <Field
                 id="planningNote"
                 label={
@@ -427,9 +466,16 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
             ) : null}
           </details>
           <ActionBar
-            className="modal-actions planning-save"
+            className={`modal-actions planning-save ${inline && !editor.dirty ? "is-pristine" : ""}`}
             hidden={phase === "actual" && training}
           >
+            {inline ? (
+              <span className="planning-save-caption">
+                {editor.dirty
+                  ? "Modifiche da salvare"
+                  : "Nessuna modifica da salvare"}
+              </span>
+            ) : null}
             <Button
               id="cancelPlanning"
               variant="secondary"
@@ -453,6 +499,7 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
               type="submit"
               form="planningForm"
               id="savePlanning"
+              hidden={inline && !editor.dirty}
               disabled={!operate || editor.busy || (!!a.id && !editor.dirty)}
             >
               {a.id ? "Salva" : "Crea allenamento"}

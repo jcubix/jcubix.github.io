@@ -88,98 +88,6 @@ export function MatchResults({
             <h3>
               Eventi <span id="matchEventCount">({events.length})</span>
             </h3>
-            <div className="match-event-actions">
-              {(
-                [
-                  {
-                    id: "addGoal",
-                    type: "Gol",
-                    team: "own",
-                    label: "Gol Eburum",
-                    Icon: CircleDot,
-                  },
-                  {
-                    id: "addOpponentGoal",
-                    type: "Gol",
-                    team: "opponent",
-                    label: "Gol avversari",
-                    Icon: CircleDot,
-                  },
-                  {
-                    id: "addYellow",
-                    type: "Ammonizione",
-                    label: "Ammonizione",
-                    Icon: RectangleVertical,
-                  },
-                  {
-                    id: "addSubstitution",
-                    type: "Sostituzione",
-                    label: "Sostituzione",
-                    Icon: ArrowLeftRight,
-                  },
-                  {
-                    id: "addMatchEvent",
-                    type: "Nota",
-                    label: "Altro evento",
-                    Icon: Plus,
-                  },
-                ] as const
-              ).map((item) => (
-                <button
-                  key={item.id}
-                  id={item.id}
-                  disabled={editor.busy || !!reloadError}
-                  aria-pressed={
-                    !!selected &&
-                    selected.type === item.type &&
-                    (item.type !== "Gol" ||
-                      selected.team ===
-                        ("team" in item ? item.team : undefined))
-                  }
-                  onClick={() =>
-                    void openComposer({
-                      type: item.type,
-                      team: "team" in item ? item.team : undefined,
-                    })
-                  }
-                >
-                  <item.Icon size={18} />
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="match-event-composer">
-            {composer ? (
-              <EventEditor
-                key={
-                  (composer.event?.id || "new") +
-                  composer.type +
-                  (composer.team || "")
-                }
-                inline
-                runtime={runtime}
-                surface={{
-                  id: -2,
-                  kind: "event",
-                  data: {
-                    matchId: a.match_id,
-                    type: composer.type,
-                    event: composer.event,
-                    context: { team: composer.team },
-                  },
-                }}
-                onGuard={(guard) => {
-                  eventGuard.current = guard;
-                }}
-                onType={onEventType}
-                onClose={() => {
-                  setComposer(null);
-                  setSelected(null);
-                }}
-                onSaved={reload}
-              />
-            ) : null}
           </div>
           <div id="matchEventList" className="event-list match-timeline">
             {events.map((e) => (
@@ -245,6 +153,104 @@ export function MatchResults({
                 </button>
               </article>
             ))}
+          </div>
+          <details
+            className="match-event-picker"
+            open={!!composer || !events.length}
+          >
+            <summary>Aggiungi evento</summary>
+            <div className="match-event-actions">
+              {(
+                [
+                  {
+                    id: "addGoal",
+                    type: "Gol",
+                    team: "own",
+                    label: "Gol Eburum",
+                    Icon: CircleDot,
+                  },
+                  {
+                    id: "addOpponentGoal",
+                    type: "Gol",
+                    team: "opponent",
+                    label: "Gol avversari",
+                    Icon: CircleDot,
+                  },
+                  {
+                    id: "addYellow",
+                    type: "Ammonizione",
+                    label: "Ammonizione",
+                    Icon: RectangleVertical,
+                  },
+                  {
+                    id: "addSubstitution",
+                    type: "Sostituzione",
+                    label: "Sostituzione",
+                    Icon: ArrowLeftRight,
+                  },
+                  {
+                    id: "addMatchEvent",
+                    type: "Nota",
+                    label: "Altro evento",
+                    Icon: Plus,
+                  },
+                ] as const
+              ).map((item) => (
+                <button
+                  key={item.id}
+                  id={item.id}
+                  disabled={editor.busy || !!reloadError}
+                  aria-pressed={
+                    !!selected &&
+                    selected.type === item.type &&
+                    (item.type !== "Gol" ||
+                      selected.team ===
+                        ("team" in item ? item.team : undefined))
+                  }
+                  onClick={() =>
+                    void openComposer({
+                      type: item.type,
+                      team: "team" in item ? item.team : undefined,
+                    })
+                  }
+                >
+                  <item.Icon size={18} />
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </details>
+          <div className="match-event-composer">
+            {composer ? (
+              <EventEditor
+                key={
+                  (composer.event?.id || "new") +
+                  composer.type +
+                  (composer.team || "")
+                }
+                inline
+                runtime={runtime}
+                surface={{
+                  id: -2,
+                  kind: "event",
+                  data: {
+                    matchId: a.match_id,
+                    type: composer.type,
+                    event: composer.event,
+                    context: { team: composer.team },
+                  },
+                }}
+                onGuard={(guard) => {
+                  eventGuard.current = guard;
+                }}
+                onType={onEventType}
+                onClose={() => {
+                  setComposer(null);
+                  setSelected(null);
+                }}
+                onSaved={reload}
+              />
+            ) : null}
           </div>
           <div className="match-game-notes">
             <Field id="matchNote" label="Note della partita">

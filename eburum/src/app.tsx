@@ -85,6 +85,9 @@ const allPages = new Set<Page>([
   "register",
   "meetings",
   "more",
+  "users",
+  "expiries",
+  "discipline",
   "communications",
   "finance",
   "whiteboard",
@@ -447,20 +450,30 @@ function NavItem({
   label,
   icon: Icon,
   selected,
+  count,
 }: {
   page: Page;
   label: string;
   icon: typeof Home;
   selected: boolean;
+  count?: number;
 }) {
   const link = (
     <Link
       to={"/" + page}
       className={"app-nav-item " + (selected ? "is-active" : "")}
       aria-current={selected ? "page" : undefined}
+      aria-label={count ? label : undefined}
+      aria-describedby={count ? "navigation-review-count" : undefined}
     >
       <Icon size={21} strokeWidth={1.8} />
       <span>{label}</span>
+      {count ? (
+        <span id="navigation-review-count" className="nav-tool-count">
+          {count}
+          <span className="sr-only"> da verificare</span>
+        </span>
+      ) : null}
     </Link>
   );
   return link;
@@ -541,7 +554,11 @@ function Workspace({
         if (target === current.slice(1)) return;
         const previous = routeDetail(detail.page, current.split("?")[1] || "");
         navigate(target, {
-          replace: previous?.key.endsWith(":new") === true,
+          replace:
+            previous?.key.endsWith(":new") === true ||
+            (detail.key.startsWith("tool:") &&
+              new URLSearchParams(current.split("?")[1]).get("tool") ===
+                detail.key.slice(5)),
           state: { detailEntry: true },
         });
       } else if (routeRef.current.state?.detailEntry) navigate(-1);
@@ -823,6 +840,11 @@ function Workspace({
             key={item.page}
             {...item}
             label={item.page === "communications" ? "Messaggi" : item.label}
+            count={
+              item.page === "more"
+                ? runtime.actions.documentSummary().review
+                : undefined
+            }
             selected={activeNav === item.page}
           />
         ))}
@@ -889,6 +911,10 @@ function PageContent({
           runtime={runtime}
         />
       );
+    case "users":
+    case "expiries":
+    case "discipline":
+      return null;
     default:
       return <Dashboard runtime={runtime} />;
   }

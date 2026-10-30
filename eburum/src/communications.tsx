@@ -117,7 +117,11 @@ export function CommunicationsPage({
         title="Messaggi"
         description="Un unico punto per gli aggiornamenti dello staff."
       >
-        <Button aria-label="Nuova comunicazione" onClick={() => setOpen(true)}>
+        <Button
+          hidden={!active.length && !query && filter === "all"}
+          aria-label="Nuova comunicazione"
+          onClick={() => setOpen(true)}
+        >
           <Plus />
           <span className="page-add-label">Nuova comunicazione</span>
         </Button>
@@ -137,6 +141,9 @@ export function CommunicationsPage({
             </div>
           </div>
           <div className="communication-filters">
+            <p className="filter-scroll-hint">
+              Scorri i filtri per altre opzioni →
+            </p>
             <div
               className="segmented"
               role="group"
@@ -345,20 +352,22 @@ export function CommunicationsPage({
           >
             Mostra da confermare
           </Button>
-          <h3 className="communication-help-heading">Uno spazio condiviso</h3>
-          <p>
-            Gli aggiornamenti sono visibili a tutti gli utenti dello staff,
-            anche quando riguardano un singolo giocatore.
-          </p>
-          <p>
-            Gli avvisi durano 1, 3 o 7 giorni dalla pubblicazione. Gli inviti
-            restano visibili fino alla riunione e per la durata scelta dopo
-            l’appuntamento. Alla scadenza vengono eliminati automaticamente.
-          </p>
-          <p>
-            Le nuove comunicazioni arrivano in tempo reale. Usa il pulsante
-            Aggiorna messaggi per ripristinare una connessione interrotta.
-          </p>
+          <details className="communication-help">
+            <summary>Come funziona</summary>
+            <p>
+              Gli aggiornamenti sono visibili a tutti gli utenti dello staff,
+              anche quando riguardano un singolo giocatore.
+            </p>
+            <p>
+              Gli avvisi durano 1, 3 o 7 giorni dalla pubblicazione. Gli inviti
+              restano visibili fino alla riunione e per la durata scelta dopo
+              l’appuntamento. Alla scadenza vengono eliminati automaticamente.
+            </p>
+            <p>
+              Le nuove comunicazioni arrivano in tempo reale. Usa il pulsante
+              Aggiorna messaggi per ripristinare una connessione interrotta.
+            </p>
+          </details>
         </aside>
       </div>
       <CommunicationEditor

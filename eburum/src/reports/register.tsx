@@ -129,6 +129,25 @@ export function Register({ runtime }: { runtime: Runtime }) {
               );
             })}
           </div>
+          <div className="calendar-legend">
+            <span>
+              <i className="legend-activity" /> Attività registrata
+            </span>
+            <span>
+              <i className="legend-selected" /> Giorno selezionato
+            </span>
+          </div>
+          <Button
+            variant="secondary"
+            id="calendarToday"
+            onClick={() => {
+              const day = today();
+              setSelected(day);
+              setMonth(day.slice(0, 7));
+            }}
+          >
+            Oggi
+          </Button>
         </div>
         <div id="registerDetail" data-selected={selected}>
           {sessions.map((session) => {

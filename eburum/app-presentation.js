@@ -12,12 +12,14 @@ export function relativeTime(value, at=Date.now()) {
 }
 
 export function routeDetail(page, search) {
+ if(['users','expiries','discipline'].includes(page))return {key:'tool:'+page,page};
  const params=new URLSearchParams(search);
  const fields=page==='reports'?['match','detail']:page==='players'?['player','discipline']:page==='matches'?['match']:page==='training'||page==='meetings'?['session','activity']:page==='register'?['session','activity']:page==='more'?['tool']:[];
  for(const field of fields){const id=params.get(field);if(id)return {key:(page==='reports'?'report-':'')+field+':'+id,page};}
  return null;
 }
 export function detailPath(page, key, hash) {
+ if(key.startsWith('tool:')&&['users','expiries','discipline'].includes(key.slice(5)))return '/'+key.slice(5);
  const [path,search='']=hash.replace(/^#/,'').split('?'),params=new URLSearchParams(path==='/'+page?search:'');
  const separator=key.indexOf(':'),field=key.slice(0,separator).replace(/^report-/,''),id=key.slice(separator+1);
  if(page==='reports'&&field==='match')params.delete('detail');
@@ -25,6 +27,7 @@ export function detailPath(page, key, hash) {
 }
 export function detailListPath(hash) {
  const [path,search='']=hash.replace(/^#/,'').split('?'),params=new URLSearchParams(search);
+ if(['/users','/expiries','/discipline'].includes(path))return '/more';
  for(const field of ['match','activity','session','tool','detail','discipline'])params.delete(field);
  if(path==='/players')params.delete('player');
  return path+(params.size?'?'+params:'');

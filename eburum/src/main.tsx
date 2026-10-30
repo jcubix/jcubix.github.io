@@ -12,8 +12,9 @@ async function start() {
   const root = createRoot(document.getElementById("app")!);
   try {
     const runtime = await createRuntime();
+    // Runtime snapshots are synchronous; commit the URL in the same update lane.
     root.render(
-      <HashRouter>
+      <HashRouter useTransitions={false}>
         <App runtime={runtime} />
       </HashRouter>,
     );

@@ -6546,7 +6546,7 @@
     }
     .match-workspace
       .match-live-main
-      > :is(.match-events-heading, .match-event-composer) {
+      > :is(.match-events-heading, .match-event-picker, .match-event-composer) {
       grid-column: 1 / -1;
       margin: 0;
     }
@@ -6555,6 +6555,12 @@
     }
     .match-workspace .match-game-notes {
       margin: 0;
+      grid-column: 2;
+      grid-row: 2;
+    }
+    .match-workspace #matchEventList {
+      grid-column: 1;
+      grid-row: 2;
     }
     .match-report-columns {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
@@ -6633,5 +6639,346 @@
   .app-layout .sc-reply-buttons button svg {
     display: block;
     margin: 0;
+  }
+}
+
+@layer components {
+  #app :is(.workspace-content, .workspace-editor.workspace-view) {
+    max-width: 1120px;
+  }
+  #app .communications-workspace {
+    max-width: none;
+    width: 100%;
+    margin-inline: 0;
+  }
+  #app .training-whiteboard-link {
+    display: inline-flex;
+    justify-content: center;
+    width: fit-content;
+    max-width: 100%;
+    gap: 8px;
+    padding: 10px 16px;
+    background: transparent;
+    border: 1px solid var(--control-border);
+    box-shadow: none;
+    font-size: 14px;
+  }
+  .training-player-search {
+    margin-bottom: 12px;
+  }
+  .training-player-filters {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  #app .training-player-filters button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: auto;
+    min-height: 44px;
+    padding: 8px 16px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-pill);
+    color: var(--ink-2);
+    background: transparent;
+  }
+  #app .training-player-filters button[aria-pressed="true"] {
+    color: var(--ink);
+    background: var(--surface);
+    border-color: var(--border);
+  }
+  .planning-save-caption {
+    flex: 1 1 0;
+    min-width: 0;
+    margin-right: auto;
+    color: var(--ink-2);
+    font-size: 13px;
+  }
+  #workspaceActions > .planning-save.is-pristine {
+    background: transparent;
+    box-shadow: none;
+    padding-block: 8px;
+  }
+  #workspaceActions #savePlanning[hidden],
+  .page-heading button[hidden],
+  .report-export-actions[hidden] {
+    display: none;
+  }
+  .training-duration {
+    margin-block: 8px 16px;
+  }
+  .training-duration p {
+    font-size: 14px;
+    color: var(--ink-2);
+  }
+  .filter-scroll-hint {
+    margin: 0 0 6px;
+    font-size: 12px;
+    color: var(--ink-2);
+  }
+  #app .communication-filters > .segmented,
+  #app .sc-finance .finance-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    max-width: 100%;
+    gap: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--control-border) transparent;
+    border-radius: var(--radius-pill);
+  }
+  #app .communication-filters > .segmented > button,
+  #app .sc-finance .finance-tabs > button {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 0;
+    white-space: nowrap;
+    padding-inline: 14px;
+  }
+  .communication-help {
+    margin-top: 24px;
+  }
+  .communication-help summary,
+  .whiteboard-help summary {
+    min-height: 44px;
+    padding-block: 12px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  #app .sc-communication-preview.is-empty {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 16px;
+    min-height: 0;
+  }
+  #app .sc-communication-preview.is-empty > a {
+    width: auto;
+    min-height: 44px;
+  }
+  .recent-form > span:first-child small {
+    display: block;
+    color: var(--ink-2);
+    font-size: 12px;
+  }
+  #app .match-outcome {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    min-height: 28px;
+    border-radius: var(--radius-pill);
+    font-size: 12px;
+  }
+  #app .sc-match-meta > .badge {
+    min-height: 28px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: var(--radius-pill);
+  }
+  #app .match-goals {
+    font-weight: 500;
+  }
+  #app .match-goals[data-winner="true"] {
+    font-weight: 750;
+    color: var(--ink);
+  }
+  .sc-match-empty {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-block: 16px;
+    color: var(--ink-2);
+  }
+  .match-event-picker {
+    width: 100%;
+  }
+  .match-event-picker > summary {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 10px 16px;
+    border: 1px solid var(--control-border);
+    border-radius: var(--radius-control);
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .match-event-picker[open] > summary {
+    margin-bottom: 12px;
+  }
+  .finance-empty-page .sc-section-heading,
+  .finance-empty-page section > .sc-helper {
+    display: none;
+  }
+  .user-edit-menu {
+    width: 100%;
+  }
+  .user-edit-menu > summary {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 10px 16px;
+    border: 1px solid var(--control-border);
+    border-radius: var(--radius-control);
+    cursor: pointer;
+  }
+  #app .user-edit-menu .user-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .user-danger-actions {
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+    margin-top: 4px;
+  }
+  #app .user-danger-actions button {
+    width: 100%;
+  }
+  #app .discipline-card.discipline-compact {
+    padding: 0;
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  #app .discipline-compact > summary {
+    display: grid;
+    grid-template-columns: 16px minmax(0, 1fr) auto auto auto;
+    align-items: center;
+    gap: 12px;
+    min-height: 56px;
+    padding-block: 12px;
+    cursor: pointer;
+    list-style: none;
+  }
+  #app .discipline-compact > summary::before {
+    margin: 0;
+  }
+  #app .discipline-compact > summary strong {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .discipline-compact > summary::-webkit-details-marker {
+    display: none;
+  }
+  .discipline-compact > summary span {
+    color: var(--ink-2);
+    font-size: 13px;
+    text-align: right;
+  }
+  .discipline-detail-body {
+    padding: 16px 0 24px;
+  }
+  #app .report-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 16px;
+  }
+  #app .report-controls > .field {
+    margin: 0;
+    min-width: 0;
+  }
+  #app
+    .report-controls
+    :is(.filter-summary, .report-range-fields, #reportError) {
+    grid-column: 1 / -1;
+  }
+  .report-export-actions {
+    margin-top: 24px;
+    padding-block: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .calendar-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-block: 16px;
+    font-size: 12px;
+    color: var(--ink-2);
+  }
+  .calendar-legend > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .calendar-legend i {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 4px;
+  }
+  .legend-activity {
+    background: var(--primary);
+  }
+  .legend-selected {
+    border: 2px solid var(--accent-ink);
+  }
+  #app .nav-tool-count {
+    margin-left: auto;
+    padding: 2px 7px;
+    background: var(--warning-soft);
+    color: var(--warning);
+    border-radius: var(--radius-pill);
+    font-size: 12px;
+  }
+  @media (min-width: 1024px) {
+    #app .page-heading .page-add-label {
+      display: inline;
+    }
+    #app .page-heading :is(.sc-add, button):has(.page-add-label) {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: auto;
+      min-width: 44px;
+      height: auto;
+      padding: 10px 16px;
+      border-radius: var(--radius-control);
+    }
+  }
+  @media (max-width: 1023px) {
+    #app .nav-tool-count {
+      display: none;
+    }
+    .app-layout:has(#workspaceEditor .workspace-view):has(
+        #workspaceActions > .workspace-action-bar
+      )
+      .app-mobile-nav,
+    .app-layout:has(#workspaceActions > .training-save) .app-mobile-nav {
+      display: none;
+    }
+    .app-layout:has(#workspaceEditor .workspace-view):has(
+        #workspaceActions > .workspace-action-bar
+      )
+      #workspaceActions,
+    .app-layout:has(#workspaceActions > .training-save) #workspaceActions {
+      padding-bottom: calc(16px + var(--safe-area-bottom));
+    }
+  }
+  @media (max-width: 600px) {
+    #app .report-controls {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    #app .discipline-compact > summary {
+      gap: 8px;
+    }
+    .discipline-compact > summary strong {
+      font-size: 14px;
+    }
+    .discipline-compact > summary span {
+      font-size: 12px;
+    }
   }
 }

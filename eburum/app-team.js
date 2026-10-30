@@ -122,6 +122,6 @@ async function openActivity(id, preferredTab = "auto") {
 
 function activityModal(a={},savedRows=[],technical={},preferredTab='details'){return ui.open(a.activity_type==='Partita'?'match':'planning',{activity:a,rows:savedRows,technical,tab:preferredTab},{workspace:true,page:state.page==='register'?'register':a.activity_type==='Partita'?'matches':'training',detail:a.match_id?'match:'+a.match_id:a.id?'activity:'+a.id:a.activity_type==='Partita'?'match:new':'activity:new'})}
 function playerSheet(id){if(state.players.some(p=>p.id===id))return ui.open('player',{id},{page:'players',detail:'player:'+id})}
-function expiryModal(){if(canViewExpiries())return ui.open('expiries',{}, {page:'more',detail:'tool:expiries',workspace:true})}
+function expiryModal(){if(canViewExpiries())return ui.open('expiries',{}, {page:'expiries',detail:'tool:expiries',workspace:true})}
 export {activityModal,playerSheet,expiryModal,roleLabels};
 export { teamArrays, activityRows, activityLabel, clock, expiryLimit, expiringPlayers, documentSummary, openActivity };

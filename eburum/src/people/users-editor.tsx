@@ -206,69 +206,85 @@ export function UsersEditor({
                 <span className="badge tone-neutral">
                   {roleLabels[user.role as TeamRole]}
                 </span>
-                <div className="user-actions">
-                  {[
-                    "profile",
-                    "email",
-                    ...(user.id !== runtime.state.user?.id ? ["password"] : []),
-                    ...(user.id !== runtime.state.user?.id &&
-                    user.id !== teamOwner()
-                      ? ["delete"]
-                      : []),
-                  ].map((action) => (
-                    <Button
-                      key={action}
-                      variant={
-                        action === "delete" ? "destructive" : "secondary"
-                      }
-                      {...{ ["data-user-" + action]: user.id }}
-                      onClick={() =>
-                        ui.open("user-edit", {
-                          user,
-                          action,
-                          onSaved: () => refresh((n) => n + 1),
-                        })
-                      }
-                    >
-                      {
+                <details className="user-edit-menu">
+                  <summary>Modifica</summary>
+                  <div className="user-actions">
+                    {[
+                      "profile",
+                      "email",
+                      ...(user.id !== runtime.state.user?.id
+                        ? ["password"]
+                        : []),
+                    ].map((action) => (
+                      <Button
+                        key={action}
+                        variant="secondary"
+                        {...{ ["data-user-" + action]: user.id }}
+                        onClick={() =>
+                          ui.open("user-edit", {
+                            user,
+                            action,
+                            onSaved: () => refresh((n) => n + 1),
+                          })
+                        }
+                      >
                         {
-                          profile: "Nome e cognome",
-                          email: "Modifica email",
-                          password: "Cambia password",
-                          delete: "Elimina utenza",
-                        }[action]
-                      }
-                    </Button>
-                  ))}
-                  {user.id !== teamOwner() ? (
-                    <select
-                      data-user-role={user.id}
-                      aria-label={`Ruolo di ${user.email}`}
-                      value={user.role}
-                      disabled={editor.busy}
-                      onChange={(e) => {
-                        const role = e.target.value;
-                        void editor.run(async () => {
-                          await adminRequest({
-                            action: "role",
-                            userId: user.id,
-                            role,
+                          {
+                            profile: "Nome e cognome",
+                            email: "Modifica email",
+                            password: "Cambia password",
+                          }[action]
+                        }
+                      </Button>
+                    ))}
+                    {user.id !== teamOwner() ? (
+                      <select
+                        data-user-role={user.id}
+                        aria-label={`Ruolo di ${user.email}`}
+                        value={user.role}
+                        disabled={editor.busy}
+                        onChange={(e) => {
+                          const role = e.target.value;
+                          void editor.run(async () => {
+                            await adminRequest({
+                              action: "role",
+                              userId: user.id,
+                              role,
+                            });
+                            if (editor.current()) {
+                              await runtime.actions.reload();
+                              refresh((n) => n + 1);
+                            }
                           });
-                          if (editor.current()) {
-                            await runtime.actions.reload();
-                            refresh((n) => n + 1);
+                        }}
+                      >
+                        {Object.entries(roleLabels).map(([key, label]) => (
+                          <option key={key} value={key}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                    ) : null}
+                    {user.id !== runtime.state.user?.id &&
+                    user.id !== teamOwner() ? (
+                      <div className="user-danger-actions">
+                        <Button
+                          variant="destructive"
+                          data-user-delete={user.id}
+                          onClick={() =>
+                            ui.open("user-edit", {
+                              user,
+                              action: "delete",
+                              onSaved: () => refresh((n) => n + 1),
+                            })
                           }
-                        });
-                      }}
-                    >
-                      {Object.entries(roleLabels).map(([key, label]) => (
-                        <option key={key} value={key}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
-                  ) : null}
-                </div>
+                        >
+                          Elimina utenza
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
+                </details>
               </article>
             ))}
           </div>

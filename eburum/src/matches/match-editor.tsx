@@ -1,6 +1,6 @@
 import { matchTitle } from "../../app-match-display.js";
 import { Button } from "../components/ui/button";
-import { EditorFrame, Field } from "../operational-ui";
+import { EditorFrame } from "../operational-ui";
 import { ui } from "../ui-service";
 import { MatchOrganization } from "./match-organization";
 import { MatchResults } from "./match-results";
@@ -49,26 +49,6 @@ export function MatchEditor(props: Parameters<typeof useMatchEditor>[0]) {
       closeId="closeActivity"
       closeLabel="Chiudi attività"
     >
-      {!a.id ? (
-        <div className="match-new-venue">
-          {" "}
-          <Field id="activityVenue" label="Dove si gioca">
-            <select
-              id="activityVenue"
-              value={v.activity.venue}
-              onChange={(e) =>
-                editor.setValue({
-                  ...v,
-                  activity: { ...v.activity, venue: e.target.value },
-                })
-              }
-            >
-              <option>Casa</option>
-              <option>Trasferta</option>
-            </select>
-          </Field>
-        </div>
-      ) : null}
       {a.match_id ? (
         <div className="match-export-toolbar">
           <Button
@@ -92,43 +72,47 @@ export function MatchEditor(props: Parameters<typeof useMatchEditor>[0]) {
           </Button>
         </div>
       ) : null}
-      <div
-        className="activity-tabs"
-        role="tablist"
-        aria-label="Scheda attività"
-      >
-        {tabs.map(([key, label], index) => (
-          <button
-            key={key}
-            id={`match-tab-${key}`}
-            role="tab"
-            aria-selected={tab === key}
-            tabIndex={tab === key ? 0 : -1}
-            aria-controls={`match-panel-${key}`}
-            data-activity-tab={key}
-            onClick={() => void chooseTab(key)}
-            onKeyDown={(e) => {
-              const next =
-                e.key === "Home"
-                  ? 0
-                  : e.key === "End"
-                    ? tabs.length - 1
-                    : e.key === "ArrowRight"
-                      ? (index + 1) % tabs.length
-                      : e.key === "ArrowLeft"
-                        ? (index + tabs.length - 1) % tabs.length
-                        : null;
-              if (next !== null) {
-                e.preventDefault();
-                void chooseTab(tabs[next][0]);
-                document.getElementById(`match-tab-${tabs[next][0]}`)?.focus();
-              }
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      {a.id ? (
+        <div
+          className="activity-tabs"
+          role="tablist"
+          aria-label="Scheda attività"
+        >
+          {tabs.map(([key, label], index) => (
+            <button
+              key={key}
+              id={`match-tab-${key}`}
+              role="tab"
+              aria-selected={tab === key}
+              tabIndex={tab === key ? 0 : -1}
+              aria-controls={`match-panel-${key}`}
+              data-activity-tab={key}
+              onClick={() => void chooseTab(key)}
+              onKeyDown={(e) => {
+                const next =
+                  e.key === "Home"
+                    ? 0
+                    : e.key === "End"
+                      ? tabs.length - 1
+                      : e.key === "ArrowRight"
+                        ? (index + 1) % tabs.length
+                        : e.key === "ArrowLeft"
+                          ? (index + tabs.length - 1) % tabs.length
+                          : null;
+                if (next !== null) {
+                  e.preventDefault();
+                  void chooseTab(tabs[next][0]);
+                  document
+                    .getElementById(`match-tab-${tabs[next][0]}`)
+                    ?.focus();
+                }
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      ) : null}
       <p id="activitySaveState" role="status" className="save-state">
         {editor.busy
           ? "Salvataggio in corso…"

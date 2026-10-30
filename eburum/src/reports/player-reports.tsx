@@ -238,48 +238,25 @@ export function PlayerReports({ runtime }: { runtime: Runtime }) {
           <h1>Report giocatore</h1>
           <p>Presenze, disponibilità e impiego nel periodo selezionato.</p>
         </div>
-        <div className="report-export-actions">
-          {data ? (
-            <CopyText id="copyReport" text={text}>
-              Copia testo
-            </CopyText>
-          ) : null}
-          <Button
-            id="exportReportPdf"
-            disabled={!data || pdfBusy}
-            onClick={async () => {
-              if (pdfLock.current || !data) return;
-              pdfLock.current = true;
-              setPdfBusy(true);
-              const generation = request.current,
-                current = runtime.requestGuard();
-              try {
-                const model = playerReportModel(data),
-                  filename = playerReportFilename(data);
-                await ensureJsPdf();
-                if (generation === request.current && current()) {
-                  createPlayerReportPdf(model).save(filename);
-                  ui.notify(
-                    "PDF creato. Controlla i download del dispositivo.",
-                  );
-                }
-              } catch (cause) {
-                if (current())
-                  setError(
-                    "Impossibile creare il PDF: " + (cause as Error).message,
-                  );
-              } finally {
-                pdfLock.current = false;
-                setPdfBusy(false);
-              }
-            }}
-          >
-            Scarica PDF
-          </Button>
-        </div>
       </div>
       <ReportViewSwitch />
       <section className="report-controls">
+        <div id="playerPicker" className="field field-space">
+          <Field id="rp" label="Giocatore">
+            <select
+              id="rp"
+              value={player}
+              onChange={(e) => change({ player: e.target.value })}
+            >
+              {players.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.surname} {p.name}
+                  {p.active ? "" : " · Inattivo"}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
         <Field id="reportPeriod" label="Periodo" className="report-period">
           <select
             id="reportPeriod"
@@ -323,32 +300,9 @@ export function PlayerReports({ runtime }: { runtime: Runtime }) {
             />
           </Field>
         </div>
-        <div id="playerPicker" className="field field-space">
-          <Field id="rp" label="Giocatore">
-            <select
-              id="rp"
-              value={player}
-              onChange={(e) => change({ player: e.target.value })}
-            >
-              {players.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.surname} {p.name}
-                  {p.active ? "" : " · Inattivo"}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <output
-            id="reportSelectedName"
-            className="selected-name"
-            htmlFor="rp"
-          >
-            {p?.surname} {p?.name}
-          </output>
-        </div>
         <p id="reportPeriodLabel" className="filter-summary">
-          {fmt(from)} – {fmt(to)} · {p?.surname} {p?.name} · {attendance.length}{" "}
-          registrazioni di presenza
+          {fmt(from)} – {fmt(to)} · {attendance.length} registrazioni di
+          presenza
         </p>
         <Feedback id="reportError" error={error} />
         {error ? (
@@ -477,6 +431,43 @@ export function PlayerReports({ runtime }: { runtime: Runtime }) {
           </details>
         </div>
       ) : null}
+      <div className="report-export-actions" hidden={!data}>
+        {data ? (
+          <CopyText id="copyReport" text={text}>
+            Copia testo
+          </CopyText>
+        ) : null}
+        <Button
+          id="exportReportPdf"
+          disabled={!data || pdfBusy}
+          onClick={async () => {
+            if (pdfLock.current || !data) return;
+            pdfLock.current = true;
+            setPdfBusy(true);
+            const generation = request.current,
+              current = runtime.requestGuard();
+            try {
+              const model = playerReportModel(data),
+                filename = playerReportFilename(data);
+              await ensureJsPdf();
+              if (generation === request.current && current()) {
+                createPlayerReportPdf(model).save(filename);
+                ui.notify("PDF creato. Controlla i download del dispositivo.");
+              }
+            } catch (cause) {
+              if (current())
+                setError(
+                  "Impossibile creare il PDF: " + (cause as Error).message,
+                );
+            } finally {
+              pdfLock.current = false;
+              setPdfBusy(false);
+            }
+          }}
+        >
+          Scarica PDF
+        </Button>
+      </div>
     </>
   );
 }

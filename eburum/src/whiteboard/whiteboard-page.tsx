@@ -152,11 +152,14 @@ export function WhiteboardPage(props: Parameters<typeof useWhiteboard>[0]) {
               Carica altre lavagne
             </Button>
           ) : null}
-          <p className="sc-helper">
-            Visibili solo ad amministratore, allenatore e collaboratore tecnico.
-            Il salvataggio richiede una connessione. Le modifiche di un collega
-            compaiono riaprendo la lavagna.
-          </p>
+          <details className="sc-helper whiteboard-help">
+            <summary>Accesso e salvataggio</summary>
+            <p>
+              Visibili solo ad amministratore, allenatore e collaboratore
+              tecnico. Il salvataggio richiede una connessione. Le modifiche di
+              un collega compaiono riaprendo la lavagna.
+            </p>
+          </details>
         </section>
       ) : null}
     </div>
