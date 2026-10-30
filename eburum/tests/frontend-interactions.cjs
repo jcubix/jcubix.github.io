@@ -910,6 +910,24 @@ test('Whiteboard preserves a failed save, retries the same ID and guards unsaved
  clickText('Salva lavagna');await until(()=>$('.wb-feedback [role=status]')?.textContent.includes('salvata'));assert.equal(w.fixtureData.tactical_boards.length,1);assert.equal(w.fixtureData.tactical_boards[0].revision,1);assert.ok(w.fixtureBoardCalls.every(c=>c.p_id===id));
 });
 
+test('Photo board previews and commits never stringify the background and undo restores a clean board',async t=>{
+ const photo='data:image/jpeg;base64,'+'A'.repeat(1000000);
+ const {w,runtime,$,clickText}=await app(t,'admin',data=>{data.tactical_boards=[{id:'photo-performance',user_id:'demo-user',title:'Foto di prova',activity_id:null,revision:1,updated_at:'2026-10-29T12:00:00Z',document:{background:photo,marks:[]}}]});
+ await runtime.navigate('whiteboard');await until(()=>$('.wb-library .sc-list-row'));$('.wb-library .sc-list-row').click();await until(()=>$('.wb-stage image'));assert.match($('.wb-save').textContent,/Tutte le modifiche sono salvate/);
+ const stringify=w.JSON.stringify;let photoSerializations=0;
+ w.JSON.stringify=(value,...args)=>{if(value?.background===photo||(Array.isArray(value)&&value.some(item=>item===photo||item?.background===photo)))photoSerializations++;return stringify(value,...args)};
+ try{
+  const svg=$('.wb-stage svg');svg.getBoundingClientRect=()=>({left:0,top:0,width:1000,height:640});svg.setPointerCapture=()=>{};svg.hasPointerCapture=()=>false;
+  const pointer=(type,x,y)=>{const event=new w.MouseEvent(type,{bubbles:true,clientX:x,clientY:y,button:0});Object.defineProperty(event,'pointerId',{value:1});svg.dispatchEvent(event)};
+  $('[aria-label="Freccia"]').click();pointer('pointerdown',100,100);await until(()=>$('[data-mark]'));
+  for(let i=1;i<=6;i++){pointer('pointermove',100+i*10,100+i*10);await new Promise(resolve=>setTimeout(resolve,0));}
+  pointer('pointerup',180,180);await until(()=>$('.wb-save').textContent.includes('Modifiche da salvare'));assert.equal(photoSerializations,0);
+  assert.equal($('[data-mark]').getAttribute('aria-label'),'1. Freccia');clickText('Annulla ultima modifica');await until(()=>!$('[data-mark]'));assert.match($('.wb-save').textContent,/Tutte le modifiche sono salvate/);
+  clickText('Usa campo');await until(()=>!$('.wb-stage image'));assert.match($('.wb-save').textContent,/Modifiche da salvare/);clickText('Annulla ultima modifica');await until(()=>$('.wb-stage image'));assert.match($('.wb-save').textContent,/Tutte le modifiche sono salvate/);assert.equal(photoSerializations,0);
+ }finally{w.JSON.stringify=stringify}
+ assert.equal(w.fixtureBoardCalls.length,0);
+});
+
 test('Portrait whiteboard maps touch coordinates and keeps upright notes inside the field',async t=>{
  const {w}=await app(t);const model=w.EburumTests;
  for(const [x,y] of [[0,0],[1,0],[0,1],[1,1],[.25,.2]]){

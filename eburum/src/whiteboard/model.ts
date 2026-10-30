@@ -7,7 +7,11 @@ import {
   Type,
   UserRound,
 } from "lucide-react";
-import { type BoardDocument, type MarkKind } from "../whiteboard-model";
+import {
+  type BoardDocument,
+  type Mark,
+  type MarkKind,
+} from "../whiteboard-model";
 import "../whiteboard.css";
 export type Tool = MarkKind | "select" | "pan";
 export const tools = [
@@ -25,6 +29,15 @@ export const fingerprint = (
   title: string,
   activity: string,
   doc: BoardDocument,
-) => JSON.stringify([title.trim(), activity, doc]);
+) => ({
+  background: doc.background,
+  content: JSON.stringify([title.trim(), activity, doc.marks]),
+});
+export const markLabel = (mark: Mark, index: number) =>
+  `${index + 1}. ${tools.find((tool) => tool.kind === mark.kind)?.label}${
+    mark.label && ["text", "home", "away"].includes(mark.kind)
+      ? ` · ${mark.label}`
+      : ""
+  }`;
 export const date = (value: string) =>
   new Date(value).toLocaleDateString("it-IT");

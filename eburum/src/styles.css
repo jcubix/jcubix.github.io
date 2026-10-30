@@ -1,6 +1,7 @@
 @layer theme, base, legacy, utilities, components, overrides;
 @import "tailwindcss";
 @import "../app.css" layer(legacy);
+@import "./communications.css" layer(components);
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--ink);

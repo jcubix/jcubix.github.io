@@ -1,5 +1,13 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=path.join(__dirname,'../dist');
+test('built authored style rules stay inside the declared cascade layers',()=>{
+ const postcss=require('postcss'),outside=[];
+ for(const file of fs.readdirSync(path.join(root,'assets')).filter(file=>file.endsWith('.css'))){
+  const css=postcss.parse(fs.readFileSync(path.join(root,'assets',file),'utf8'));
+  css.walkRules(rule=>{let parent=rule.parent;while(parent&&!(parent.type==='atrule'&&(parent.name==='layer'||/keyframes$/.test(parent.name))))parent=parent.parent;if(!parent)outside.push(file+': '+rule.selector)});
+ }
+ assert.deepEqual(outside,[],'Unlayered selectors bypass the approved component cascade');
+});
 test('built PWA precaches every published asset and resolves its manifest icons',()=>{
  const html=fs.readFileSync(path.join(root,'index.html'),'utf8'),worker=fs.readFileSync(path.join(root,'sw.js'),'utf8');
  const assets=JSON.parse(worker.match(/const ASSETS\s*=\s*(\[[\s\S]*?\]);/)[1]);
