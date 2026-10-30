@@ -266,10 +266,10 @@ test('whiteboard tools stay compact and the field can draw, undo, save and expor
  await open(page,'whiteboard');await page.getByRole('button',{name:'Nuova lavagna',exact:true}).click();
  const controls=page.locator('.wb-controls'),toolbar=page.getByRole('group',{name:'Strumenti di disegno'}),stage=page.locator('.wb-stage'),svg=stage.locator('svg').first(),actions=controls.locator('.wb-save');
  if(page.viewportSize().width>=1024)await expect(page.locator('.app-mobile-nav')).toBeVisible();else await expect(page.locator('.app-mobile-nav')).toBeHidden();
- await expect(toolbar.getByRole('button')).toHaveCount(8);await expect(actions.getByRole('button',{name:'Salva lavagna',exact:true})).toBeVisible();
+ await expect(toolbar.getByRole('button')).toHaveCount(6);await expect(actions.getByRole('button',{name:'Salva lavagna',exact:true})).toBeVisible();
  const geometry=await toolbar.evaluate(el=>({height:el.getBoundingClientRect().height,rows:new Set([...el.children].map(b=>Math.round(b.getBoundingClientRect().top))).size,targets:[...el.children].map(b=>({width:b.getBoundingClientRect().width,height:b.getBoundingClientRect().height})),overflow:document.documentElement.scrollWidth>innerWidth}));
  expect(geometry.overflow).toBe(false);for(const target of geometry.targets){expect(target.width).toBeGreaterThanOrEqual(44);expect(target.height).toBeGreaterThanOrEqual(44);}
- if(page.viewportSize().width<=1023){expect(geometry.rows).toBe(2);expect(geometry.height).toBeLessThanOrEqual(120);expect(await controls.evaluate(e=>e.getBoundingClientRect().height)).toBeLessThan(300);}
+ if(page.viewportSize().width<=1023){expect(geometry.rows).toBe(1);expect(geometry.height).toBeLessThanOrEqual(64);expect(await controls.evaluate(e=>e.getBoundingClientRect().height)).toBeLessThan(300);}
  expect(await actions.evaluate(e=>getComputedStyle(e).position)).toBe('static');
  expect(await actions.evaluate(e=>e.getBoundingClientRect().bottom<=document.querySelector('.wb-stage').getBoundingClientRect().top)).toBe(true);
  await info.attach('whiteboard-editor',{body:await page.screenshot(),contentType:'image/png'});
@@ -286,6 +286,25 @@ test('whiteboard tools stay compact and the field can draw, undo, save and expor
  await page.getByRole('button',{name:'Usa campo',exact:true}).click();await expect(svg.locator('image')).toHaveCount(0);await expect(svg.locator('[data-mark]')).toHaveCount(1);
 });
 
+
+test('whiteboard distinguishes teams and places, reopens, edits and exports every training tool',async({page},info)=>{
+ await open(page,'whiteboard');await page.getByRole('button',{name:'Nuova lavagna',exact:true}).click();
+ const placement=page.getByRole('group',{name:'Giocatori e attrezzi'}),svg=page.getByRole('application',{name:/Lavagna interattiva/});
+ const place=async(index)=>{await svg.scrollIntoViewIfNeeded();const field=await svg.boundingBox(),controls=await page.locator('.wb-controls').boundingBox();const x=field.x+field.width*(.15+(index%4)*.23),y=Math.max(field.y+field.height*(.2+Math.floor(index/4)*.2),controls.y+controls.height+36);expect(y).toBeLessThan(Math.min(field.y+field.height-20,page.viewportSize().height-16));await page.mouse.click(x,y)};
+ for(const [index,name] of ['Eburum','Avversario'].entries()){const button=placement.getByRole('button',{name,exact:true});await button.click();await expect(button.locator('span')).toBeVisible();await expect(button).toHaveAttribute('aria-pressed','true');await expect(page.getByLabel(/Numero o sigla/)).toBeVisible();await place(index)}
+ await expect(svg.getByRole('img',{name:'1. Eburum · 1',exact:true}).locator('circle')).toHaveCount(1);await expect(svg.getByRole('img',{name:'2. Avversario · 1',exact:true}).locator('path')).toHaveAttribute('d',/22 0/);
+ const equipment=[['disc','Cinesina'],['cone','Conetto'],['pole','Asta'],['mannequin','Sagoma barriera'],['ball','Pallone'],['hurdle','Ostacolo'],['ladder','Scaletta'],['mini_goal','Porticina'],['hoop','Cerchio agilità']];
+ for(const [index,[kind,label]] of equipment.entries()){
+  await placement.getByRole('button',{name:/^Attrezzi:/}).click();const dialog=page.getByRole('dialog',{name:'Attrezzi da allenamento'});await expect(dialog.getByRole('button')).toHaveCount(10);
+  if(index===0){const a11y=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(a11y.violations).toEqual([]);await info.attach('equipment-picker',{body:await page.screenshot(),contentType:'image/png'})}
+  await dialog.getByRole('button',{name:label,exact:true}).click();await expect(dialog).toBeHidden();await expect(placement.getByRole('button',{name:/^Attrezzi:/})).toBeFocused();await expect(svg).toHaveAttribute('data-tool',kind);await place(index+2);await expect(svg.getByRole('img',{name:`${index+3}. ${label}`,exact:true})).toBeVisible();
+ }
+ await page.getByRole('button',{name:'Salva lavagna',exact:true}).click();await expect(page.locator('.wb-feedback [role=status]')).toContainText('Lavagna salvata');const saved=await page.evaluate(()=>fixtureData.tactical_boards[0].document);expect(saved.marks.map(mark=>mark.kind)).toEqual(['home','away',...equipment.map(([kind])=>kind)]);
+ await page.locator('.wb-close').getByRole('button',{name:'Chiudi lavagna',exact:true}).click();await page.locator('.wb-library .sc-list-row').first().click();await expect(svg.locator('[data-mark]')).toHaveCount(11);
+ await page.locator('.wb-elements > summary').click();await page.getByRole('button',{name:'5. Asta',exact:true}).click();await page.keyboard.press('ArrowRight');await page.keyboard.press('Delete');await expect(svg.locator('[data-mark]')).toHaveCount(10);await page.keyboard.press('Control+z');await expect(svg.locator('[data-mark]')).toHaveCount(11);
+ const downloaded=page.waitForEvent('download');await page.getByRole('button',{name:'Esporta immagine',exact:true}).click();const file=await downloaded;expect(fs.readFileSync(await file.path()).subarray(0,8).toString('hex')).toBe('89504e470d0a1a0a');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);await page.getByRole('button',{name:'Scorri',exact:true}).click();await svg.scrollIntoViewIfNeeded();await info.attach('teams-and-equipment',{body:await page.screenshot(),contentType:'image/png'});
+});
 
 test('whiteboard descriptions preserve keyboard editing and photo PNG exports use Figtree with fallback',async({page},info)=>{
  await open(page,'whiteboard');await page.getByRole('button',{name:'Nuova lavagna',exact:true}).click();

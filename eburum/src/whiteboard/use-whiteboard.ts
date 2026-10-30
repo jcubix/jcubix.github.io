@@ -19,6 +19,8 @@ import {
   boardColors,
   boardViewPoint,
   emptyBoard,
+  isEquipmentKind,
+  isPointMark,
   moveMark,
   type Board,
   type BoardDocument,
@@ -230,6 +232,21 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
       { state: { boardEntry: true } },
     );
   };
+  const close = async () => {
+    if (!(await canLeave())) return;
+    setBoard(null);
+    setError("");
+    if (params.get("board") && location.state?.boardEntry) navigate(-1);
+    else if (params.get("board") || params.get("activity"))
+      setParams(
+        (p) => {
+          p.delete("board");
+          p.delete("activity");
+          return p;
+        },
+        { replace: true },
+      );
+  };
   const syncBoard = useEffectEvent(async (cancelled: () => boolean) => {
     if (!allowed) return;
     const id = params.get("board");
@@ -373,15 +390,15 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
         kind: tool,
         color,
         points: [p],
-        label:
-          tool === "text"
+        label: isEquipmentKind(tool)
+          ? ""
+          : tool === "text"
             ? label.trim()
             : label.trim().slice(0, 4) ||
               String(doc.marks.filter((m) => m.kind === tool).length + 1),
       };
       if (["arrow", "circle"].includes(tool)) mark.points.push(p);
-      if (["text", "home", "away"].includes(tool))
-        mark = moveMark(mark, 0, 0, portrait);
+      if (isPointMark(tool)) mark = moveMark(mark, 0, 0, portrait);
       drag.current = { pointer: e.pointerId, start: p, mark, moving: false };
       setSelected("");
       setPreview(mark);
@@ -477,6 +494,7 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
     boards,
     busy,
     canLeave,
+    close,
     color,
     commit,
     compact,

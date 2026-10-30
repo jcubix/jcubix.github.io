@@ -1,4 +1,10 @@
-import { boardColors, boardNoteLayout, type Mark } from "../whiteboard-model";
+import {
+  boardColors,
+  boardNoteLayout,
+  isEquipmentKind,
+  type Mark,
+} from "../whiteboard-model";
+import { EquipmentSymbol, PlayerSymbol } from "./symbols";
 import "../whiteboard.css";
 
 export function Ink({
@@ -13,17 +19,22 @@ export function Ink({
   const p = m.points[0],
     end = m.points.at(-1)!;
   const upright = portrait ? `rotate(-90 ${p.x} ${p.y})` : undefined;
+  if (isEquipmentKind(m.kind))
+    return (
+      <g
+        transform={`translate(${p.x} ${p.y})${portrait ? " rotate(-90) scale(1.2)" : ""}`}
+      >
+        <EquipmentSymbol kind={m.kind} color={m.color} />
+      </g>
+    );
   if (m.kind === "home" || m.kind === "away")
     return (
       <g transform={upright}>
-        <circle
-          cx={p.x}
-          cy={p.y}
-          r={portrait ? 28 : 22}
-          fill={m.kind === "home" ? "#d9e7ff" : "#ffd3da"}
-          stroke="#0b1220"
-          strokeWidth="3"
-        />
+        <g
+          transform={`translate(${p.x} ${p.y}) scale(${portrait ? 28 / 22 : 1})`}
+        >
+          <PlayerSymbol away={m.kind === "away"} />
+        </g>
         <text
           x={p.x}
           y={p.y}

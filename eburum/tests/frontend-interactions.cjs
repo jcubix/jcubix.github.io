@@ -901,6 +901,20 @@ test('Whiteboard validates untrusted documents and keeps moved marks in bounds',
  const moved=model.moveMark(mark,1000,-1000);assert.equal(moved.points[1].x,1000);assert.equal(moved.points[0].y,0);assert.equal(moved.points[1].x-moved.points[0].x,970);
  for(const document of [{background:'https://example.test/x',marks:[]},{background:'pitch',marks:[{...mark,points:[]}]},{background:'pitch',marks:[{...mark,points:[{x:Infinity,y:0},{x:1,y:1}]}]},{background:'pitch',marks:[mark,mark]},{background:'pitch',marks:Array.from({length:201},(_,i)=>({...mark,id:String(i)}))}])assert.throws(()=>model.validateBoard(document));
 });
+test('Training equipment validates as one-point marks, stays inside both field orientations and rejects malformed geometry',async t=>{
+ const {w}=await app(t);const model=w.EburumTests;
+ const sizes={disc:[32,13],cone:[24,30],pole:[12,40],mannequin:[24,40],ball:[23,23],hurdle:[36,24],ladder:[28,45],mini_goal:[44,28],hoop:[27,27]};
+ for(const [kind,[width,height]] of Object.entries(sizes)){
+  const mark={id:kind,kind,color:'#f4cf63',label:'',points:[{x:500,y:320}]};model.validateBoard({background:'pitch',marks:[mark]});
+  for(const portrait of [false,true])for(const delta of [-10000,10000]){
+   const point=model.moveMark(mark,delta,delta,portrait).points[0],scale=portrait?1.2:1,rx=(portrait?height:width)*scale,ry=(portrait?width:height)*scale;
+   assert.ok(point.x>=rx-.11&&point.x<=1000-rx+.11,kind);assert.ok(point.y>=ry-.11&&point.y<=640-ry+.11,kind);
+  }
+  assert.throws(()=>model.validateBoard({background:'pitch',marks:[{...mark,points:[{x:1,y:2},{x:3,y:4}]}]}));
+ }
+ assert.throws(()=>model.validateBoard({background:'pitch',marks:[{id:'bad',kind:'unknown',color:'#ffffff',label:'',points:[{x:1,y:2}]}]}));
+});
+
 test('Whiteboard preserves a failed save, retries the same ID and guards unsaved navigation',async t=>{
  const {w,$,clickText}=await whiteboard(t);clickText('Nuova lavagna');await until(()=>$('.wb-editor'));
  reactInput(w,$('.wb-fields input'),'Linea difensiva');await until(()=>$('.wb-fields input').value==='Linea difensiva');
