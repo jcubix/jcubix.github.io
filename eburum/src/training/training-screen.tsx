@@ -53,12 +53,12 @@ export function TrainingScreen({ runtime }: { runtime: Runtime }) {
         </div>
         {canPlanRole(runtime.state.team?.role || "") ? (
           <Button
-            className="sc-add"
+            className="sc-add page-add-action"
             aria-label="Nuovo allenamento"
             onClick={runtime.actions.newTraining}
           >
             <Plus />
-            <span className="sr-only">Allenamento</span>
+            <span className="page-add-label">Nuovo allenamento</span>
           </Button>
         ) : null}
       </div>
@@ -149,7 +149,7 @@ export function TrainingScreen({ runtime }: { runtime: Runtime }) {
           </div>
           {canTechnicalRole(runtime.state.team?.role || "") ? (
             <NavLink
-              className="utility-link training-whiteboard-link"
+              className="sc-secondary training-whiteboard-link"
               to={`/whiteboard?activity=${encodeURIComponent(current.id)}`}
             >
               <Presentation size={18} />

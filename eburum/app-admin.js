@@ -21,5 +21,5 @@ async function adminRequest(body) {
   return data;
 }
 
-function usersModal(){if(isAdmin())return ui.open('users',{}, {page:'more',detail:'tool:users'})} export {usersModal};
+function usersModal(){if(isAdmin())return ui.open('users',{}, {page:'users',detail:'tool:users',workspace:true})} export {usersModal};
 export { adminRequest };

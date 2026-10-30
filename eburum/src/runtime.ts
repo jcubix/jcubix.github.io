@@ -24,6 +24,9 @@ const pages = new Set<Page>([
   "register",
   "meetings",
   "more",
+  "users",
+  "expiries",
+  "discipline",
   "communications",
   "finance",
   "whiteboard",
@@ -49,6 +52,7 @@ export async function createRuntime(): Promise<Runtime> {
     error: "",
   };
   let firstReady = true;
+  let wasActual = false;
   let navigationGuard: (() => boolean | Promise<boolean>) | null = null;
   let navigationRevision = 0;
   const emit = (values: Partial<RuntimeSnapshot>) => {
@@ -62,6 +66,8 @@ export async function createRuntime(): Promise<Runtime> {
     }
     if (!core.canOperate() && state.trainingMode === "actual")
       state.trainingMode = "hub";
+    const leftActual = wasActual && state.trainingMode !== "actual";
+    wasActual = state.trainingMode === "actual";
     const session = state.trainingDraft?.id;
     if (
       detailRouter &&
@@ -74,7 +80,7 @@ export async function createRuntime(): Promise<Runtime> {
       detailRouter({ page: "training", key: "session:" + session });
     if (
       detailRouter &&
-      state.trainingMode !== "actual" &&
+      leftActual &&
       routeDetail(
         state.page,
         window.location.hash.split("?")[1] || "",
@@ -94,6 +100,7 @@ export async function createRuntime(): Promise<Runtime> {
     render,
     login: () => {
       firstReady = true;
+      wasActual = false;
       emit({
         status: "login",
         role: null,
@@ -157,7 +164,7 @@ export async function createRuntime(): Promise<Runtime> {
     if (!detail && !roots.length) return true;
     if (navigationGuard && !(await navigationGuard())) return false;
     if (
-      !(await dialogs.closeWorkspaceEditors()) ||
+      !(await dialogs.closeWorkspaceEditors({ restoreRoute: false })) ||
       revision !== navigationRevision ||
       !current()
     )
@@ -226,14 +233,14 @@ export async function createRuntime(): Promise<Runtime> {
       state.trainingDraft?.saving ||
       !(await canLeaveAttendance()) ||
       (navigationGuard && !(await navigationGuard())) ||
-      !(await dialogs.closeWorkspaceEditors())
+      !(await dialogs.closeWorkspaceEditors({ restoreRoute: false }))
     )
       return false;
     return current() && !state.trainingDraft?.saving;
   }
   const navigate = async (page: Page) => {
-    const revision = ++navigationRevision;
     if (page === state.page) return true;
+    const revision = ++navigationRevision;
     try {
       if (!(await canLeaveWorkspace()) || revision !== navigationRevision)
         return false;

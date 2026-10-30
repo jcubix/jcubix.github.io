@@ -1,13 +1,55 @@
 const {test,expect}=require('@playwright/test');
 const AxeBuilder=require('@axe-core/playwright').default;
 const fs=require('node:fs'),path=require('node:path');
-async function open(page,route,role='admin'){
+async function open(page,route,role='admin',query=''){
  await page.route(url=>url.origin==='http://127.0.0.1:4202'&&url.pathname==='/browser-entry',async r=>r.fulfill({response:await r.fetch({url:'http://127.0.0.1:4202/tests/fixtures/browser.html'})}));
  await page.route(url=>['http:','https:'].includes(url.protocol)&&url.origin!=='http://127.0.0.1:4202',r=>r.abort());
  await page.clock.setFixedTime(new Date('2026-10-25T12:00:00+01:00'));
- await page.goto('/browser-entry?role='+role+'#/'+route);
+ await page.goto('/browser-entry?role='+role+(query?'&'+query:'')+'#/'+route);
  await page.locator('.app-header').waitFor();await page.evaluate(()=>document.fonts.ready);
 }
+test('audit: canonical tools survive reload and legacy URLs without exposing Altro underneath',async({page},info)=>{
+ for(const [route,id] of [['users','usersTitle'],['expiries','expiryTitle'],['discipline','disciplineTitle']]){
+  await open(page,'more?tool='+route);await expect(page).toHaveURL(new RegExp('#/'+route+'$'));
+  await expect(page.locator('#workspaceEditor #'+id)).toBeVisible();await expect(page.locator('.sc-tools')).toHaveCount(0);
+  await page.reload();await expect(page.locator('#workspaceEditor #'+id)).toBeVisible();await expect(page.locator('#workspaceEditor .modal-head > button')).toBeInViewport();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+ }
+ await page.locator('.discipline-compact > summary').first().click();await expect(page.locator('.discipline-detail-body').first()).toBeVisible();
+ const cells=await page.locator('.discipline-compact > summary').first().evaluate(el=>[...el.children].map(e=>e.getBoundingClientRect().toJSON()));for(const cell of cells){expect(cell.x).toBeGreaterThanOrEqual(0);expect(cell.right).toBeLessThanOrEqual(page.viewportSize().width);}
+ const a11y=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(a11y.violations).toEqual([]);
+ await info.attach('compact-discipline',{body:await page.screenshot(),contentType:'image/png'});
+ await open(page,'more');await page.getByRole('button',{name:/Gestione utenti Accessi/}).click();await expect(page).toHaveURL(/#\/users$/);await page.goBack();await expect(page.locator('.sc-tools')).toBeVisible();await page.goForward();await expect(page.locator('#usersTitle')).toBeVisible();
+ await open(page,'users','treasurer');await expect(page.getByText('Sezione non disponibile per il tuo ruolo.')).toBeVisible();await expect(page.locator('#usersList')).toHaveCount(0);
+});
+test('audit: new training suggests an explicit duration and reserves only its action footer on mobile',async({page},info)=>{
+ await open(page,'training');await page.locator('[aria-label="Nuovo allenamento"]').click();await page.locator('#planningStart').fill('18:30');
+ await expect(page.locator('#planningEnd')).toHaveValue('');await page.getByRole('button',{name:'Imposta durata di 90 minuti'}).click();await expect(page.locator('#planningEnd')).toHaveValue('20:00');await expect(page.locator('.training-duration')).toContainText('90');
+ if(page.viewportSize().width<1024)await expect(page.locator('.app-mobile-nav')).toBeHidden();else await expect(page.locator('.app-mobile-nav')).toBeVisible();
+ const footer=await page.locator('#workspaceActions').boundingBox(),pane=await page.locator('#workspaceEditor').boundingBox();expect(pane.y+pane.height).toBeLessThanOrEqual(footer.y+1);
+ await info.attach('training-form',{body:await page.screenshot(),contentType:'image/png'});
+});
+test('audit: empty finance and match calendar show one useful creation action',async({page},info)=>{
+ await open(page,'finance','admin','empty=1');
+ await expect(page.locator('.finance-empty-page')).toBeVisible();await expect(page.locator('.finance-tabs,.finance-summary')).toHaveCount(0);await expect(page.getByRole('button',{name:'Aggiungi fondo',exact:true})).toHaveCount(1);
+ await info.attach('empty-finance',{body:await page.screenshot(),contentType:'image/png'});
+ await page.getByRole('button',{name:'Aggiungi fondo',exact:true}).click();await expect(page.locator('.finance-editor')).toBeVisible();
+ await open(page,'matches','admin','empty=1');await expect(page.locator('.sc-match-empty')).toContainText('Nessuna gara in programma');await page.getByRole('button',{name:'Aggiungi gara',exact:true}).click();await expect(page.locator('#activityName')).toBeVisible();await expect(page.locator('[data-activity-tab=roster]')).toHaveCount(0);await expect(page.locator('.activity-tabs')).toHaveCount(0);
+ const order=await page.locator('#activityForm input,#activityForm select').evaluateAll(els=>els.map(el=>el.id));expect(order.indexOf('activityName')).toBeLessThan(order.indexOf('activityVenue'));expect(order.indexOf('activityStart')).toBeLessThan(order.indexOf('activityVenue'));
+ await open(page,'communications','admin','empty=1');await expect(page.getByRole('button',{name:'Nuova comunicazione',exact:true})).toHaveCount(1);await expect(page.locator('.page-heading [aria-label="Nuova comunicazione"]')).toBeHidden();
+});
+test('audit: timeline precedes its collapsed event picker and user changes stay grouped',async({page},info)=>{
+ await open(page,'matches');await page.locator('.sc-match-preview').filter({hasText:'Squadra ospite'}).first().click();await page.locator('[data-activity-tab=results]').click();
+ const picker=page.locator('.match-event-picker');if(await page.locator('#matchEventList article').count())await expect(picker).not.toHaveAttribute('open','');
+ expect(await page.locator('#matchEventList').evaluate(el=>!!(el.compareDocumentPosition(document.querySelector('.match-event-picker'))&Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+ if((await picker.getAttribute('open'))===null)await picker.locator('summary').click();await page.locator('#addYellow').click();await expect(page.locator('button[data-event-type=Ammonizione]')).toHaveAttribute('aria-pressed','true');await page.locator('#close').click();
+ await open(page,'users');const edit=page.locator('.user-edit-menu').last();await expect(edit.locator('[data-user-email]')).toBeHidden();await edit.locator('summary').click();await expect(edit.locator('[data-user-email]')).toBeVisible();await expect(edit.locator('.user-danger-actions [data-user-delete]')).toBeVisible();await info.attach('user-actions',{body:await page.screenshot(),contentType:'image/png'});
+});
+test('audit: reports export after results, finance filters scroll and register returns to today',async({page})=>{
+ await open(page,'reports');await page.locator('#rp').selectOption('player-1');await expect(page.locator('#reportContent')).toBeVisible();expect(await page.locator('#reportContent').evaluate(el=>!!(el.compareDocumentPosition(document.querySelector('.report-export-actions'))&Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+ await open(page,'finance');await page.locator('.finance-tabs').waitFor();const tops=await page.locator('.finance-tabs>button').evaluateAll(els=>els.map(el=>Math.round(el.getBoundingClientRect().top)));expect(new Set(tops).size).toBe(1);
+ await open(page,'register?date=2026-09-01&month=2026-09');await page.locator('#calendarToday').click();await expect(page.locator('#registerDetail')).toHaveAttribute('data-selected','2026-10-25');await expect(page.locator('#calTitle')).toHaveText('ottobre 2026');await expect(page.locator('.calendar-legend')).toContainText('Giorno selezionato');
+});
 for(const route of ['dashboard','training','matches','communications','finance','reports'])test(route+' layout and WCAG checks',async({page},info)=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await open(page,route);
  const main=page.locator('#mainContent');await expect(main).not.toBeEmpty();
@@ -156,7 +198,7 @@ test('match notes are visible without opening a disclosure and save with the res
 test('availability keeps save and a reversible change counter in the reserved footer',async({page})=>{
  await open(page,'training');
  const bar=page.locator('.planning-save'),save=bar.locator('#savePlanning'),counter=bar.locator('#planningChanges');
- await expect(save).toBeVisible();await expect(save).toHaveText('Salva');await expect(save).toBeDisabled();await expect(counter).toBeHidden();
+ await expect(save).toBeHidden();await expect(save).toHaveText('Salva');await expect(save).toBeDisabled();await expect(counter).toBeHidden();
  expect(await page.locator('.sc-training-aside #savePlanning').count()).toBe(0);
  const reply=(player,value)=>page.locator(`[data-training-player="${player}"][data-training-reply="${value}"]`);
  await reply('player-1','Indisponibile').click();await expect(counter).toHaveText('1');await expect(counter).toHaveAccessibleName('1 modifica da salvare');await expect(save).toBeEnabled();
@@ -174,7 +216,7 @@ test('availability keeps save and a reversible change counter in the reserved fo
  await page.evaluate(()=>window.fixtureSaveError={message:'Connessione interrotta. Riprova.'});await save.click();await expect(bar.locator('#planningFeedback')).toContainText('Connessione interrotta');await expect(counter).toHaveText('1');await expect(save).toBeEnabled();expect(await bar.locator('#planningFeedback').evaluate(el=>getComputedStyle(el).position)).toBe('static');
  await page.evaluate(()=>delete window.fixtureSaveError);await save.click();await expect(save).toBeDisabled();await expect(counter).toBeHidden();
  expect(await page.evaluate(()=>fixtureData.activity_roster.find(r=>r.activity_id==='review-training'&&r.player_id==='player-1').availability)).toBe('Indisponibile');
- await page.locator('[data-training-phase=actual]').click();await expect(bar).toBeHidden();await page.locator('[data-training-phase=replies]').click();await expect(save).toBeVisible();
+ await page.locator('[data-training-phase=actual]').click();await expect(bar).toBeHidden();await page.locator('[data-training-phase=replies]').click();await expect(save).toBeHidden();await expect(page.locator('.planning-save-caption')).toHaveText('Nessuna modifica da salvare');
 });
 
 test('save footer reserves content space and availability icons are centered',async({page})=>{
@@ -250,8 +292,8 @@ test('React editors retain rounded controls, readable contrast and accessible fo
  await open(page,'matches');await page.locator('.sc-match-preview').filter({hasText:'Atletico Battipaglia 2018'}).click();await expect(page.locator('#activityForm')).toBeVisible();
  const check=async name=>{const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(result.violations,name).toEqual([]);const folder=path.resolve(__dirname,'../../output/react-review');fs.mkdirSync(folder,{recursive:true});await info.attach(name,{body:await page.screenshot({path:path.join(folder,info.project.name+'-'+name+'.png'),fullPage:true}),contentType:'image/png'});expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);};
  const saveBar=page.locator('#workspaceActions .workspace-save');await expect(saveBar).toBeVisible();
- const dock=await saveBar.evaluate(el=>({bar:el.getBoundingClientRect().toJSON(),nav:document.querySelector('.app-mobile-nav').getBoundingClientRect().toJSON()}));if(dock.nav.height>300)expect(dock.bar.x).toBeGreaterThanOrEqual(dock.nav.right);else expect(dock.bar.bottom).toBeLessThanOrEqual(dock.nav.top);expect(dock.bar.x).toBeGreaterThanOrEqual(0);expect(dock.bar.right).toBeLessThanOrEqual(page.viewportSize().width);
- await check('match-roster-react');await page.locator('[data-activity-tab=results]').click();const widths=await page.locator('.match-score-fields input').evaluateAll(inputs=>inputs.map(input=>input.getBoundingClientRect().width));expect(Math.abs(widths[0]-widths[1])).toBeLessThanOrEqual(1);expect(Math.min(...widths)).toBeGreaterThan(100);await page.locator('#addOpponentGoal').click();await check('event-react');await page.locator('#close').click();await page.locator('#closeActivity').click();
+ const dock=await saveBar.evaluate(el=>({bar:el.getBoundingClientRect().toJSON(),nav:document.querySelector('.app-mobile-nav').getBoundingClientRect().toJSON()}));if(dock.nav.height>300)expect(dock.bar.x).toBeGreaterThanOrEqual(dock.nav.right);else if(dock.nav.height>0)expect(dock.bar.bottom).toBeLessThanOrEqual(dock.nav.top);else expect(page.viewportSize().width).toBeLessThan(1024);expect(dock.bar.x).toBeGreaterThanOrEqual(0);expect(dock.bar.right).toBeLessThanOrEqual(page.viewportSize().width);
+ await check('match-roster-react');await page.locator('[data-activity-tab=results]').click();const widths=await page.locator('.match-score-fields input').evaluateAll(inputs=>inputs.map(input=>input.getBoundingClientRect().width));expect(Math.abs(widths[0]-widths[1])).toBeLessThanOrEqual(1);expect(Math.min(...widths)).toBeGreaterThan(100);if((await page.locator('.match-event-picker').getAttribute('open'))===null)await page.locator('.match-event-picker > summary').click();await page.locator('#addOpponentGoal').click();await check('event-react');await page.locator('#close').click();await page.locator('#closeActivity').click();
  await page.locator('.app-mobile-nav a[href="#/more"]').click();await page.locator('.sc-tool-list a[href="#/players"]').click();await page.locator('.player-directory-entry, .roster-table td button').first().click();await expect(page.locator('#playerSheetTitle')).toBeVisible();await check('player-react');await page.getByRole('button',{name:'Chiudi scheda',exact:true}).click();
  await page.locator('.header-settings > summary').click();await page.getByRole('button',{name:'Gestione utenti',exact:true}).click();await expect(page.locator('#usersTitle')).toBeVisible();await check('users-react');
  expect(errors).toEqual([]);
@@ -314,7 +356,7 @@ test('team report sorts, exports and links a player without losing the selected 
  await rossi.getByRole('link',{name:'Rossi Marco',exact:true}).click();await expect(page.locator('#reportPerson')).toContainText('Rossi Marco');await expect(page.locator('#rf')).toHaveValue('2026-10-01');await expect(page.locator('#rt')).toHaveValue('2026-10-12');
  await page.getByRole('navigation',{name:'Tipo di report'}).getByRole('link',{name:'Squadra',exact:true}).click();await expect(page.locator('#teamReportPeriod')).toHaveValue('custom');await expect(page.locator('[data-team-player]')).toHaveCount(30);
  await scroll.evaluate(el=>el.scrollLeft=0);const a11y=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(a11y.violations).toEqual([]);await info.attach('team-report',{body:await page.screenshot({fullPage:true}),contentType:'image/png'});
- await page.locator('#teamReportFrom').fill('2026-11-01');await expect(page.getByText(/Seleziona un intervallo valido/)).toBeVisible();await expect(page.getByRole('button',{name:'Esporta Excel',exact:true})).toBeDisabled();await expect(page.locator('[data-team-player]')).toHaveCount(0);
+ await page.locator('#teamReportFrom').fill('2026-11-01');await expect(page.getByText(/Seleziona un intervallo valido/)).toBeVisible();await expect(page.getByRole('button',{name:'Esporta Excel',exact:true,includeHidden:true})).toBeDisabled();await expect(page.locator('.report-export-actions')).toBeHidden();await expect(page.locator('[data-team-player]')).toHaveCount(0);
 });
 
 test('team Excel blocks duplicate exports and discards a file when its period changes during generation',async({page})=>{

@@ -99,5 +99,5 @@ function playerDiscipline(id) {
 }
 
 /** @param {string|null} playerId */
-function disciplineModal(playerId=null){return ui.open('discipline',{playerId},{page:playerId?'players':'more',detail:playerId?'discipline:'+playerId:'tool:discipline',workspace:!playerId})} export {disciplineModal};
+function disciplineModal(playerId=null){return ui.open('discipline',{playerId},{page:playerId?'players':'discipline',detail:playerId?'discipline:'+playerId:'tool:discipline',workspace:!playerId})} export {disciplineModal};
 export { disciplineSeason, playerDiscipline };

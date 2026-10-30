@@ -72,6 +72,30 @@ export function FinancePage(props: Parameters<typeof useFinance>[0]) {
         </NavLink>
       </div>
     );
+  if (!home && !draft && data && !data.accounts.length)
+    return (
+      <div className="sc-surface sc-finance finance-empty-page">
+        <PageHeading
+          title="Economia"
+          description="Crea il primo fondo per iniziare a registrare entrate e uscite."
+        />
+        {error || notice ? (
+          <p role="status" className="finance-feedback">
+            {error || notice}
+          </p>
+        ) : null}
+        {error ? (
+          <Button
+            variant="secondary"
+            disabled={busy || loading}
+            onClick={() => void reload()}
+          >
+            Riprova caricamento
+          </Button>
+        ) : null}
+        <FinanceFunds model={model} />
+      </div>
+    );
   return (
     <div className="sc-surface sc-finance">
       <PageHeading

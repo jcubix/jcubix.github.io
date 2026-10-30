@@ -176,7 +176,7 @@ test('Treasurer home opens economy and keeps existing sporting sections read onl
 for(const role of ['treasurer','president'])test('Office navigation replaces training and roster for '+role,async t=>{
  const {w,runtime,$}=await app(t,role,treasurySeed);
  const links=[...w.document.querySelectorAll('.app-mobile-nav a')];
- assert.deepEqual(links.map(a=>a.textContent),['Home','Messaggi','Economia','Partite','Altro']);
+ assert.deepEqual(links.map(a=>a.querySelector('span').textContent),['Home','Messaggi','Economia','Partite','Altro']);
  assert.equal($('.app-mobile-nav a[href="#/training"]'),null);assert.equal($('.app-mobile-nav a[href="#/players"]'),null);
  $('.app-mobile-nav a[href="#/communications"]').click();await until(()=>$('.app-mobile-nav a[href="#/communications"][aria-current=page]'));
  assert.equal(w.document.querySelectorAll('.app-mobile-nav a[aria-current=page]').length,1);
@@ -373,22 +373,21 @@ for (const [role, manage, operate] of [
 ]) {
   test("React native actions respect " + role + " permissions", async (t) => {
     const { w, runtime, $ } = await app(t, role);
-    const text = () => w.document.querySelector("#mainContent").textContent;
     assert.equal(!!$('[aria-label="Gestione utenti"]'), role === "admin");
     assert.equal(
       [...w.document.querySelectorAll("button")].some(
-        (b) => b.textContent.trim() === "Partita",
+        (b) => b.getAttribute("aria-label") === "Nuova partita",
       ),
       operate,
     );
     await runtime.navigate("players");
     await until(() => $(".native-player"));
-    assert.equal(text().includes("Giocatore"), manage);
+    assert.equal(!!$('[aria-label="Nuovo giocatore"]'), manage);
     await runtime.navigate("training");
     await until(() => $(".training-scope"));
     assert.equal(
       [...w.document.querySelectorAll("button")].some(
-        (b) => b.textContent.trim() === "Allenamento",
+        (b) => b.getAttribute("aria-label") === "Nuovo allenamento",
       ),
       operate,
     );
@@ -559,7 +558,7 @@ test("Workspace editors protect unsaved replies and preserve the React navigatio
 test("Contextual yellow action edits inline and protects unsaved event navigation",async t=>{
  const {w,runtime,$,clickText}=await app(t);$(".sc-match-preview").click();await until(()=>$("#addYellow"));
  assert.ok($("#workspaceEditor #activityForm"));$("[data-activity-tab=results]").click();$("#addYellow").click();await until(()=>$("#eventForm"));
- assert.equal($("[data-event-type=Ammonizione]").getAttribute("aria-pressed"),"true");assert.ok($("#workspaceEditor .inline-match-event"));assert.equal($("#app").hasAttribute("inert"),false);eventValue(w,$("#eventMinute"),"71");w.confirm=()=>false;assert.equal(await runtime.navigate("players"),false);w.confirm=()=>true;
+ assert.equal($("button[data-event-type=Ammonizione]").getAttribute("aria-pressed"),"true");assert.ok($("#workspaceEditor .inline-match-event"));assert.equal($("#app").hasAttribute("inert"),false);eventValue(w,$("#eventMinute"),"71");w.confirm=()=>false;assert.equal(await runtime.navigate("players"),false);w.confirm=()=>true;
  $("#close").click();await until(()=>!$("#eventForm"));assert.equal($("#app").hasAttribute("inert"),false);assert.ok($("#workspaceEditor #activityForm"));assert.equal($(".match-workspace").dataset.dirty,"false");assert.equal($("#matchGoalsFor").matches(":disabled"),false);
 });
 
@@ -721,7 +720,7 @@ test('Navigation highlights stay unique across page changes and do not create in
  assert.equal(w.document.querySelectorAll('.app-mobile-nav .club-nav-highlight').length,1);
  assert.equal($('.app-mobile-nav .club-nav-highlight'),marker);
  assert.equal(w.document.querySelectorAll('.app-mobile-nav a[aria-current=page]').length,1);
- await runtime.navigate('finance');await until(()=>$('.finance-tabs .club-nav-highlight'));
+ await runtime.navigate('finance');await until(()=>$('.finance-empty-page'));assert.equal($('.finance-tabs'),null);
  await runtime.navigate('more');await until(()=>$('.sc-tools-list')||!$('.finance-tabs'));
  assert.equal($('.finance-tabs .club-nav-highlight'),null);
 });
@@ -1081,6 +1080,7 @@ test('Operational report drills keep four observed dates newest-first across pla
   data.match_events=data.matches.flatMap((m,i)=>['player-1','player-2'].map(player_id=>({id:'chronology-goal-'+i+player_id,user_id:'demo-user',match_id:m.id,player_id,event_type:'Gol',minute:10,created_at:m.match_date+'T12:00:00Z'})));
  });
  await runtime.navigate('reports');await until(()=>$('#rp'));
+ $('#reportPeriod').value='all';$('#reportPeriod').dispatchEvent(new w.Event('change',{bubbles:true}));await until(()=>runtime.state.reportView?.period==='all');
  const choose=async id=>{$('#rp').value=id;$('#rp').dispatchEvent(new w.Event('change',{bubbles:true}));await until(()=>new URLSearchParams(w.location.hash.split('?')[1]).get('player')===id&&runtime.state.reportView?.player===id&&!$('#reportLoading')&&$('[data-report-detail=present] b')?.textContent==='4')};
  const expectDates=async(key,expected)=>{
   $('[data-report-detail="'+key+'"]').click();await until(()=>$('#reportDetailTitle'));

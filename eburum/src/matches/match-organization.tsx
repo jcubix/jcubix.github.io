@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import { fmt } from "../../app-part1.js";
 import { dismissalAlert } from "../../app-dismissals.js";
 import { callupMessage } from "../../app-operations.js";
 import { Button } from "../components/ui/button";
@@ -44,8 +45,9 @@ export function MatchOrganization({
       <fieldset disabled={editor.busy}>
         <section
           id="match-panel-details"
-          role="tabpanel"
-          aria-labelledby="match-tab-details"
+          role={a.id ? "tabpanel" : undefined}
+          aria-labelledby={a.id ? "match-tab-details" : undefined}
+          aria-label={a.id ? undefined : "Organizzazione"}
           data-activity-panel="details"
           hidden={tab !== "details"}
         >
@@ -57,6 +59,7 @@ export function MatchOrganization({
                   ["activity_date", "Data", "date", "activityDate"],
                   ["start_time", "Inizio", "time", "activityStart"],
                   ["end_time", "Fine", "time", "activityEnd"],
+                  ["venue", "Dove si gioca", "select", "activityVenue"],
                   ["location", "Campo / luogo", "text", "activityLocation"],
                   [
                     "meeting_time",
@@ -73,40 +76,44 @@ export function MatchOrganization({
                 ] as const
               ).map(([key, label, type, id]) => (
                 <Field id={id} label={label} key={key}>
-                  <input
-                    id={id}
-                    type={type}
-                    required={key === "title" || key === "activity_date"}
-                    maxLength={
-                      key === "location" || key === "meeting_place" ? 500 : 160
-                    }
-                    value={v.activity[key]}
-                    onChange={(e) =>
-                      editor.setValue({
-                        ...v,
-                        activity: { ...v.activity, [key]: e.target.value },
-                      })
-                    }
-                  />
+                  {key === "venue" ? (
+                    <select
+                      id={id}
+                      value={v.activity.venue}
+                      onChange={(e) =>
+                        editor.setValue({
+                          ...v,
+                          activity: { ...v.activity, venue: e.target.value },
+                        })
+                      }
+                    >
+                      <option>Casa</option>
+                      <option>Trasferta</option>
+                    </select>
+                  ) : (
+                    <input
+                      id={id}
+                      type={type}
+                      required={key === "title" || key === "activity_date"}
+                      maxLength={
+                        key === "location" || key === "meeting_place"
+                          ? 500
+                          : 160
+                      }
+                      value={v.activity[key]}
+                      onChange={(e) =>
+                        editor.setValue({
+                          ...v,
+                          activity: { ...v.activity, [key]: e.target.value },
+                        })
+                      }
+                    />
+                  )}
+                  {key === "activity_date" && v.activity.activity_date ? (
+                    <small>{fmt(v.activity.activity_date)}</small>
+                  ) : null}
                 </Field>
               ))}
-              {a.id ? (
-                <Field id="activityVenue" label="Dove si gioca">
-                  <select
-                    id="activityVenue"
-                    value={v.activity.venue}
-                    onChange={(e) =>
-                      editor.setValue({
-                        ...v,
-                        activity: { ...v.activity, venue: e.target.value },
-                      })
-                    }
-                  >
-                    <option>Casa</option>
-                    <option>Trasferta</option>
-                  </select>
-                </Field>
-              ) : null}{" "}
               {a.id ? (
                 <Field id="activityState" label="Stato">
                   <select

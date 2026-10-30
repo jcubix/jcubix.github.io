@@ -365,11 +365,13 @@ export function useMatchEditor({
     setSelected(null);
     setTab(next);
   };
-  const tabs = [
-      ...(a.match_id ? [["results", "Gara"]] : []),
-      ["roster", "Convocati"],
-      ["details", "Impostazioni"],
-    ],
+  const tabs = a.match_id
+      ? [
+          ["results", "Gara"],
+          ["roster", "Convocati"],
+          ["details", "Impostazioni"],
+        ]
+      : [["details", "Organizzazione"]],
     called = v.rows.filter((r) => r.called),
     starters = called.filter((r) => r.lineup === "Titolare");
 

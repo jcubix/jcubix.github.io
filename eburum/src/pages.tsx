@@ -122,7 +122,14 @@ export function MatchesPage({ runtime }: { runtime: Runtime }) {
             {away ? match.opponent : "Eburum"}
           </span>
           {outcome ? (
-            <strong className="match-goals">
+            <strong
+              className="match-goals"
+              data-winner={
+                away
+                  ? Number(match.goals_against) > Number(match.goals_for)
+                  : Number(match.goals_for) > Number(match.goals_against)
+              }
+            >
               {away ? match.goals_against : match.goals_for}
             </strong>
           ) : (
@@ -139,7 +146,14 @@ export function MatchesPage({ runtime }: { runtime: Runtime }) {
             {away ? "Eburum" : match.opponent}
           </span>
           {outcome ? (
-            <strong className="match-goals">
+            <strong
+              className="match-goals"
+              data-winner={
+                away
+                  ? Number(match.goals_for) > Number(match.goals_against)
+                  : Number(match.goals_against) > Number(match.goals_for)
+              }
+            >
               {away ? match.goals_for : match.goals_against}
             </strong>
           ) : null}
@@ -161,12 +175,12 @@ export function MatchesPage({ runtime }: { runtime: Runtime }) {
     <div className="sc-surface">
       <PageHeading
         title="Partite"
-        description="Dalla distinta al fischio finale."
+        description={`${upcoming.length} in programma · ${results.length} risultati registrati`}
       >
         {canPlan(runtime) ? (
           <Button onClick={runtime.actions.newMatch} aria-label="Nuova partita">
             <Plus />
-            <span className="page-add-label">Partita</span>
+            <span className="page-add-label">Nuova gara</span>
           </Button>
         ) : null}
       </PageHeading>
@@ -189,7 +203,9 @@ export function MatchesPage({ runtime }: { runtime: Runtime }) {
       </div>
       {results.length ? (
         <div className="recent-form" aria-label="Ultime cinque partite">
-          <span>Forma recente</span>
+          <span>
+            Forma recente <small>Dalla più vecchia alla più recente</small>
+          </span>
           {results
             .slice(0, 5)
             .reverse()
@@ -217,7 +233,16 @@ export function MatchesPage({ runtime }: { runtime: Runtime }) {
             </details>
           ) : null}
         </section>
-      ) : null}
+      ) : (
+        <div className="sc-match-empty">
+          <p>Nessuna gara in programma</p>
+          {canPlan(runtime) ? (
+            <Button variant="secondary" onClick={runtime.actions.newMatch}>
+              Aggiungi gara
+            </Button>
+          ) : null}
+        </div>
+      )}
       {incomplete.length ? (
         <section>
           <div className="sc-section-heading">
@@ -413,14 +438,17 @@ export function PlayersPage({ runtime }: { runtime: Runtime }) {
     );
   return (
     <div className="sc-surface">
-      <PageHeading title="Rosa" description="Le persone, prima dei numeri.">
+      <PageHeading
+        title="Rosa"
+        description={`${runtime.state.players.filter((p) => p.active).length} giocatori attivi · raggruppati per ruolo o cognome`}
+      >
         {canManage(runtime) ? (
           <Button
             onClick={() => runtime.actions.editPlayer()}
             aria-label="Nuovo giocatore"
           >
             <Plus />
-            <span className="page-add-label">Giocatore</span>
+            <span className="page-add-label">Nuovo giocatore</span>
           </Button>
         ) : null}
       </PageHeading>

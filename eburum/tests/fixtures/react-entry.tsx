@@ -10,7 +10,7 @@ export async function mount({confirmations="native"}:{confirmations?:"native"|"r
   const runtime = await createRuntime();
   const root = createRoot(document.getElementById("app")!);
   flushSync(()=>root.render(
-    <HashRouter>
+    <HashRouter useTransitions={false}>
       <App runtime={runtime} />
     </HashRouter>,
   ));

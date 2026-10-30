@@ -80,9 +80,9 @@ export const ui = {
       detailPresenter?.(null);
     return true;
   },
-  async closeAll() {
+  async closeAll(options: { restoreRoute?: boolean } = {}) {
     for (const surface of [...snapshot.surfaces].reverse())
-      if (!(await ui.close(surface.id))) return false;
+      if (!(await ui.close(surface.id, false, options))) return false;
     return true;
   },
   reset() {

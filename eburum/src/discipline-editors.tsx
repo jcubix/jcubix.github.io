@@ -255,130 +255,155 @@ export function Discipline({
           const d = playerDiscipline(p.id),
             redOnly = filter === "reds";
           return (
-            <article className="discipline-card" key={p.id}>
-              <h3>
-                {p.surname} {p.name}
-              </h3>
-              <p className="row-sub">
-                {p.role}
-                {p.active ? "" : " · Inattivo"}
-              </p>
-              <div
-                className="discipline-totals"
-                aria-label={
-                  redOnly ? "Espulsioni visibili" : "Cartellini della stagione"
-                }
-              >
-                {redOnly ? null : (
+            <details
+              className="discipline-card discipline-compact"
+              key={p.id}
+              open={!!playerId || redOnly}
+            >
+              <summary>
+                <strong>
+                  {p.surname} {p.name}
+                </strong>
+                <span>
+                  {d.total} {d.total === 1 ? "giallo" : "gialli"}
+                </span>
+                <span>
+                  {redOnly ? d.dismissals.length : d.reds}{" "}
+                  {(redOnly ? d.dismissals.length : d.reds) === 1
+                    ? "rosso"
+                    : "rossi"}
+                </span>
+                <span title="Ammonizioni verso la prossima soglia">
+                  {d.current}/5
+                </span>
+              </summary>
+              <article className="discipline-detail-body">
+                <h3>
+                  {p.surname} {p.name}
+                </h3>
+                <p className="row-sub">
+                  {p.role}
+                  {p.active ? "" : " · Inattivo"}
+                </p>
+                <div
+                  className="discipline-totals"
+                  aria-label={
+                    redOnly
+                      ? "Espulsioni visibili"
+                      : "Cartellini della stagione"
+                  }
+                >
+                  {redOnly ? null : (
+                    <div className="discipline-total">
+                      <span className="discipline-symbol discipline-symbol-yellow">
+                        <RectangleVertical size={20} />
+                      </span>
+                      <strong>{d.total}</strong>
+                      <span>{d.total === 1 ? "Giallo" : "Gialli"}</span>
+                    </div>
+                  )}
                   <div className="discipline-total">
-                    <span className="discipline-symbol discipline-symbol-yellow">
+                    <span className="discipline-symbol discipline-symbol-red">
                       <RectangleVertical size={20} />
                     </span>
-                    <strong>{d.total}</strong>
-                    <span>{d.total === 1 ? "Giallo" : "Gialli"}</span>
+                    <strong>{redOnly ? d.dismissals.length : d.reds}</strong>
+                    <span>
+                      {(redOnly ? d.dismissals.length : d.reds) === 1
+                        ? "Rosso"
+                        : "Rossi"}
+                    </span>
                   </div>
-                )}
-                <div className="discipline-total">
-                  <span className="discipline-symbol discipline-symbol-red">
-                    <RectangleVertical size={20} />
-                  </span>
-                  <strong>{redOnly ? d.dismissals.length : d.reds}</strong>
-                  <span>
-                    {(redOnly ? d.dismissals.length : d.reds) === 1
-                      ? "Rosso"
-                      : "Rossi"}
-                  </span>
                 </div>
-              </div>
-              {!redOnly && (d.total || d.confirmed.length) ? (
-                <section className="discipline-yellows">
-                  <h4>Ammonizioni e diffide</h4>
-                  <div
-                    className="discipline-progress"
-                    role="img"
-                    aria-label={`${d.current} ammonizioni su 5 verso la prossima soglia`}
-                  >
-                    {Array.from({ length: 5 }, (_, i) => (
-                      <span
-                        key={i}
-                        className={i < d.current ? "filled" : ""}
-                        aria-hidden="true"
-                      />
-                    ))}
-                  </div>
-                  <p className="row-sub">
-                    {d.current}/5 verso la prossima soglia
-                    {d.diffida ? " · Diffida: manca un giallo" : ""}
-                  </p>
-                  {d.pending.map((e) => (
-                    <div className="row" key={e.id}>
-                      <span>
-                        Soglia raggiunta il{" "}
-                        {fmt(d.matches.get(e.match_id)?.match_date)}
-                      </span>
-                      {canOperateRole(runtime.state.team?.role || "") ? (
-                        <Button
-                          variant="secondary"
-                          data-clearance={e.id}
-                          data-clearance-event={e.id}
-                          data-clearance-player={p.id}
-                          onClick={() =>
-                            ui.open("yellow-clearance", {
-                              playerId: p.id,
-                              eventId: e.id,
-                            })
-                          }
-                        >
-                          Conferma gara scontata
-                        </Button>
-                      ) : null}
+                {!redOnly && (d.total || d.confirmed.length) ? (
+                  <section className="discipline-yellows">
+                    <h4>Ammonizioni e diffide</h4>
+                    <div
+                      className="discipline-progress"
+                      role="img"
+                      aria-label={`${d.current} ammonizioni su 5 verso la prossima soglia`}
+                    >
+                      {Array.from({ length: 5 }, (_, i) => (
+                        <span
+                          key={i}
+                          className={i < d.current ? "filled" : ""}
+                          aria-hidden="true"
+                        />
+                      ))}
                     </div>
-                  ))}
-                  {d.confirmed.map((c) => (
-                    <div className="row" key={c.id}>
-                      <span>
-                        {d.valid.includes(c)
-                          ? "Gara scontata"
-                          : "Conferma da verificare"}{" "}
-                        ·{" "}
-                        {d.matches.get(c.served_match_id)?.opponent ||
-                          "Gara registrata"}
-                      </span>
-                      {canOperateRole(runtime.state.team?.role || "") ? (
-                        <YellowUndo runtime={runtime} id={c.id} />
-                      ) : null}
-                    </div>
-                  ))}
-                </section>
-              ) : null}
-              <DismissalRecords runtime={runtime} playerId={p.id} />
-              {!redOnly && d.events.length ? (
-                <details className="discipline-history">
-                  <summary>Storico cartellini ({d.events.length})</summary>
-                  {d.events.map((e) => (
-                    <div className="discipline-event" key={e.id}>
-                      <span
-                        className={`badge ${e.event_type === "Espulsione" ? "b-red" : "b-yellow"}`}
-                      >
-                        {e.event_type}
-                      </span>
-                      <div>
-                        <b>
-                          {fmt(d.matches.get(e.match_id)?.match_date)} ·{" "}
-                          {d.matches.get(e.match_id)?.opponent}
-                        </b>
-                        <p>
-                          {e.minute == null
-                            ? "Minuto non indicato"
-                            : e.minute + "′"}
-                          {e.detail ? " · " + e.detail : ""}
-                        </p>
+                    <p className="row-sub">
+                      {d.current}/5 verso la prossima soglia
+                      {d.diffida ? " · Diffida: manca un giallo" : ""}
+                    </p>
+                    {d.pending.map((e) => (
+                      <div className="row" key={e.id}>
+                        <span>
+                          Soglia raggiunta il{" "}
+                          {fmt(d.matches.get(e.match_id)?.match_date)}
+                        </span>
+                        {canOperateRole(runtime.state.team?.role || "") ? (
+                          <Button
+                            variant="secondary"
+                            data-clearance={e.id}
+                            data-clearance-event={e.id}
+                            data-clearance-player={p.id}
+                            onClick={() =>
+                              ui.open("yellow-clearance", {
+                                playerId: p.id,
+                                eventId: e.id,
+                              })
+                            }
+                          >
+                            Conferma gara scontata
+                          </Button>
+                        ) : null}
                       </div>
-                    </div>
-                  ))}
-                </details>
-              ) : null}
-            </article>
+                    ))}
+                    {d.confirmed.map((c) => (
+                      <div className="row" key={c.id}>
+                        <span>
+                          {d.valid.includes(c)
+                            ? "Gara scontata"
+                            : "Conferma da verificare"}{" "}
+                          ·{" "}
+                          {d.matches.get(c.served_match_id)?.opponent ||
+                            "Gara registrata"}
+                        </span>
+                        {canOperateRole(runtime.state.team?.role || "") ? (
+                          <YellowUndo runtime={runtime} id={c.id} />
+                        ) : null}
+                      </div>
+                    ))}
+                  </section>
+                ) : null}
+                <DismissalRecords runtime={runtime} playerId={p.id} />
+                {!redOnly && d.events.length ? (
+                  <details className="discipline-history">
+                    <summary>Storico cartellini ({d.events.length})</summary>
+                    {d.events.map((e) => (
+                      <div className="discipline-event" key={e.id}>
+                        <span
+                          className={`badge ${e.event_type === "Espulsione" ? "b-red" : "b-yellow"}`}
+                        >
+                          {e.event_type}
+                        </span>
+                        <div>
+                          <b>
+                            {fmt(d.matches.get(e.match_id)?.match_date)} ·{" "}
+                            {d.matches.get(e.match_id)?.opponent}
+                          </b>
+                          <p>
+                            {e.minute == null
+                              ? "Minuto non indicato"
+                              : e.minute + "′"}
+                            {e.detail ? " · " + e.detail : ""}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </details>
+                ) : null}
+              </article>
+            </details>
           );
         })}
       </div>
