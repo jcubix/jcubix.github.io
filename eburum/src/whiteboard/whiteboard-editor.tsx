@@ -13,12 +13,14 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import {
   boardColors,
+  boardEquipment,
   boardPhoto,
   isEquipmentKind,
   moveMark,
 } from "../whiteboard-model";
 import "../whiteboard.css";
 import { Ink } from "./ink";
+import { EquipmentSize } from "./equipment-size";
 import { colorNames, date, markLabel, tools } from "./model";
 import { Pitch } from "./pitch";
 import { PlacementTools } from "./placement-tools";
@@ -43,6 +45,7 @@ export function WhiteboardEditor({
     doc,
     drag,
     exportPng,
+    equipmentScale,
     finishPointer,
     history,
     label,
@@ -53,6 +56,7 @@ export function WhiteboardEditor({
     pointerMove,
     portrait,
     removeSelected,
+    resizeEquipment,
     run,
     save,
     selected,
@@ -77,6 +81,9 @@ export function WhiteboardEditor({
     undo,
   } = model;
   if (!board) return null;
+  const selectedMark = doc.marks.find((m) => m.id === selected);
+  const equipment =
+    selectedMark && isEquipmentKind(selectedMark.kind) ? selectedMark : null;
   return (
     <section className="wb-editor" aria-label="Editor lavagna">
       <details
@@ -185,7 +192,10 @@ export function WhiteboardEditor({
               setError("");
             }}
           />
-          <div className="wb-options">
+          <div
+            className="wb-options"
+            data-sizing={tool === "select" || isEquipmentKind(tool)}
+          >
             {tool !== "home" && tool !== "away" ? (
               <div
                 className="wb-colors"
@@ -206,7 +216,19 @@ export function WhiteboardEditor({
                 ))}
               </div>
             ) : null}
-            {["text", "home", "away"].includes(tool) ? (
+            {equipment || isEquipmentKind(tool) ? (
+              <EquipmentSize
+                key={equipment?.id || tool}
+                value={equipment?.scale ?? (equipment ? 1 : equipmentScale)}
+                label={
+                  equipment
+                    ? `Dimensione · ${boardEquipment[equipment.kind as keyof typeof boardEquipment].label}`
+                    : "Dimensione nuovi attrezzi"
+                }
+                busy={busy}
+                onChange={resizeEquipment}
+              />
+            ) : ["text", "home", "away"].includes(tool) ? (
               <label className="wb-label">
                 {tool === "text"
                   ? "Testo della nota"
@@ -225,19 +247,17 @@ export function WhiteboardEditor({
               </label>
             ) : (
               <p className="sc-helper">
-                {isEquipmentKind(tool)
-                  ? "Tocca il campo per posizionare l’attrezzo. Ripeti per aggiungerne altri."
-                  : compact
-                    ? tool === "pan"
-                      ? "Scorri: muovi la pagina."
-                      : tool === "select"
-                        ? "Sposta: trascina gli elementi."
-                        : "Trascina sul campo per disegnare."
-                    : tool === "pan"
-                      ? "Scorri sul campo per muoverti nella pagina. Scegli uno strumento per disegnare."
-                      : tool === "select"
-                        ? "Trascina pedine e annotazioni. Per muoverti nella pagina scegli Scorri."
-                        : "Trascina sul campo per disegnare. Il rosso aiuta a evidenziare gli errori."}
+                {compact
+                  ? tool === "pan"
+                    ? "Scorri: muovi la pagina."
+                    : tool === "select"
+                      ? "Sposta: trascina gli elementi."
+                      : "Trascina sul campo per disegnare."
+                  : tool === "pan"
+                    ? "Scorri sul campo per muoverti nella pagina. Scegli uno strumento per disegnare."
+                    : tool === "select"
+                      ? "Trascina pedine e annotazioni. Per muoverti nella pagina scegli Scorri."
+                      : "Trascina sul campo per disegnare. Il rosso aiuta a evidenziare gli errori."}
               </p>
             )}
           </div>

@@ -56,6 +56,7 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
     [label, setLabel] = useState("");
   const [selected, setSelected] = useState(""),
     [preview, setPreview] = useState<Mark | null>(null);
+  const [equipmentScale, setEquipmentScale] = useState(0.6);
   const [busy, setBusy] = useState(false),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(""),
@@ -98,14 +99,14 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
     (snapshot.background !== baseline.current?.background ||
       snapshot.content !== baseline.current?.content);
   const current = useCallback(() => alive.current && api.current(), [api]);
-  const commit = (next: BoardDocument) => {
+  const commit = (next: BoardDocument, coalesce = false) => {
     if (
       next.background === snapshot.background &&
       fingerprint(title, activity, next).content === snapshot.content
     )
       return;
     setHistory((h) => ({
-      past: [...h.past.slice(-39), h.doc],
+      past: coalesce ? h.past : [...h.past.slice(-39), h.doc],
       doc: next,
       future: [],
     }));
@@ -351,6 +352,17 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
     commit({ ...doc, marks: doc.marks.filter((m) => m.id !== selected) });
     setSelected("");
   };
+  const resizeEquipment = (scale: number, coalesce = false) => {
+    if (busy || !Number.isFinite(scale) || scale < 0.25 || scale > 2) return;
+    setEquipmentScale(scale);
+    const mark = doc.marks.find((m) => m.id === selected);
+    if (!mark || !isEquipmentKind(mark.kind)) return;
+    const resized = moveMark({ ...mark, scale }, 0, 0, portrait);
+    commit(
+      { ...doc, marks: doc.marks.map((m) => (m.id === mark.id ? resized : m)) },
+      coalesce,
+    );
+  };
   const point = (e: PointerEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     return boardViewPoint(
@@ -390,6 +402,7 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
         kind: tool,
         color,
         points: [p],
+        ...(isEquipmentKind(tool) ? { scale: equipmentScale } : {}),
         label: isEquipmentKind(tool)
           ? ""
           : tool === "text"
@@ -505,6 +518,7 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
     drag,
     error,
     exportPng,
+    equipmentScale,
     finishPointer,
     hasMore,
     history,
@@ -523,6 +537,7 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
     pointerMove,
     portrait,
     removeSelected,
+    resizeEquipment,
     role,
     run,
     save,

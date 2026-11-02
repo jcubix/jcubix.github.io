@@ -170,6 +170,39 @@
     flex: 1;
     max-width: 480px;
   }
+  .wb-size {
+    flex: 1;
+    min-width: 180px;
+    max-width: 480px;
+  }
+  .wb-size > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .wb-size output {
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .wb-size input {
+    width: 100%;
+    min-height: 44px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-control);
+    background: transparent;
+    accent-color: var(--color-primary);
+    cursor: pointer;
+    touch-action: pan-y;
+  }
+  .wb-size input:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
   .wb-stage {
     overflow: hidden;
     border-radius: 16px;
@@ -312,8 +345,18 @@
     .wb-options .sc-helper {
       font-size: 13px;
     }
+    /* Selection must not move the field between pointerdown and pointerup. */
+    .wb-options[data-sizing="true"] {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: 52px 64px;
+    }
+    .wb-options[data-sizing="true"] .wb-colors {
+      justify-self: start;
+    }
     .wb-options > p,
-    .wb-label {
+    .wb-label,
+    .wb-size {
       flex-basis: 100%;
     }
     .wb-toolbar button span,

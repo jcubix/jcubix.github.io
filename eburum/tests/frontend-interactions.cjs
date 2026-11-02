@@ -906,12 +906,15 @@ test('Training equipment validates as one-point marks, stays inside both field o
  const sizes={disc:[32,13],cone:[24,30],pole:[12,40],mannequin:[24,40],ball:[23,23],hurdle:[36,24],ladder:[28,45],mini_goal:[44,28],hoop:[27,27]};
  for(const [kind,[width,height]] of Object.entries(sizes)){
   const mark={id:kind,kind,color:'#f4cf63',label:'',points:[{x:500,y:320}]};model.validateBoard({background:'pitch',marks:[mark]});
-  for(const portrait of [false,true])for(const delta of [-10000,10000]){
-   const point=model.moveMark(mark,delta,delta,portrait).points[0],scale=portrait?1.2:1,rx=(portrait?height:width)*scale,ry=(portrait?width:height)*scale;
+  for(const size of [undefined,.25,.6,1,2])for(const portrait of [false,true])for(const delta of [-10000,10000]){
+   const sized={...mark,...(size===undefined?{}:{scale:size})};model.validateBoard({background:'pitch',marks:[sized]});
+   const point=model.moveMark(sized,delta,delta,portrait).points[0],scale=(portrait?1.2:1)*(size??1),rx=(portrait?height:width)*scale,ry=(portrait?width:height)*scale;
    assert.ok(point.x>=rx-.11&&point.x<=1000-rx+.11,kind);assert.ok(point.y>=ry-.11&&point.y<=640-ry+.11,kind);
   }
   assert.throws(()=>model.validateBoard({background:'pitch',marks:[{...mark,points:[{x:1,y:2},{x:3,y:4}]}]}));
+  for(const scale of [0,.24,2.01,Infinity,NaN,null,'1',{},true])assert.throws(()=>model.validateBoard({background:'pitch',marks:[{...mark,scale}]}));
  }
+ assert.throws(()=>model.validateBoard({background:'pitch',marks:[{id:'player',kind:'home',color:'#ffffff',label:'7',scale:.6,points:[{x:1,y:2}]}]}));
  assert.throws(()=>model.validateBoard({background:'pitch',marks:[{id:'bad',kind:'unknown',color:'#ffffff',label:'',points:[{x:1,y:2}]}]}));
 });
 
