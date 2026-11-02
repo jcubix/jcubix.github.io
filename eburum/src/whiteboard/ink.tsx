@@ -22,7 +22,7 @@ export function Ink({
   if (isEquipmentKind(m.kind))
     return (
       <g
-        transform={`translate(${p.x} ${p.y})${portrait ? " rotate(-90) scale(1.2)" : ""}`}
+        transform={`translate(${p.x} ${p.y})${portrait ? " rotate(-90)" : ""} scale(${(portrait ? 1.2 : 1) * (m.scale ?? 1)})`}
       >
         <EquipmentSymbol kind={m.kind} color={m.color} />
       </g>

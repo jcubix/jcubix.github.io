@@ -29,6 +29,7 @@ export type Mark = {
   color: string;
   points: Point[];
   label: string;
+  scale?: number;
 };
 export type BoardDocument = { background: string; marks: Mark[] };
 export type BoardSummary = {
@@ -96,7 +97,7 @@ export function moveMark(
   const equipment = isEquipmentKind(mark.kind)
     ? boardEquipment[mark.kind]
     : null;
-  const scale = portrait ? 1.2 : 1;
+  const scale = (portrait ? 1.2 : 1) * (mark.scale ?? 1);
   let [left, right, top, bottom] = token
     ? [radius, radius, radius, radius]
     : mark.kind === "text"
@@ -150,6 +151,11 @@ export function validateBoard(value: unknown): asserts value is BoardDocument {
       !(boardColors as readonly string[]).includes(m.color) ||
       typeof m.label !== "string" ||
       m.label.length > 80 ||
+      (m.scale !== undefined &&
+        (!isEquipmentKind(m.kind) ||
+          !Number.isFinite(m.scale) ||
+          m.scale < 0.25 ||
+          m.scale > 2)) ||
       !Array.isArray(m.points) ||
       m.points.length < 1 ||
       m.points.length > 600 ||
