@@ -595,7 +595,7 @@ test("Collaborator records replies and observations without planning or lineup c
  $('#activityForm').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await until(()=>$('#activityFeedback').textContent.includes('Osservazioni tecniche salvate'));
  const request=w.fixtureTeamCalls.find(c=>c.rpc==='save_activity_observation');assert.equal(request.p_note,'Osservazione aggiornata');assert.equal(request.p_roster,undefined);
  assert.equal(w.fixtureData.activity_technical[0].formation,'4-3-3');$('#closeActivity').click();
- await runtime.navigate('training');await until(()=>$('.sc-inline-training'));
+ await runtime.navigate('training');await until(()=>$('.training-manage-link'));assert.equal($('#planningForm'),null);$('.training-manage-link').click();await until(()=>$('#planningForm'));
  assert.equal($('#planningDate').matches(":disabled"),true);assert.equal($('#planningAttendance').matches(":disabled"),false);
  $('[data-training-player="player-1"][data-training-reply="Indisponibile"]').click();$('#savePlanning').click();
  await until(()=>w.fixtureTeamCalls.some(c=>c.p_id==='assistant-training'));
@@ -609,25 +609,23 @@ test("President sees only summarized deadlines and read-only sporting workflows"
  await runtime.navigate('more');await until(()=>$('.sc-tool-list'));assert.match($('.sc-tools').textContent,/Scadenze e tesseramenti/);assert.doesNotMatch($('.sc-tools').textContent,/Gestione utenti/);
  runtime.actions.expiries();await until(()=>$('#expiryTitle'));assert.match($('.expiry-row').textContent,/In scadenza/);assert.doesNotMatch($('.expiry-row').textContent,/\d{2}\/\d{2}\/\d{4}/);
  $('.expiry-row').click();await until(()=>$('#playerSheetTitle'));assert.equal($('#playerAdminForm'),null);$('[aria-label="Chiudi scheda"]').click();
- await runtime.navigate('training');await until(()=>$('.sc-inline-training'));assert.equal($('#planningAttendance').matches(":disabled"),true);
- assert.equal($('[data-training-reply="Disponibile"]').matches(":disabled"),true);
- $('#planningForm').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));assert.equal(w.fixtureTeamCalls.length,0);
+ await runtime.navigate('training');await until(()=>$('.training-manage-link'));assert.equal($('#planningForm'),null);$('.training-manage-link').click();await until(()=>$('#readonlyActivityTitle'));assert.equal($('#planningForm'),null);assert.equal($('[data-training-reply]'),null);assert.equal(w.fixtureTeamCalls.length,0);
  runtime.actions.users();assert.equal($('#usersTitle'),null);
  await runtime.navigate('communications');await until(()=>$('.communication-list-status'));assert.ok([...w.document.querySelectorAll('button')].some(b=>b.textContent.includes('Nuova comunicazione')));
 });
 
 test("Direct training replies preserve failed drafts, guard season changes and save the full roster without attendance",async t=>{
  const {w,runtime,$}=await app(t,"admin",data=>data.activities.push({id:"inline-training",user_id:"demo-user",activity_date:"2026-10-01",activity_type:"Allenamento",title:"Allenamento",status:"Programmato",revision:0}));
- await runtime.navigate("training");await until(()=>$(".sc-inline-training #planningForm"));
+ await runtime.navigate("training");await until(()=>$(".training-manage-link"));assert.equal($("#planningForm"),null);$(".training-manage-link").click();await until(()=>$("#planningForm"));
  assert.equal(w.document.querySelectorAll("#planningForm").length,1);
- assert.equal($(".sc-inline-training").getAttribute("aria-modal"),null);
+ assert.equal($("#planningForm").closest("[aria-modal]"),null);assert.match(w.location.hash,/activity=inline-training/);
  const attendanceBefore=w.fixtureData.attendance.length,season=runtime.actions.season().year;
  $('[data-training-player="player-1"][data-training-reply="Indisponibile"]').click();$("#pendingReplyFilter").click();
  assert.equal(w.document.querySelectorAll(".sc-reply-row").length,1);
  w.confirm=()=>false;assert.equal(await runtime.navigate("players"),false);await runtime.actions.changeSeason(season-1);assert.equal(runtime.actions.season().year,season);
  w.fixtureSaveError={message:"Errore di rete simulato"};$("#savePlanning").click();await until(()=>$("#planningFeedback").textContent.includes("simulato"));
  assert.equal($("#savePlanning").matches(":disabled"),false);assert.equal(w.fixtureData.attendance.length,attendanceBefore);
- w.fixtureSaveError=null;$("#savePlanning").click();$("#savePlanning").click();await until(()=>w.fixtureData.activity_roster.some(r=>r.activity_id==="inline-training")&&$("#planningChanges").hidden);
+ w.fixtureSaveError=null;$("#savePlanning").click();$("#savePlanning").click();await until(()=>w.fixtureData.activity_roster.some(r=>r.activity_id==="inline-training")&&!$("#planningForm"));
  assert.equal(w.fixtureData.activity_roster.filter(r=>r.activity_id==="inline-training").length,2);
  assert.equal(w.fixtureData.activity_roster.find(r=>r.activity_id==="inline-training"&&r.player_id==="player-1").availability,"Indisponibile");
  assert.equal(w.fixtureData.attendance.length,attendanceBefore);assert.equal(w.fixtureTeamCalls.length,2,'one failed attempt, one successful save despite duplicate clicks');
@@ -635,9 +633,7 @@ test("Direct training replies preserve failed drafts, guard season changes and s
 
 test("Secretary direct training workspace is read-only and cannot submit sporting changes",async t=>{
  const {w,runtime,$}=await app(t,"secretary",data=>data.activities.push({id:"readonly-training",user_id:"demo-user",activity_date:"2026-10-01",activity_type:"Allenamento",title:"Allenamento",status:"Programmato",revision:0}));
- await runtime.navigate("training");await until(()=>$(".sc-inline-training #planningForm"));
- assert.ok([...w.document.querySelectorAll("[data-training-reply]")].every(b=>b.disabled));
- $("#planningForm").dispatchEvent(new w.Event("submit",{bubbles:true,cancelable:true}));assert.equal(w.fixtureTeamCalls.length,0);
+ await runtime.navigate("training");await until(()=>$(".training-manage-link"));assert.equal($("#planningForm"),null);$(".training-manage-link").click();await until(()=>$("#readonlyActivityTitle"));assert.equal($("#planningForm"),null);assert.equal($("[data-training-reply]"),null);assert.equal(w.fixtureTeamCalls.length,0);
 });
 
 test('Register replaces training history and preserves read-only access to past sheets',async t=>{
@@ -1238,14 +1234,14 @@ test('a failed targeted read after player creation offers reload without replayi
 
 test('absence notices save optional reasons, can be withdrawn and seed only an unsaved attendance draft',async t=>{
  const {w,runtime,$}=await app(t,'admin',data=>data.activities.push({id:'absence-workflow',user_id:'demo-user',activity_type:'Allenamento',title:'Allenamento',activity_date:'2026-10-02',status:'Programmato',revision:0}));
- await runtime.actions.openActivity('absence-workflow');await until(()=>$('#planningForm'));
+ await runtime.navigate('training');await until(()=>$('.training-manage-link'));$('.training-manage-link').click();await until(()=>$('#planningForm'));
  assert.equal(w.document.querySelectorAll('[data-training-reply="In attesa"]').length,0);
  assert.equal($('#savePlanning').disabled,true);assert.equal($('#planningReplySummary').children.length,2);
  $('[data-training-player="player-1"][data-training-reply="Indisponibile"]').click();reactInput(w,$('#absence-player-1'),'Lavoro');
  assert.equal($('#planningChanges').textContent,'1');
  $('[data-training-player="player-1"][data-training-reply="Disponibile"]').click();assert.equal($('#absence-player-1'),null);assert.equal($('#savePlanning').disabled,true);
  $('[data-training-player="player-1"][data-training-reply="Indisponibile"]').click();reactInput(w,$('#absence-player-1'),'Lavoro');$('#savePlanning').click();
- await until(()=>$('#savePlanning').disabled&&$('#planningChanges').hidden);
+ await until(()=>!$('#planningForm')&&w.document.body.textContent.includes('Allenamento e assenze salvati'));await until(()=>!w.location.hash.includes('activity=')&&$('.training-manage-link'));$('.training-manage-link').click();await until(()=>$('#planningForm'));assert.equal($('#savePlanning').disabled,true);assert.equal($('#planningChanges').hidden,true);
  const row=w.fixtureData.activity_roster.find(r=>r.activity_id==='absence-workflow'&&r.player_id==='player-1');assert.equal(row.response_note,'Lavoro');assert.equal(row.availability,'Indisponibile');
  const before=w.fixtureData.attendance.length;$('[data-training-phase=actual]').click();$('#planningAttendance').click();await until(()=>$('#trainList'));
  const draft=runtime.state.trainingDraft;assert.equal(draft.entries.get('player-1').status,'Assente');assert.equal(draft.entries.get('player-1').note,'Lavoro');assert.equal(draft.entries.get('player-2').status,'Presente');assert.equal(draft.session.attendance_mode,'absence_notice');

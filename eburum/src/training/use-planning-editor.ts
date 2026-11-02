@@ -131,7 +131,6 @@ export function usePlanningEditor({
       baselineReplies.current = { ...replies };
       baselineNotes.current = { ...notes };
       editor.reset({ ...v });
-      if (!inline) await editor.close();
       if (
         !(await runtime.actions.reloadAffected({
           kind: "activity",
@@ -139,6 +138,8 @@ export function usePlanningEditor({
         }))
       )
         return;
+      // Complete the reload before closing changes the route request guard.
+      if (!inline) await editor.close({ restoreRoute: !!a.id || !training });
       if (!inline && !a.id && training)
         await runtime.actions.openActivity(saved.id);
       ui.notify(

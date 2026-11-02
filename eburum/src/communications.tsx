@@ -140,9 +140,6 @@ export function CommunicationsPage({
             </div>
           </div>
           <div className="communication-filters">
-            <p className="filter-scroll-hint">
-              Scorri i filtri per altre opzioni →
-            </p>
             <div
               className="segmented"
               role="group"
@@ -187,7 +184,6 @@ export function CommunicationsPage({
             ) : null}
           </div>
           <div className="communication-list-status">
-            <p>{rows.length} attive ·</p>
             <span
               className={
                 "status-dot " +
@@ -198,8 +194,9 @@ export function CommunicationsPage({
               aria-hidden="true"
             />
             <p>
+              {rows.length} attive ·{" "}
               {runtime.state.communicationRealtimeStatus === "SUBSCRIBED"
-                ? "in tempo reale"
+                ? "aggiornato in tempo reale"
                 : ["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(
                       runtime.state.communicationRealtimeStatus || "",
                     )
@@ -212,7 +209,7 @@ export function CommunicationsPage({
               className="communication-refresh"
               disabled={busy}
               onClick={() => void reload()}
-              aria-label="Aggiorna comunicazioni"
+              aria-label="Aggiorna messaggi"
               title="Aggiorna messaggi"
             >
               {busy ? <LoaderCircle className="animate-spin" /> : <RefreshCw />}
@@ -327,30 +324,37 @@ export function CommunicationsPage({
           ) : null}
         </div>
         <aside className="communications-aside">
-          <h3>Da tenere d’occhio</h3>
-          <dl className="communication-overview">
-            <div>
-              <dt>Messaggi attivi</dt>
-              <dd>{active.length}</dd>
-            </div>
-            <div>
-              <dt>Letture da confermare</dt>
-              <dd>{unread}</dd>
-            </div>
-            <div>
-              <dt>Inviti a riunioni</dt>
-              <dd>
-                {active.filter((message) => message.kind === "meeting").length}
-              </dd>
-            </div>
-          </dl>
-          <Button
-            variant="secondary"
-            onClick={() => setFilter("unread")}
-            disabled={!unread}
-          >
-            Mostra da confermare
-          </Button>
+          {active.length ? (
+            <>
+              <h3>Da tenere d’occhio</h3>
+              <dl className="communication-overview">
+                <div>
+                  <dt>Messaggi attivi</dt>
+                  <dd>{active.length}</dd>
+                </div>
+                <div>
+                  <dt>Letture da confermare</dt>
+                  <dd>{unread}</dd>
+                </div>
+                <div>
+                  <dt>Inviti a riunioni</dt>
+                  <dd>
+                    {
+                      active.filter((message) => message.kind === "meeting")
+                        .length
+                    }
+                  </dd>
+                </div>
+              </dl>
+              <Button
+                variant="secondary"
+                onClick={() => setFilter("unread")}
+                disabled={!unread}
+              >
+                Mostra da confermare
+              </Button>
+            </>
+          ) : null}
           <details className="communication-help">
             <summary>Come funziona</summary>
             <p>

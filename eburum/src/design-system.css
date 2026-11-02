@@ -5523,10 +5523,12 @@
     color: var(--ink);
     border-color: transparent;
   }
-  html[data-theme] .sc-home-hero .sc-light-button {
+  #app .sc-home-hero .sc-light-button {
     margin-top: 16px;
-    background: var(--surface);
-    color: var(--ink);
+    width: fit-content;
+    max-width: 100%;
+    background: var(--accent);
+    color: #102044;
   }
   html[data-theme] .sc-mini-avatar {
     background: var(--primary-soft);
@@ -5878,7 +5880,7 @@
     border-bottom: 0;
   }
   .roster-table td:first-child {
-    width: 38%;
+    width: 72%;
   }
   .roster-table td button {
     width: 100%;
@@ -5890,9 +5892,6 @@
     font-weight: 600;
     white-space: normal;
     overflow-wrap: anywhere;
-  }
-  .roster-table td:nth-child(2) {
-    width: 22%;
   }
   .roster-table td:last-child {
     width: 28%;
@@ -6276,7 +6275,10 @@
     margin: 0;
     padding: 12px 20px;
   }
-  .planning-save #cancelPlanning {
+  .app-layout .planning-save #cancelPlanning {
+    width: auto;
+    flex: 0 0 auto;
+    min-height: 44px;
     margin-inline-end: auto;
   }
   .planning-save .planning-change-count {
@@ -6783,7 +6785,7 @@
     font-weight: 500;
   }
   #app .match-goals[data-winner="true"] {
-    font-weight: 750;
+    font-weight: 700;
     color: var(--ink);
   }
   .sc-match-empty {
@@ -6926,10 +6928,10 @@
   #app .nav-tool-count {
     margin-left: auto;
     padding: 2px 7px;
-    background: var(--warning-soft);
-    color: var(--warning);
+    background: var(--accent-soft);
+    color: var(--accent-ink);
     border-radius: var(--radius-pill);
-    font-size: 12px;
+    font-size: 13px;
   }
   @media (min-width: 1024px) {
     #app .page-heading .page-add-label {
@@ -6977,6 +6979,102 @@
     }
     .discipline-compact > summary span {
       font-size: 12px;
+    }
+  }
+
+  .training-overview-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+  }
+  .training-manage-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 12px 16px;
+    border-radius: var(--radius-control);
+  }
+  #app .home-stat-grid dt {
+    font-size: 13px;
+  }
+  .home-stat-grid > div {
+    padding-inline: 4px;
+  }
+  @media (max-width: 360px) {
+    #app :is(.sc-home-last, .sc-home-availability) {
+      padding: 16px;
+    }
+    .home-stat-grid > div {
+      padding-inline: 0;
+    }
+  }
+  #app .sc-match-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .match-meta-start {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .match-meta-start .match-outcome {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+  }
+  #app .match-goals {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .match-utilities {
+    margin-top: 24px;
+  }
+  .roster-number {
+    color: var(--ink-2);
+    font-weight: 400;
+  }
+  .roster-table td:first-child > .badge {
+    display: inline-flex;
+    margin: 4px 0 0 8px;
+  }
+  @media (max-width: 1023px) {
+    .app-layout:not(:has(#workspaceActions > .workspace-action-bar))
+      .workspace-content {
+      padding-bottom: calc(var(--dock-height) + 48px + var(--safe-area-bottom));
+      scroll-padding-bottom: calc(
+        var(--dock-height) + 32px + var(--safe-area-bottom)
+      );
+    }
+    #app .page-heading .match-add-action {
+      display: inline-flex;
+      height: auto;
+      border-radius: var(--radius-control);
+      width: auto;
+      padding: 10px 12px;
+      gap: 6px;
+    }
+    #app .match-add-action .page-add-label {
+      display: inline;
+      position: static;
+      width: auto;
+      height: auto;
+      margin: 0;
+      overflow: visible;
+      clip: auto;
+    }
+    #app .communication-filters > .segmented {
+      padding-right: 16px;
+      mask-image: linear-gradient(
+        to right,
+        #000 calc(100% - 12px),
+        transparent
+      );
     }
   }
 }
