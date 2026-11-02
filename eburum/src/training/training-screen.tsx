@@ -1,14 +1,14 @@
 import { CalendarDays, ChevronRight, Plus, Presentation } from "lucide-react";
 import { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useSearchParams } from "react-router-dom";
 import { fmt, today } from "../../app-part1.js";
 import { canPlanRole, canTechnicalRole } from "../../app-roles.ts";
 import { Button } from "../components/ui/button";
 import { Field } from "../operational-ui";
 import type { Runtime } from "../types";
 import { AttendanceEditor } from "./attendance-editor";
-import { PlanningEditor } from "./planning-editor";
 export function TrainingScreen({ runtime }: { runtime: Runtime }) {
+  const [params, setParams] = useSearchParams();
   const activities = [...runtime.state.activities]
     .filter((a) => a.activity_type === "Allenamento")
     .sort((a, b) => a.activity_date.localeCompare(b.activity_date));
@@ -26,7 +26,7 @@ export function TrainingScreen({ runtime }: { runtime: Runtime }) {
     ),
     [selected, setSelected] = useState(
       () =>
-        new URLSearchParams(location.hash.split("?")[1]).get("activity") || "",
+        new URLSearchParams(location.hash.split("?")[1]).get("selected") || "",
     );
   const filtered = activities.filter(
     (a) =>
@@ -41,6 +41,10 @@ export function TrainingScreen({ runtime }: { runtime: Runtime }) {
     if (!(await runtime.canLeaveInline())) return;
     setScope(value);
     if (id) setSelected(id);
+    const next = new URLSearchParams(params);
+    next.set("scope", value);
+    if (id) next.set("selected", id);
+    setParams(next, { replace: true });
   };
   if (runtime.state.trainingMode === "actual")
     return <AttendanceEditor runtime={runtime} />;
@@ -55,6 +59,7 @@ export function TrainingScreen({ runtime }: { runtime: Runtime }) {
           <Button
             className="sc-add page-add-action"
             aria-label="Nuovo allenamento"
+            title="Nuovo allenamento"
             onClick={runtime.actions.newTraining}
           >
             <Plus />
@@ -147,35 +152,26 @@ export function TrainingScreen({ runtime }: { runtime: Runtime }) {
             </div>
             <span className="office-status sc-status">{current.status}</span>
           </div>
-          {canTechnicalRole(runtime.state.team?.role || "") ? (
-            <NavLink
-              className="sc-secondary training-whiteboard-link"
-              to={`/whiteboard?activity=${encodeURIComponent(current.id)}`}
-            >
-              <Presentation size={18} />
-              Crea lavagna per l’allenamento
-            </NavLink>
-          ) : null}
-          <section
-            className="sc-inline-training"
-            aria-label="Gestione allenamento"
-          >
-            <PlanningEditor
-              key={current.id}
-              runtime={runtime}
-              surface={{
-                id: -1,
-                kind: "planning",
-                data: {
-                  activity: current,
-                  rows: runtime.state.roster.filter(
-                    (r) => r.activity_id === current.id,
-                  ),
-                },
-              }}
-              inline
-            />
-          </section>
+          <div className="training-overview-actions">
+            <Button asChild>
+              <NavLink
+                className="training-manage-link"
+                to={`/training?${new URLSearchParams({ ...Object.fromEntries(params), activity: current.id })}`}
+              >
+                Gestisci presenze
+                <ChevronRight size={18} />
+              </NavLink>
+            </Button>
+            {canTechnicalRole(runtime.state.team?.role || "") ? (
+              <NavLink
+                className="sc-secondary training-whiteboard-link"
+                to={`/whiteboard?activity=${encodeURIComponent(current.id)}`}
+              >
+                <Presentation size={18} />
+                Crea lavagna per l’allenamento
+              </NavLink>
+            ) : null}
+          </div>
         </>
       ) : (
         <div className="sc-empty-state">

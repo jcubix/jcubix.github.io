@@ -471,7 +471,7 @@ function NavItem({
       {count ? (
         <span id="navigation-review-count" className="nav-tool-count">
           {count}
-          <span className="sr-only"> da verificare</span>
+          <span className="sr-only"> scadenze da verificare</span>
         </span>
       ) : null}
     </Link>

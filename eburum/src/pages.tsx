@@ -10,7 +10,6 @@ import {
   Search,
   Settings2,
   ShieldCheck,
-  Trophy,
   Users,
   Wallet,
 } from "lucide-react";
@@ -92,27 +91,29 @@ export function MatchesPage({ runtime }: { runtime: Runtime }) {
         aria-label={matchTitle(match) + ", " + date(match.match_date)}
       >
         <div className="sc-match-meta">
-          <span>
-            {date(match.match_date)}
-            {match.match_date === today ? (
-              <span className="badge tone-warning">OGGI</span>
+          <span className="match-meta-start">
+            {outcome ? (
+              <span
+                className={"match-outcome outcome-" + outcome}
+                aria-label={
+                  { V: "Vittoria", N: "Pareggio", P: "Sconfitta" }[
+                    outcome as "V" | "N" | "P"
+                  ]
+                }
+              >
+                {outcome}
+              </span>
             ) : null}
+            <span>
+              {date(match.match_date)}
+              {match.match_date === today ? (
+                <span className="badge tone-warning">OGGI</span>
+              ) : null}
+            </span>
           </span>
           <span className={"badge " + (away ? "venue-away" : "venue-home")}>
             {match.venue}
           </span>
-          {outcome ? (
-            <span
-              className={"match-outcome outcome-" + outcome}
-              aria-label={
-                { V: "Vittoria", N: "Pareggio", P: "Sconfitta" }[
-                  outcome as "V" | "N" | "P"
-                ]
-              }
-            >
-              {outcome}
-            </span>
-          ) : null}
           {cancelled(match) ? (
             <span className="badge tone-neutral">Annullata</span>
           ) : null}
@@ -178,52 +179,20 @@ export function MatchesPage({ runtime }: { runtime: Runtime }) {
         description={`${upcoming.length} in programma · ${results.length} risultati registrati`}
       >
         {canPlan(runtime) ? (
-          <Button onClick={runtime.actions.newMatch} aria-label="Nuova partita">
+          <Button
+            className="match-add-action"
+            onClick={runtime.actions.newMatch}
+            aria-label="Nuova partita"
+          >
             <Plus />
             <span className="page-add-label">Nuova gara</span>
           </Button>
         ) : null}
       </PageHeading>
-      <div className="sc-section-heading">
-        <h2>Calendario gare</h2>
-        <button
-          onClick={runtime.actions.discipline}
-          aria-label="Cartellini"
-          aria-describedby={attention ? "disciplineCount" : undefined}
-        >
-          <Flag size={20} />
-          Cartellini
-          {attention ? (
-            <span id="disciplineCount" className="badge tone-warning">
-              {attention}
-              <span className="sr-only"> da verificare</span>
-            </span>
-          ) : null}
-        </button>
-      </div>
-      {results.length ? (
-        <div className="recent-form" aria-label="Ultime cinque partite">
-          <span>
-            Forma recente <small>Dalla più vecchia alla più recente</small>
-          </span>
-          {results
-            .slice(0, 5)
-            .reverse()
-            .map((m) => (
-              <span
-                key={m.id}
-                className={"match-outcome outcome-" + matchOutcome(m)}
-                title={date(m.match_date) + " · " + m.opponent}
-              >
-                {matchOutcome(m)}
-              </span>
-            ))}
-        </div>
-      ) : null}
       {upcoming.length ? (
         <section className="sc-match-upcoming">
           <div className="sc-section-heading">
-            <h2>Prossima</h2>
+            <h2>Prossime gare</h2>
           </div>
           <div className="sc-match-grid">{card(upcoming[0])}</div>
           {upcoming.length > 1 ? (
@@ -234,14 +203,10 @@ export function MatchesPage({ runtime }: { runtime: Runtime }) {
           ) : null}
         </section>
       ) : (
-        <div className="sc-match-empty">
+        <section className="sc-match-empty">
+          <h2>Prossime gare</h2>
           <p>Nessuna gara in programma</p>
-          {canPlan(runtime) ? (
-            <Button variant="secondary" onClick={runtime.actions.newMatch}>
-              Aggiungi gara
-            </Button>
-          ) : null}
-        </div>
+        </section>
       )}
       {incomplete.length ? (
         <section>
@@ -257,6 +222,26 @@ export function MatchesPage({ runtime }: { runtime: Runtime }) {
           <div className="sc-section-heading">
             <h2>Risultati</h2>
           </div>
+          {results.length ? (
+            <div className="recent-form" aria-label="Ultime cinque partite">
+              <span>
+                Forma recente <small>Dalla più vecchia alla più recente</small>
+              </span>
+              {results
+                .slice(0, 5)
+                .reverse()
+                .map((m) => (
+                  <span
+                    key={m.id}
+                    className={"match-outcome outcome-" + matchOutcome(m)}
+                    title={date(m.match_date) + " · " + m.opponent}
+                  >
+                    {matchOutcome(m)}
+                  </span>
+                ))}
+            </div>
+          ) : null}
+
           <div className="sc-match-grid">{results.map(card)}</div>
         </section>
       ) : null}
@@ -268,18 +253,23 @@ export function MatchesPage({ runtime }: { runtime: Runtime }) {
           <div className="sc-match-grid">{others.map(card)}</div>
         </section>
       ) : null}
-      {!runtime.state.matches.length ? (
-        <div className="sc-empty-state">
-          <Trophy aria-hidden="true" />
-          <h3>Nessuna partita registrata</h3>
-          <p>La prossima gara e i risultati della squadra compariranno qui.</p>
-          {canPlan(runtime) ? (
-            <Button onClick={runtime.actions.newMatch}>
-              Programma partita
-            </Button>
+      <div className="match-utilities">
+        <Button
+          variant="secondary"
+          onClick={runtime.actions.discipline}
+          aria-label="Cartellini"
+          aria-describedby={attention ? "disciplineCount" : undefined}
+        >
+          <Flag size={20} />
+          Cartellini
+          {attention ? (
+            <span id="disciplineCount" className="badge tone-warning">
+              {attention}
+              <span className="sr-only"> da verificare</span>
+            </span>
           ) : null}
-        </div>
-      ) : null}
+        </Button>
+      </div>
       {canTechnicalRole(runtime.state.team?.role || "") ? (
         <NavLink className="utility-link" to="/whiteboard">
           <Presentation size={20} />
@@ -397,8 +387,6 @@ export function PlayersPage({ runtime }: { runtime: Runtime }) {
           <tr>
             <th scope="col">Giocatore</th>
             <th scope="col">Ruolo</th>
-            <th scope="col">Numero</th>
-            <th scope="col">Segnalazioni</th>
           </tr>
         </thead>
         <tbody>
@@ -409,21 +397,33 @@ export function PlayersPage({ runtime }: { runtime: Runtime }) {
                 <td>
                   <button onClick={() => runtime.actions.playerSheet(p.id)}>
                     {p.surname} {p.name}
+                    {p.shirt_number != null ? (
+                      <span className="roster-number">
+                        {" "}
+                        · #{p.shirt_number}
+                      </span>
+                    ) : null}
                   </button>
+                  {d.redAttention ||
+                  d.pending.length ||
+                  d.review.length ||
+                  d.diffida ? (
+                    <span
+                      className={`badge ${d.redAttention ? "tone-danger" : "tone-warning"}`}
+                    >
+                      {d.redAttention
+                        ? "Espulsione da gestire"
+                        : d.pending.length
+                          ? "Da scontare"
+                          : d.review.length
+                            ? "Da verificare"
+                            : d.diffida
+                              ? "Diffida"
+                              : ""}
+                    </span>
+                  ) : null}
                 </td>
                 <td>{p.role}</td>
-                <td>{p.shirt_number ?? "—"}</td>
-                <td>
-                  {d.redAttention
-                    ? "Espulsione da gestire"
-                    : d.pending.length
-                      ? "Da scontare"
-                      : d.review.length
-                        ? "Da verificare"
-                        : d.diffida
-                          ? "Diffida"
-                          : "—"}
-                </td>
               </tr>
             );
           })}

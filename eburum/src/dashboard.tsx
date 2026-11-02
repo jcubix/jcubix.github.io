@@ -22,6 +22,15 @@ import {
 } from "../app-roles.ts";
 import type { Runtime } from "./types";
 
+const trainingDate = (value: string) =>
+  new Intl.DateTimeFormat("it-IT", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  })
+    .format(new Date(value + "T12:00:00"))
+    .replace(/^./, (letter) => letter.toLocaleUpperCase("it"));
+
 export function Dashboard({ runtime }: { runtime: Runtime }) {
   const { state, actions } = runtime,
     role = state.team?.role || "",
@@ -111,7 +120,7 @@ export function Dashboard({ runtime }: { runtime: Runtime }) {
   const stats = (values: [string | number, string, string][]) => (
     <dl className="home-stat-grid">
       {values.map(([value, label, tone]) => (
-        <div key={label} data-tone={tone}>
+        <div key={label} data-tone={Number(value) > 0 ? tone : "neutral"}>
           <dd data-home-count>{value}</dd>
           <dt>{label}</dt>
         </div>
@@ -154,9 +163,13 @@ export function Dashboard({ runtime }: { runtime: Runtime }) {
               <h3>
                 {next.activity_type === "Partita"
                   ? `Eburum vs ${next.title}`
-                  : next.title}
+                  : trainingDate(next.activity_date)}
               </h3>
-              <p>{fmt(next.activity_date)}</p>
+              {next.activity_type === "Partita" ? (
+                <p>{trainingDate(next.activity_date)}</p>
+              ) : next.title !== "Allenamento" ? (
+                <p>{next.title}</p>
+              ) : null}
               <div className="sc-focus-place">
                 <Clock3 size={18} />
                 {next.start_time?.slice(0, 5) || "Orario da definire"}
@@ -262,9 +275,7 @@ export function Dashboard({ runtime }: { runtime: Runtime }) {
           {latest ? (
             <section className="sc-last-training sc-home-last">
               <h2>Ultimo allenamento</h2>
-              <p>
-                {fmt(latest.session_date)} · {latest.session_type}
-              </p>
+              <p>{trainingDate(latest.session_date)}</p>
               {stats([
                 [
                   attendance.filter((r) => r.status === "Presente").length,
@@ -412,7 +423,7 @@ export function Dashboard({ runtime }: { runtime: Runtime }) {
               . Provvedimenti aperti della stagione.
             </p>
             {stats([
-              [latest ? clear : "—", "Senza segnalazioni", "success"],
+              [latest ? clear : "—", "Senza segnalazioni", "neutral"],
               [
                 latest ? players.filter((p) => injured.has(p.id)).length : "—",
                 "Infortunati",
