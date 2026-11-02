@@ -1083,7 +1083,8 @@
     padding: 0 16px;
   }
   .sc-reply-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
     gap: 12px;
     padding: 20px 0;
@@ -1405,7 +1406,6 @@
     .sc-reply-row {
       gap: 8px;
       padding-block: 16px;
-      flex-wrap: wrap;
     }
     .sc-reply-row .sc-person-avatar {
       width: 34px;
@@ -1450,12 +1450,6 @@
     }
   }
   @media (max-width: 350px) {
-    .sc-reply-row .sc-person-copy {
-      min-width: 120px;
-    }
-    .sc-reply-buttons {
-      margin-left: 40px;
-    }
     .sc-reply-summary {
       gap: 32px;
     }
@@ -6615,7 +6609,8 @@
   .training-absence-note {
     grid-column: 2 / -1;
     width: 100%;
-    margin: 8px 0 0;
+    min-width: 0;
+    margin: 0;
   }
   .training-absence-summary {
     display: grid;
@@ -6624,10 +6619,13 @@
 }
 
 @layer components {
-  .sc-reply-buttons .sc-expected {
-    background: var(--neutral-soft);
-    color: var(--neutral);
-    border-color: var(--control-border);
+  .sc-reply-row .sc-person-copy {
+    overflow-wrap: anywhere;
+  }
+  #trainingReplies .sc-reply-buttons .sc-expected {
+    background: var(--success-soft);
+    color: var(--success);
+    border-color: var(--success-soft);
   }
   .app-layout .sc-reply-buttons button {
     display: grid;
