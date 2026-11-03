@@ -21,7 +21,11 @@ import {
 } from "react";
 import { useSearchParams } from "react-router-dom";
 import { confirmDialog } from "../app-confirm.js";
-import { communicationDeadline, relativeTime } from "../app-presentation.js";
+import {
+  cardDate,
+  communicationDeadline,
+  relativeTime,
+} from "../app-presentation.js";
 import { canPlanRole, roleLabels } from "../app-roles.ts";
 import { Button } from "./components/ui/button";
 import { Dialog } from "./components/ui/dialog";
@@ -203,17 +207,23 @@ export function CommunicationsPage({
                   ? "connessione interrotta"
                   : "connessione agli aggiornamenti…"}
             </p>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="communication-refresh"
-              disabled={busy}
-              onClick={() => void reload()}
-              aria-label="Aggiorna messaggi"
-              title="Aggiorna messaggi"
-            >
-              {busy ? <LoaderCircle className="animate-spin" /> : <RefreshCw />}
-            </Button>
+            {runtime.state.communicationRealtimeStatus !== "SUBSCRIBED" ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="communication-refresh"
+                disabled={busy}
+                onClick={() => void reload()}
+                aria-label="Aggiorna messaggi"
+                title="Aggiorna messaggi"
+              >
+                {busy ? (
+                  <LoaderCircle className="animate-spin" />
+                ) : (
+                  <RefreshCw />
+                )}
+              </Button>
+            ) : null}
           </div>
           {error ? (
             <div className="network-banner" role="alert">
@@ -300,11 +310,9 @@ export function CommunicationsPage({
                       <span className="sc-row-copy">
                         <strong>{a.title}</strong>
                         <small>
-                          {new Date(
-                            a.activity_date + "T12:00:00",
-                          ).toLocaleDateString("it-IT")}{" "}
-                          · {a.start_time?.slice(0, 5) || "Orario da definire"}{" "}
-                          · {a.status}
+                          {cardDate(a.activity_date)} ·{" "}
+                          {a.start_time?.slice(0, 5) || "Orario da definire"} ·{" "}
+                          {a.status}
                           {a.status === "Programmato" &&
                           a.activity_date <
                             new Date().toLocaleDateString("en-CA")
@@ -511,16 +519,8 @@ function MessageCard({
           <p>
             <CalendarDays size={18} />
             <time dateTime={message.meeting_date}>
-              {new Date(message.meeting_date + "T12:00:00").toLocaleDateString(
-                "it-IT",
-                {
-                  weekday: "long",
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                },
-              )}{" "}
-              · {message.meeting_time?.slice(0, 5)}
+              {cardDate(message.meeting_date)} ·{" "}
+              {message.meeting_time?.slice(0, 5)}
             </time>
           </p>
           <p>

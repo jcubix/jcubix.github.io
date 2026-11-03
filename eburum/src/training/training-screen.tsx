@@ -1,7 +1,8 @@
 import { CalendarDays, ChevronRight, Plus, Presentation } from "lucide-react";
 import { useState } from "react";
 import { NavLink, useSearchParams } from "react-router-dom";
-import { fmt, today } from "../../app-part1.js";
+import { today } from "../../app-part1.js";
+import { cardDate } from "../../app-presentation.js";
 import { canPlanRole, canTechnicalRole } from "../../app-roles.ts";
 import { Button } from "../components/ui/button";
 import { Field } from "../operational-ui";
@@ -28,6 +29,10 @@ export function TrainingScreen({ runtime }: { runtime: Runtime }) {
       () =>
         new URLSearchParams(location.hash.split("?")[1]).get("selected") || "",
     );
+  const toConfirm = activities.filter(
+    (a) =>
+      a.status === "Programmato" && !a.session_id && a.activity_date <= today(),
+  ).length;
   const filtered = activities.filter(
     (a) =>
       a.status === "Programmato" &&
@@ -83,16 +88,9 @@ export function TrainingScreen({ runtime }: { runtime: Runtime }) {
           onClick={() => void change("actual")}
         >
           Da confermare
-          <span className="filter-count">
-            {
-              activities.filter(
-                (a) =>
-                  a.status === "Programmato" &&
-                  !a.session_id &&
-                  a.activity_date <= today(),
-              ).length
-            }
-          </span>
+          {toConfirm > 0 ? (
+            <span className="filter-count">{toConfirm}</span>
+          ) : null}
         </button>
       </div>
       {filtered.length > 1 ? (
@@ -104,7 +102,7 @@ export function TrainingScreen({ runtime }: { runtime: Runtime }) {
           >
             {filtered.map((a) => (
               <option key={a.id} value={a.id}>
-                {fmt(a.activity_date)} · {a.title}
+                {cardDate(a.activity_date)} · {a.title}
               </option>
             ))}
           </select>
@@ -124,7 +122,10 @@ export function TrainingScreen({ runtime }: { runtime: Runtime }) {
             <div>
               <h2>{current.title}</h2>
               <p>
-                {current.start_time?.slice(0, 5)}
+                {cardDate(current.activity_date)}
+                {current.start_time
+                  ? ` · ${current.start_time.slice(0, 5)}`
+                  : ""}
                 {current.location ? ` · ${current.location}` : ""}
               </p>
               <div
@@ -135,7 +136,17 @@ export function TrainingScreen({ runtime }: { runtime: Runtime }) {
                   ["Disponibile", "Attesi", ""],
                   ["Indisponibile", "Assenti previsti", "text-destructive"],
                 ].map(([value, label, tone]) => (
-                  <span key={value} className={tone}>
+                  <span
+                    key={value}
+                    className={
+                      tone &&
+                      runtime.actions
+                        .pollEntries(current)
+                        .some((r) => r.row.availability === "Indisponibile")
+                        ? tone
+                        : ""
+                    }
+                  >
                     {label}{" "}
                     {
                       runtime.actions
@@ -150,7 +161,9 @@ export function TrainingScreen({ runtime }: { runtime: Runtime }) {
                 ))}
               </div>
             </div>
-            <span className="office-status sc-status">{current.status}</span>
+            {current.activity_date <= today() ? (
+              <span className="office-status sc-status">Da confermare</span>
+            ) : null}
           </div>
           <div className="training-overview-actions">
             <Button asChild>

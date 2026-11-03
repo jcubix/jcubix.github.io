@@ -16,7 +16,7 @@ import {
 import { useDeferredValue, useEffect, useState, type ReactNode } from "react";
 import { NavLink, useSearchParams } from "react-router-dom";
 import { matchTitle } from "../app-match-display.js";
-import { dayLabel, matchOutcome } from "../app-presentation.js";
+import { cardDate, dayLabel, matchOutcome } from "../app-presentation.js";
 import {
   canManageRole,
   canPlanRole,
@@ -105,7 +105,7 @@ export function MatchesPage({ runtime }: { runtime: Runtime }) {
               </span>
             ) : null}
             <span>
-              {date(match.match_date)}
+              {cardDate(match.match_date)}
               {match.match_date === today ? (
                 <span className="badge tone-warning">OGGI</span>
               ) : null}
@@ -205,7 +205,13 @@ export function MatchesPage({ runtime }: { runtime: Runtime }) {
       ) : (
         <section className="sc-match-empty">
           <h2>Prossime gare</h2>
-          <p>Nessuna gara in programma</p>
+          <div className="match-empty-copy">
+            <CalendarDays size={24} aria-hidden="true" />
+            <div>
+              <h3>Nessuna gara in programma</h3>
+              <p>Usa Nuova gara per aggiungere il prossimo incontro.</p>
+            </div>
+          </div>
         </section>
       )}
       {incomplete.length ? (
@@ -225,20 +231,17 @@ export function MatchesPage({ runtime }: { runtime: Runtime }) {
           {results.length ? (
             <div className="recent-form" aria-label="Ultime cinque partite">
               <span>
-                Forma recente <small>Dalla più vecchia alla più recente</small>
+                Forma recente <small>Dalla più recente alla più vecchia</small>
               </span>
-              {results
-                .slice(0, 5)
-                .reverse()
-                .map((m) => (
-                  <span
-                    key={m.id}
-                    className={"match-outcome outcome-" + matchOutcome(m)}
-                    title={date(m.match_date) + " · " + m.opponent}
-                  >
-                    {matchOutcome(m)}
-                  </span>
-                ))}
+              {results.slice(0, 5).map((m) => (
+                <span
+                  key={m.id}
+                  className={"match-outcome outcome-" + matchOutcome(m)}
+                  title={date(m.match_date) + " · " + m.opponent}
+                >
+                  {matchOutcome(m)}
+                </span>
+              ))}
             </div>
           ) : null}
 
@@ -380,13 +383,13 @@ export function PlayersPage({ runtime }: { runtime: Runtime }) {
         .filter((role) => !roleOrder.includes(role)),
     ),
   ];
-  const collection = (people: Player[]) =>
+  const collection = (people: Player[], grouped = false) =>
     desktop ? (
-      <table className="roster-table sc-directory">
-        <thead>
+      <table className="roster-table sc-directory" data-grouped={grouped}>
+        <thead className={grouped ? "sr-only" : undefined}>
           <tr>
             <th scope="col">Giocatore</th>
-            <th scope="col">Ruolo</th>
+            {!grouped ? <th scope="col">Ruolo</th> : null}
           </tr>
         </thead>
         <tbody>
@@ -396,13 +399,16 @@ export function PlayersPage({ runtime }: { runtime: Runtime }) {
               <tr key={p.id}>
                 <td>
                   <button onClick={() => runtime.actions.playerSheet(p.id)}>
-                    {p.surname} {p.name}
-                    {p.shirt_number != null ? (
-                      <span className="roster-number">
-                        {" "}
-                        · #{p.shirt_number}
-                      </span>
-                    ) : null}
+                    <span>
+                      {p.surname} {p.name}
+                      {p.shirt_number != null ? (
+                        <span className="roster-number">
+                          {" "}
+                          · #{p.shirt_number}
+                        </span>
+                      ) : null}
+                    </span>
+                    <ChevronRight size={18} aria-hidden="true" />
                   </button>
                   {d.redAttention ||
                   d.pending.length ||
@@ -423,7 +429,7 @@ export function PlayersPage({ runtime }: { runtime: Runtime }) {
                     </span>
                   ) : null}
                 </td>
-                <td>{p.role}</td>
+                {!grouped ? <td>{p.role}</td> : null}
               </tr>
             );
           })}
@@ -507,7 +513,7 @@ export function PlayersPage({ runtime }: { runtime: Runtime }) {
                   <h3>{role}</h3>
                   <span>{players.length}</span>
                 </div>
-                {collection(players)}
+                {collection(players, true)}
               </section>
             ) : null;
           })

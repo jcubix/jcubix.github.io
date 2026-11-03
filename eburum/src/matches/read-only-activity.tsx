@@ -1,5 +1,5 @@
 import { matchTitle } from "../../app-match-display.js";
-import { fmt } from "../../app-part1.js";
+import { cardDate } from "../../app-presentation.js";
 import { eventTone } from "../../app-part4.js";
 import { Button } from "../components/ui/button";
 import { EditorFrame } from "../operational-ui";
@@ -32,7 +32,7 @@ export function ReadOnlyActivity({
         modifiche sportive spettano allo staff autorizzato.
       </p>
       <p>
-        {fmt(a.activity_date || "")} ·{" "}
+        {cardDate(a.activity_date || "")} ·{" "}
         {a.start_time?.slice(0, 5) || "Orario da definire"} · {a.status}
       </p>
       <p>{a.location || "Luogo da definire"}</p>

@@ -1,4 +1,11 @@
-import { ArrowUpRight, Check, ClipboardList, Minus, X } from "lucide-react";
+import {
+  ArrowUpRight,
+  Check,
+  ClipboardList,
+  Minus,
+  Undo2,
+  X,
+} from "lucide-react";
 import { fmt, today } from "../../app-part1.js";
 import { attendanceMessage } from "../../app-workflow-tools.js";
 import { Button } from "../components/ui/button";
@@ -19,7 +26,6 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
     actual,
     count,
     editor,
-    inline,
     legacy,
     operate,
     pending,
@@ -197,7 +203,7 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
                         </span>
                         <span className="sc-person-copy">
                           <b>
-                            {p.name} {p.surname}
+                            {p.surname} {p.name}
                           </b>
                           <small>
                             {legacy
@@ -208,13 +214,13 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
                                   : "Risposta non registrata"
                               : v.replies[p.id] === "Indisponibile"
                                 ? "Ha avvisato: assente"
-                                : "Atteso all’allenamento"}
+                                : "Atteso"}
                           </small>
                         </span>
                         <div
                           className="sc-reply-buttons"
                           role="group"
-                          aria-label={`${legacy ? "Risposta storica" : "Previsione"} di ${p.name} ${p.surname}`}
+                          aria-label={`${legacy ? "Risposta storica" : "Previsione"} di ${p.surname} ${p.name}`}
                         >
                           {(legacy
                             ? ([
@@ -223,8 +229,18 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
                                 ["In attesa", "Non risposto", Minus, "pending"],
                               ] as const)
                             : ([
-                                ["Disponibile", "Atteso", Check, "expected"],
-                                ["Indisponibile", "Segna assente", X, "no"],
+                                [
+                                  v.replies[p.id] === "Indisponibile"
+                                    ? "Disponibile"
+                                    : "Indisponibile",
+                                  v.replies[p.id] === "Indisponibile"
+                                    ? "Rimuovi assenza"
+                                    : "Segna assente",
+                                  v.replies[p.id] === "Indisponibile"
+                                    ? Undo2
+                                    : X,
+                                  "no",
+                                ],
                               ] as const)
                           ).map(([value, label, Icon, tone]) => (
                             <button
@@ -232,13 +248,23 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
                               type="button"
                               disabled={!operate || !!a.session_id}
                               className={
-                                v.replies[p.id] === value ? "sc-" + tone : ""
+                                legacy
+                                  ? v.replies[p.id] === value
+                                    ? "sc-" + tone
+                                    : ""
+                                  : v.replies[p.id] === "Indisponibile"
+                                    ? "sc-no"
+                                    : ""
                               }
                               data-training-player={p.id}
                               data-training-reply={value}
-                              aria-label={`${p.name} ${p.surname}: ${label}`}
+                              aria-label={`${p.surname} ${p.name}: ${label}`}
                               title={label}
-                              aria-pressed={v.replies[p.id] === value}
+                              aria-pressed={
+                                legacy
+                                  ? v.replies[p.id] === value
+                                  : v.replies[p.id] === "Indisponibile"
+                              }
                               onClick={() => {
                                 editor.setValue({
                                   ...v,
@@ -255,6 +281,13 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
                               }}
                             >
                               <Icon size={18} />
+                              {!legacy ? (
+                                <span>
+                                  {v.replies[p.id] === "Indisponibile"
+                                    ? "Annulla"
+                                    : "Assente"}
+                                </span>
+                              ) : null}
                             </button>
                           ))}
                         </div>
@@ -305,7 +338,16 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
                         ["Indisponibile", "Assenti"],
                       ]
                   ).map(([value, label]) => (
-                    <span key={value}>
+                    <span
+                      key={value}
+                      data-tone={
+                        !legacy &&
+                        value === "Indisponibile" &&
+                        pending.length > 0
+                          ? "danger"
+                          : undefined
+                      }
+                    >
                       <b>
                         {
                           players.filter((p) => v.replies[p.id] === value)
@@ -316,30 +358,35 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
                     </span>
                   ))}
                 </div>
-                <CopyText
-                  className="sc-primary border-0"
-                  id="copyTrainingReminder"
-                  label={
-                    legacy ? "Copia riepilogo storico" : "Copia elenco assenti"
-                  }
-                  text={[
-                    `ALLENAMENTO EBURUM · ${fmt(v.activity_date)}`,
-                    editor.dirty || !a.id
-                      ? "BOZZA · modifiche non ancora salvate"
-                      : "Dati salvati",
-                    `${legacy ? "Risposte non registrate" : "Assenti previsti"} (${pending.length})`,
-                    ...pending.map(
-                      (p) =>
-                        `• ${p.surname} ${p.name}${v.notes[p.id] ? " · " + v.notes[p.id] : ""}`,
-                    ),
-                    legacy
-                      ? "Riepilogo del metodo precedente."
-                      : "Gli altri giocatori sono attesi. Presenze da confermare dopo l’allenamento.",
-                  ].join("\n")}
-                >
-                  {legacy ? "Copia riepilogo storico" : "Copia elenco assenti"}
-                  <ClipboardList size={18} />
-                </CopyText>
+                {legacy || pending.length > 0 ? (
+                  <CopyText
+                    id="copyTrainingReminder"
+                    label={
+                      legacy
+                        ? "Copia riepilogo storico"
+                        : "Copia elenco assenti"
+                    }
+                    text={[
+                      `Allenamento Eburum · ${fmt(v.activity_date)}`,
+                      editor.dirty || !a.id
+                        ? "BOZZA · modifiche non ancora salvate"
+                        : "Dati salvati",
+                      `${legacy ? "Risposte non registrate" : "Assenti previsti"} (${pending.length})`,
+                      ...pending.map(
+                        (p) =>
+                          `• ${p.surname} ${p.name}${v.notes[p.id] ? " · " + v.notes[p.id] : ""}`,
+                      ),
+                      legacy
+                        ? "Riepilogo del metodo precedente."
+                        : "Gli altri giocatori sono attesi. Presenze da confermare dopo l’allenamento.",
+                    ].join("\n")}
+                  >
+                    {legacy
+                      ? "Copia riepilogo storico"
+                      : "Copia elenco assenti"}
+                    <ClipboardList size={18} />
+                  </CopyText>
+                ) : null}
                 <p className="sc-helper">
                   {legacy
                     ? "Questi dati restano consultabili; non viene richiesto un nuovo sondaggio."
@@ -466,20 +513,12 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
             ) : null}
           </details>
           <ActionBar
-            className={`modal-actions planning-save ${inline && !editor.dirty ? "is-pristine" : ""}`}
+            className="modal-actions planning-save"
             hidden={phase === "actual" && training}
           >
-            {inline ? (
-              <span className="planning-save-caption">
-                {editor.dirty
-                  ? "Modifiche da salvare"
-                  : "Nessuna modifica da salvare"}
-              </span>
-            ) : null}
             <Button
               id="cancelPlanning"
               variant="secondary"
-              hidden={inline}
               disabled={editor.busy}
               onClick={() => void ui.close(surface.id)}
             >
@@ -499,7 +538,6 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
               type="submit"
               form="planningForm"
               id="savePlanning"
-              hidden={inline && !editor.dirty}
               disabled={!operate || editor.busy || (!!a.id && !editor.dirty)}
             >
               {a.id ? "Salva" : "Crea allenamento"}
@@ -510,9 +548,7 @@ export function PlanningEditor(props: Parameters<typeof usePlanningEditor>[0]) {
       </form>
     </div>
   );
-  return inline ? (
-    content
-  ) : (
+  return (
     <EditorFrame
       surface={surface}
       dirty={editor.dirty}

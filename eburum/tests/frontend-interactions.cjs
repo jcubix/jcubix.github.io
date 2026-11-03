@@ -639,7 +639,7 @@ test("Secretary direct training workspace is read-only and cannot submit sportin
 test('Register replaces training history and preserves read-only access to past sheets',async t=>{
  const {w,runtime,$}=await app(t,'president',data=>data.activities.push({id:'confirmed',user_id:'demo-user',activity_date:'2026-10-06',activity_type:'Allenamento',title:'Allenamento storico',status:'Concluso',session_id:'session-1',organization_note:'Divisa blu',revision:0}));
  await runtime.navigate('training');await until(()=>$('.training-scope'));
- assert.deepEqual([...w.document.querySelectorAll('.training-scope button')].map(b=>b.textContent),['Prossimi','Da confermare0']);
+ assert.deepEqual([...w.document.querySelectorAll('.training-scope button')].map(b=>b.textContent),['Prossimi','Da confermare']);
  assert.equal($('#planningForm'),null);assert.ok(w.document.querySelector('a[href="#/register"]'));
  await runtime.navigate('register');await until(()=>$('[data-register-training]'));
  assert.match($('#registerDetail').textContent,/Presente|Presenti/);assert.match($('#registerDetail').textContent,/Divisa blu/);
@@ -1012,7 +1012,7 @@ test('Design brief home prioritizes the next match and shares document counts wi
   data.activities.push({id:'next-brief-activity',user_id:'demo-user',activity_type:'Partita',title:'Avversario futuro',activity_date:day,start_time:'15:00',status:'Programmato',match_id:'next-brief-match',revision:0});
  });
  await runtime.navigate('dashboard');await until(()=>$('.sc-home-hero'));
- assert.match($('.sc-home-hero').textContent,/Prossima partita.*Domani.*Avversario futuro/);assert.equal($('[data-home-season]'),null);assert.ok($('.header-settings-panel .app-season select'));assert.equal($('.sc-home-hero button').dataset.openActivity,'next-brief-activity');
+ assert.match($('.sc-home-hero').textContent,/Prossima partita.*Avversario futuro.*Domani/);assert.equal($('[data-home-season]'),null);assert.ok($('.header-settings-panel .app-season select'));assert.equal($('.sc-home-hero button').dataset.openActivity,'next-brief-activity');
  const count=runtime.actions.documentSummary().review;
  assert.match($('.sc-home-tasks').textContent,new RegExp(count+' da verificare'));
  await runtime.navigate('more');await until(()=>$('.tool-group'));
@@ -1258,4 +1258,9 @@ test('historical surveys remain read-only and corrections keep their original me
  assert.ok([...w.document.querySelectorAll('[data-training-reply]')].every(b=>b.disabled));
  $('[data-training-phase=actual]').click();$('#planningAttendance').click();await until(()=>$('#trainList'));
  assert.equal(runtime.state.trainingDraft.session.attendance_mode,'poll');assert.equal(JSON.stringify(w.fixtureData.attendance),before);
+});
+
+test('Card dates are Italian, stable on DST days and explicit for missing values',async()=>{
+ const {cardDate}=await import('../app-presentation.js');
+ assert.equal(cardDate('2026-11-03'),'mar 3 nov');assert.equal(cardDate('2026-10-25'),'dom 25 ott');assert.equal(cardDate('2026-03-29'),'dom 29 mar');assert.equal(cardDate(null),'—');assert.equal(cardDate('2026-02-30'),'—');
 });
