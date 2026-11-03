@@ -471,7 +471,7 @@ function NavItem({
       {count ? (
         <span id="navigation-review-count" className="nav-tool-count">
           {count}
-          <span className="sr-only"> scadenze da verificare</span>
+          <span className="sr-only"> documenti da verificare</span>
         </span>
       ) : null}
     </Link>
@@ -664,9 +664,6 @@ function Workspace({
         <header className="app-header">
           <div className="mobile-brand">
             <Brand season={runtime.actions.season().year} />
-          </div>
-          <div className="desktop-context">
-            <SeasonPicker runtime={runtime} />
           </div>
           <div className="header-actions">
             <UserGuide role={snapshot.role || ""} />

@@ -14,22 +14,13 @@ import { communicationExpiry } from "../app-communications.js";
 import { playerDismissals } from "../app-dismissals.js";
 import { isAwayMatch } from "../app-match-display.js";
 import { fmt, today } from "../app-part1.js";
-import { dayLabel, matchOutcome } from "../app-presentation.js";
+import { cardDate, dayLabel, matchOutcome } from "../app-presentation.js";
 import {
   canOperateRole,
   canPlanRole,
   canViewExpiriesRole,
 } from "../app-roles.ts";
 import type { Runtime } from "./types";
-
-const trainingDate = (value: string) =>
-  new Intl.DateTimeFormat("it-IT", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  })
-    .format(new Date(value + "T12:00:00"))
-    .replace(/^./, (letter) => letter.toLocaleUpperCase("it"));
 
 export function Dashboard({ runtime }: { runtime: Runtime }) {
   const { state, actions } = runtime,
@@ -158,15 +149,17 @@ export function Dashboard({ runtime }: { runtime: Runtime }) {
                     ? "Prossima partita"
                     : "Prossimo allenamento"}
                 </span>
-                <span>{dayLabel(next.activity_date, day)}</span>
               </div>
               <h3>
                 {next.activity_type === "Partita"
                   ? `Eburum vs ${next.title}`
-                  : trainingDate(next.activity_date)}
+                  : `${dayLabel(next.activity_date, day)}, ${cardDate(next.activity_date)}`}
               </h3>
               {next.activity_type === "Partita" ? (
-                <p>{trainingDate(next.activity_date)}</p>
+                <p>
+                  {dayLabel(next.activity_date, day)},{" "}
+                  {cardDate(next.activity_date)}
+                </p>
               ) : next.title !== "Allenamento" ? (
                 <p>{next.title}</p>
               ) : null}
@@ -275,7 +268,7 @@ export function Dashboard({ runtime }: { runtime: Runtime }) {
           {latest ? (
             <section className="sc-last-training sc-home-last">
               <h2>Ultimo allenamento</h2>
-              <p>{trainingDate(latest.session_date)}</p>
+              <p>{cardDate(latest.session_date)}</p>
               {stats([
                 [
                   attendance.filter((r) => r.status === "Presente").length,
@@ -367,7 +360,7 @@ export function Dashboard({ runtime }: { runtime: Runtime }) {
             <section className="sc-home-result">
               <div className="sc-section-heading">
                 <h2>Ultimo risultato</h2>
-                <span>{fmt(lastMatch.match_date)}</span>
+                <span>{cardDate(lastMatch.match_date)}</span>
               </div>
               <button
                 className="sc-match-preview"
@@ -378,6 +371,13 @@ export function Dashboard({ runtime }: { runtime: Runtime }) {
                     className={`match-outcome outcome-${matchOutcome(lastMatch)}`}
                   >
                     {matchOutcome(lastMatch)}
+                  </span>
+                  <span className="match-outcome-word">
+                    {
+                      { V: "Vittoria", N: "Pareggio", P: "Sconfitta" }[
+                        matchOutcome(lastMatch) as "V" | "N" | "P"
+                      ]
+                    }
                   </span>
                   <span
                     className={`badge ${isAwayMatch(lastMatch) ? "venue-away" : "venue-home"}`}
@@ -422,17 +422,25 @@ export function Dashboard({ runtime }: { runtime: Runtime }) {
                 : "Nessuna presenza confermata disponibile"}
               . Provvedimenti aperti della stagione.
             </p>
-            {stats([
-              [latest ? clear : "—", "Senza segnalazioni", "neutral"],
-              [
-                latest ? players.filter((p) => injured.has(p.id)).length : "—",
-                "Infortunati",
-                "danger",
-              ],
-              [suspended.size, "Squalificati", "warning"],
-            ])}
+            <p className="home-signal-caption">
+              {latest
+                ? `${clear} giocatori senza segnalazioni registrate`
+                : "Segnalazioni sulle presenze non disponibili"}
+            </p>
+            <div className="home-signal-stats">
+              {stats([
+                [
+                  latest
+                    ? players.filter((p) => injured.has(p.id)).length
+                    : "—",
+                  "Infortunati",
+                  "danger",
+                ],
+                [suspended.size, "Squalificati", "warning"],
+              ])}
+            </div>
             <button
-              className="ghost wide"
+              className="ghost"
               onClick={() => void runtime.navigate("players")}
             >
               Apri Rosa

@@ -4063,8 +4063,8 @@
       0 1px 2px rgba(15, 27, 61, 0.05), 0 6px 20px rgba(15, 27, 61, 0.07);
     --card-hairline: rgba(15, 27, 61, 0.06);
     --dock-shadow: 0 8px 30px rgba(15, 27, 61, 0.12);
-    --radius-card: 16px;
-    --radius-control: 10px;
+    --radius-card: 20px;
+    --radius-control: 12px;
     --radius-pill: 999px;
     --dock-height: 80px;
     --dock-clearance: calc(var(--dock-height) + 24px + var(--safe-area-bottom));
@@ -4275,7 +4275,7 @@
     background: var(--danger-soft);
   }
   :is(button, a, summary, input, select, textarea, [tabindex]):focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--focus);
     outline-offset: 2px;
   }
   input:not([type="checkbox"]):not([type="radio"]),
@@ -5916,9 +5916,6 @@
     min-height: 24px;
   }
   @media (min-width: 1024px) {
-    .header-settings-panel > .app-season {
-      display: none;
-    }
     .report-facts {
       grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) minmax(0, 1fr);
       gap: 24px;
@@ -6624,11 +6621,6 @@
   .sc-reply-row .sc-person-copy {
     overflow-wrap: anywhere;
   }
-  #trainingReplies .sc-reply-buttons .sc-expected {
-    background: var(--success-soft);
-    color: var(--success);
-    border-color: var(--success-soft);
-  }
   .app-layout .sc-reply-buttons button {
     display: grid;
     place-items: center;
@@ -6689,18 +6681,6 @@
     background: var(--surface);
     border-color: var(--border);
   }
-  .planning-save-caption {
-    flex: 1 1 0;
-    min-width: 0;
-    margin-right: auto;
-    color: var(--ink-2);
-    font-size: 13px;
-  }
-  #workspaceActions > .planning-save.is-pristine {
-    background: transparent;
-    box-shadow: none;
-    padding-block: 8px;
-  }
   #workspaceActions #savePlanning[hidden],
   .page-heading button[hidden],
   .report-export-actions[hidden] {
@@ -6711,11 +6691,6 @@
   }
   .training-duration p {
     font-size: 14px;
-    color: var(--ink-2);
-  }
-  .filter-scroll-hint {
-    margin: 0 0 6px;
-    font-size: 12px;
     color: var(--ink-2);
   }
   #app .communication-filters > .segmented,
@@ -7076,5 +7051,147 @@
         transparent
       );
     }
+  }
+
+  :root,
+  html[data-theme="light"] {
+    --focus: var(--primary);
+  }
+  html[data-theme="dark"] {
+    --focus: var(--accent);
+  }
+  #app .sc-search:focus-within {
+    outline-color: var(--focus);
+  }
+  #app
+    :is(
+      .recent-form > span:first-child small,
+      .match-outcome,
+      .tool-group > h2
+    ) {
+    font-size: 13px;
+  }
+  #app .tool-group > h2 {
+    color: var(--ink-2);
+  }
+  #app .outcome-N {
+    background: var(--border);
+    color: var(--ink);
+  }
+  .match-outcome-word {
+    margin-inline-end: auto;
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+  .home-signal-caption {
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+  .home-signal-stats .home-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #app .sc-home-availability button.ghost {
+    width: auto;
+  }
+  #app .roster-table td {
+    padding-block: 2px;
+  }
+  #app .roster-table td button {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 44px;
+    font-size: 15px;
+  }
+  .roster-table td button > svg {
+    margin-inline-start: auto;
+    flex-shrink: 0;
+  }
+  #app .roster-table[data-grouped="true"] td {
+    width: 100%;
+  }
+  #app .training-work-panel .training-phase-tabs {
+    display: flex;
+    gap: 16px;
+    width: fit-content;
+    max-width: 100%;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  #app .training-work-panel .training-phase-tabs > button {
+    flex: none;
+    min-height: 44px;
+    padding: 8px 2px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    color: var(--ink-2);
+    box-shadow: none;
+    font-size: 14px;
+  }
+  #app .training-work-panel .training-phase-tabs > button[aria-pressed="true"] {
+    color: var(--ink);
+    border-bottom-color: var(--focus);
+  }
+  #app #trainingReplies .sc-reply-buttons button:has(span) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: auto;
+    min-width: 88px;
+    min-height: 44px;
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+  #app .training-absence-summary b {
+    color: var(--ink);
+  }
+  #app .training-absence-summary [data-tone="danger"] b {
+    color: var(--danger);
+  }
+  .match-empty-copy {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .match-empty-copy > svg {
+    flex: none;
+    color: var(--ink-2);
+  }
+  .match-empty-copy h3 {
+    font-size: 16px;
+  }
+  .app-header .header-actions {
+    margin-inline-start: auto;
+  }
+  #app #trainingReplies .sc-reply-buttons button[aria-pressed="false"] {
+    color: var(--ink-2);
+  }
+  .sc-match-empty {
+    display: block;
+  }
+  .sc-match-empty > h2 {
+    margin-bottom: 16px;
+  }
+  #app
+    :is(
+      .badge,
+      .sc-status,
+      .office-status,
+      .sc-category,
+      .sc-expiry,
+      .sc-light-tag,
+      .sc-date-tile small,
+      .sc-count-strip,
+      .sc-small-count,
+      .tools-footer small
+    ) {
+    font-size: 13px;
   }
 }

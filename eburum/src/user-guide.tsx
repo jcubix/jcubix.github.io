@@ -26,8 +26,8 @@ const topics = [
     title: "Allenamenti: disponibilità e presenze",
     text: "Non serve votare un sondaggio: chi non può partecipare avvisa lo staff. Gli altri giocatori sono attesi; nessuna presenza è registrata prima della conferma finale.",
     steps: [
-      "Apri Allenamenti → Gestisci presenze → Disponibilità: la X indica chi ha avvisato che sarà assente. Puoi aggiungere un motivo facoltativo.",
-      "Filtra Assenti per consultare l’elenco; la spunta Atteso annulla una segnalazione errata o ritirata.",
+      "Apri Allenamenti → Gestisci presenze → Disponibilità: usa Assente per chi ha avvisato che non parteciperà. Puoi aggiungere un motivo facoltativo.",
+      "Filtra Assenti per consultare l’elenco; Annulla rimuove una segnalazione errata o ritirata; gli altri restano attesi, non confermati.",
       "Dopo l’allenamento registra le Presenze effettive: presente, assente o infortunato, poi salva.",
       "Nel Registro in Altro trovi presenze e schede degli allenamenti passati o annullati. Apri la scheda per note e comunicazioni; i vecchi sondaggi restano indicati come dati storici; Storico modifiche mostra autore e variazione delle correzioni.",
     ],

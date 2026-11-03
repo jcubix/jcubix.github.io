@@ -58,3 +58,8 @@ export function communicationDeadline(kind, date, time, days, now=Date.now()) {
  for(const guess of [wall-86400000,wall,wall+86400000]){const p=fields(guess),offset=Date.UTC(Number(p.year),Number(p.month)-1,Number(p.day),Number(p.hour),Number(p.minute),Number(p.second))-guess,candidate=wall-offset,q=fields(candidate);if(`${q.year}-${q.month}-${q.day}T${q.hour}:${q.minute}`===date+'T'+time.slice(0,5))candidates.add(candidate);}
  return candidates.size===1?new Date([...candidates][0]+Number(days)*86400000).toISOString():null;
 }
+
+export function cardDate(value) {
+ if(!validDay(value))return '—';
+ return new Intl.DateTimeFormat('it-IT',{weekday:'short',day:'numeric',month:'short'}).format(new Date(value+'T12:00:00')).replace(/\./g,'');
+}

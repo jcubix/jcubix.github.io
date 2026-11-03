@@ -11,3 +11,5 @@ dist/
 /.playwright-cli/
 /.impeccable/review/
 /test-results/
+
+/playwright-report/

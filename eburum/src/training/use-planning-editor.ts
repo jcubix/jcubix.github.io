@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { sortPlayers, today } from "../../app-part1.js";
 import { canOperateRole, canPlanRole } from "../../app-roles.ts";
@@ -10,11 +10,9 @@ import { PlanValues } from "./model";
 export function usePlanningEditor({
   runtime,
   surface,
-  inline = false,
 }: {
   runtime: Runtime;
   surface: Surface;
-  inline?: boolean;
 }) {
   const navigate = useNavigate();
   const data = surface.data as {
@@ -68,11 +66,6 @@ export function usePlanningEditor({
   const operate = canOperateRole(runtime.state.team?.role || ""),
     plan = canPlanRole(runtime.state.team?.role || ""),
     training = a.activity_type !== "Riunione";
-  useEffect(() => {
-    if (!inline) return;
-    runtime.setNavigationGuard(editor.canLeave);
-    return () => runtime.setNavigationGuard(null);
-  }, [runtime, inline, editor.canLeave]);
   const v = editor.value,
     pending = players.filter(
       (p) => v.replies[p.id] === (legacy ? "In attesa" : "Indisponibile"),
@@ -139,9 +132,8 @@ export function usePlanningEditor({
       )
         return;
       // Complete the reload before closing changes the route request guard.
-      if (!inline) await editor.close({ restoreRoute: !!a.id || !training });
-      if (!inline && !a.id && training)
-        await runtime.actions.openActivity(saved.id);
+      await editor.close({ restoreRoute: !!a.id || !training });
+      if (!a.id && training) await runtime.actions.openActivity(saved.id);
       ui.notify(
         training
           ? a.id
@@ -160,7 +152,7 @@ export function usePlanningEditor({
     const opened = await startActualAttendance(
       runtime.state.activities.find((row) => row.id === a.id) || a,
     );
-    if (opened && !inline) {
+    if (opened) {
       await editor.close({ restoreRoute: false });
       const session = runtime.state.trainingDraft?.id;
       navigate(
@@ -177,7 +169,6 @@ export function usePlanningEditor({
     actual,
     count,
     editor,
-    inline,
     legacy,
     operate,
     pending,
