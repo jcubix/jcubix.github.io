@@ -471,7 +471,10 @@ function NavItem({
       {count ? (
         <span id="navigation-review-count" className="nav-tool-count">
           {count}
-          <span className="sr-only"> documenti da verificare</span>
+          <span className="sr-only">
+            {" "}
+            giocatori con documenti da verificare
+          </span>
         </span>
       ) : null}
     </Link>
