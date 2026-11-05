@@ -17,6 +17,8 @@ import {
   boardPhoto,
   isEquipmentKind,
   moveMark,
+  pitchLayouts,
+  type PitchLayout,
 } from "../whiteboard-model";
 import "../whiteboard.css";
 import { Ink } from "./ink";
@@ -84,6 +86,7 @@ export function WhiteboardEditor({
   const selectedMark = doc.marks.find((m) => m.id === selected);
   const equipment =
     selectedMark && isEquipmentKind(selectedMark.kind) ? selectedMark : null;
+  const whitePitch = doc.background === "pitch" && doc.whitePitch === true;
   return (
     <section className="wb-editor" aria-label="Editor lavagna">
       <details
@@ -124,6 +127,37 @@ export function WhiteboardEditor({
           </label>
         </fieldset>
       </details>
+      {doc.background === "pitch" ? (
+        <fieldset className="wb-fields wb-pitch-settings" disabled={busy}>
+          <label>
+            Formato campo
+            <select
+              value={doc.pitchLayout ?? "auto"}
+              onChange={(e) =>
+                commit({ ...doc, pitchLayout: e.target.value as PitchLayout })
+              }
+            >
+              {Object.entries(pitchLayouts).map(([value, name]) => (
+                <option key={value} value={value}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Sfondo del campo
+            <select
+              value={whitePitch ? "white" : "green"}
+              onChange={(e) =>
+                commit({ ...doc, whitePitch: e.target.value === "white" })
+              }
+            >
+              <option value="green">Verde</option>
+              <option value="white">Bianco</option>
+            </select>
+          </label>
+        </fieldset>
+      ) : null}
       <div className="wb-workspace">
         <div className="wb-controls">
           <div className="wb-save">
@@ -173,6 +207,7 @@ export function WhiteboardEditor({
                 disabled={busy}
                 onClick={() => {
                   setTool(kind);
+                  setLabel("");
                   setSelected("");
                   setError("");
                 }}
@@ -188,6 +223,7 @@ export function WhiteboardEditor({
             color={color}
             onSelect={(kind) => {
               setTool(kind);
+              setLabel("");
               setSelected("");
               setError("");
             }}
@@ -232,7 +268,7 @@ export function WhiteboardEditor({
               <label className="wb-label">
                 {tool === "text"
                   ? "Testo della nota"
-                  : `Numero o sigla · ${tool === "home" ? "Eburum" : "Avversari"}`}
+                  : "Numero o sigla (facoltativo)"}
                 <Input
                   value={label}
                   maxLength={tool === "text" ? 80 : 4}
@@ -241,7 +277,7 @@ export function WhiteboardEditor({
                   placeholder={
                     tool === "text"
                       ? "Es. Chiudere la linea di passaggio"
-                      : "Es. 7"
+                      : "Lascia vuoto per la sagoma"
                   }
                 />
               </label>
@@ -346,7 +382,10 @@ export function WhiteboardEditor({
             </defs>
             <g transform={portrait ? "translate(640 0) rotate(90)" : undefined}>
               {doc.background === "pitch" ? (
-                <Pitch />
+                <Pitch
+                  white={whitePitch}
+                  half={doc.pitchLayout?.startsWith("half-") ?? false}
+                />
               ) : (
                 <>
                   <rect width="1000" height="640" fill="#0b1220" />
@@ -385,7 +424,7 @@ export function WhiteboardEditor({
                       cy={m.points[0].y}
                       r="30"
                       fill="none"
-                      stroke="#ffffff"
+                      stroke={whitePitch ? "#14213b" : "#ffffff"}
                       strokeDasharray="5 5"
                       strokeWidth="2"
                       pointerEvents="none"

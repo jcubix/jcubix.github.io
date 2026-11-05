@@ -31,7 +31,20 @@ export type Mark = {
   label: string;
   scale?: number;
 };
-export type BoardDocument = { background: string; marks: Mark[] };
+export const pitchLayouts = {
+  auto: "Automatico",
+  "full-landscape": "Intero orizzontale",
+  "full-portrait": "Intero verticale",
+  "half-landscape": "Metà orizzontale",
+  "half-portrait": "Metà verticale",
+} as const;
+export type PitchLayout = keyof typeof pitchLayouts;
+export type BoardDocument = {
+  background: string;
+  pitchLayout?: PitchLayout;
+  whitePitch?: boolean;
+  marks: Mark[];
+};
 export type BoardSummary = {
   id: string;
   title: string;
@@ -133,6 +146,10 @@ export function validateBoard(value: unknown): asserts value is BoardDocument {
     (doc.background !== "pitch" &&
       (!/^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/.test(doc.background) ||
         doc.background.length > 1_400_000)) ||
+    (doc.pitchLayout !== undefined &&
+      (typeof doc.pitchLayout !== "string" ||
+        !Object.hasOwn(pitchLayouts, doc.pitchLayout))) ||
+    (doc.whitePitch !== undefined && typeof doc.whitePitch !== "boolean") ||
     !Array.isArray(doc.marks) ||
     doc.marks.length > 200
   )

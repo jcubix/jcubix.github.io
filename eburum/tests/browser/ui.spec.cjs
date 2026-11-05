@@ -295,7 +295,11 @@ test('whiteboard distinguishes teams and places, reopens, edits and exports ever
  const placement=page.getByRole('group',{name:'Giocatori e attrezzi'}),svg=page.getByRole('application',{name:/Lavagna interattiva/});
  const place=async(index)=>{await svg.scrollIntoViewIfNeeded();const field=await svg.boundingBox(),controls=await page.locator('.wb-controls').boundingBox();const x=field.x+field.width*(.15+(index%4)*.23),y=Math.max(field.y+field.height*(.2+Math.floor(index/4)*.2),controls.y+controls.height+36);expect(y).toBeLessThan(Math.min(field.y+field.height-20,page.viewportSize().height-16));await page.mouse.click(x,y)};
  for(const [index,name] of ['Eburum','Avversario'].entries()){const button=placement.getByRole('button',{name,exact:true});await button.click();await expect(button.locator('span')).toBeVisible();await expect(button).toHaveAttribute('aria-pressed','true');await expect(page.getByLabel(/Numero o sigla/)).toBeVisible();await place(index)}
- await expect(svg.getByRole('img',{name:'1. Eburum · 1',exact:true}).locator('circle')).toHaveCount(1);await expect(svg.getByRole('img',{name:'2. Avversario · 1',exact:true}).locator('path')).toHaveAttribute('d',/22 0/);
+ for(const [name,fill] of [['1. Eburum','#85b5ef'],['2. Avversario','#f88a99']]){
+  const silhouette=svg.getByRole('img',{name,exact:true});
+  await expect(silhouette.locator('g[fill]')).toHaveAttribute('fill',fill);
+  await expect(silhouette.locator('text')).toHaveCount(0);
+ }
  const equipment=[['disc','Cinesina'],['cone','Conetto'],['pole','Asta'],['mannequin','Sagoma barriera'],['ball','Pallone'],['hurdle','Ostacolo'],['ladder','Scaletta'],['mini_goal','Porticina'],['hoop','Cerchio agilità']];
  for(const [index,[kind,label]] of equipment.entries()){
   await placement.getByRole('button',{name:/^Attrezzi:/}).click();const dialog=page.getByRole('dialog',{name:'Attrezzi da allenamento'});await expect(dialog.getByRole('button')).toHaveCount(10);
@@ -307,6 +311,48 @@ test('whiteboard distinguishes teams and places, reopens, edits and exports ever
  await page.locator('.wb-elements > summary').click();await page.getByRole('button',{name:'5. Asta',exact:true}).click();await page.keyboard.press('ArrowRight');await page.keyboard.press('Delete');await expect(svg.locator('[data-mark]')).toHaveCount(10);await page.keyboard.press('Control+z');await expect(svg.locator('[data-mark]')).toHaveCount(11);
  const downloaded=page.waitForEvent('download');await page.getByRole('button',{name:'Esporta immagine',exact:true}).click();const file=await downloaded;expect(fs.readFileSync(await file.path()).subarray(0,8).toString('hex')).toBe('89504e470d0a1a0a');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);await page.getByRole('button',{name:'Scorri',exact:true}).click();await svg.scrollIntoViewIfNeeded();await info.attach('teams-and-equipment',{body:await page.screenshot(),contentType:'image/png'});
+});
+
+test('whiteboard saves print settings and exports the chosen field and silhouettes',async({page},info)=>{
+ await open(page,'whiteboard');await page.getByRole('button',{name:'Nuova lavagna',exact:true}).click();
+ const svg=page.getByRole('application',{name:/Lavagna interattiva/}),layout=page.getByLabel('Formato campo'),paper=page.getByLabel('Sfondo del campo');
+ const field=svg.locator('g[aria-hidden=true]').first(),center=field.locator('circle[cx="500"]');
+ const png=async()=>{
+  const downloaded=page.waitForEvent('download');await page.getByRole('button',{name:'Esporta immagine',exact:true}).click();
+  return fs.readFileSync(await (await downloaded).path());
+ };
+ for(const [value,portrait,half] of [['full-landscape',false,false],['full-portrait',true,false],['half-landscape',false,true],['half-portrait',true,true]]){
+  await layout.selectOption(value);await expect(svg).toHaveAttribute('viewBox',portrait?'0 0 640 1000':'0 0 1000 640');
+  await expect(center).toHaveCount(half?0:2);await expect(field.locator('path[d^="M968 242"]')).toHaveCount(half?1:0);
+  if(half&&!portrait){
+   await paper.selectOption('white');
+   const image=await png();expect(image.readUInt32BE(16)).toBe(2000);expect(image.readUInt32BE(20)).toBe(1380);
+  }
+ }
+ await page.getByRole('button',{name:'Eburum',exact:true}).click();
+ await svg.scrollIntoViewIfNeeded();const box=await svg.boundingBox(),controls=await page.locator('.wb-controls').boundingBox();
+ await page.mouse.click(box.x+box.width/2,Math.max(box.y+box.height*.4,controls.y+controls.height+30));
+ await expect(svg.getByRole('img',{name:'1. Eburum',exact:true})).toBeVisible();
+ await expect(field.locator('rect').first()).toHaveAttribute('fill','#ffffff');
+ const image=await png();expect(image.readUInt32BE(16)).toBe(1280);expect(image.readUInt32BE(20)).toBe(2100);
+ const pixels=await page.evaluate(async(base64)=>{
+  const img=new Image();img.src='data:image/png;base64,'+base64;await img.decode();
+  const canvas=document.createElement('canvas');canvas.width=img.width;canvas.height=img.height;
+  const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);
+  return [20,120].map(y=>Array.from(ctx.getImageData(12,y,1,1).data));
+ },image.toString('base64'));
+ expect(pixels).toEqual([[255,255,255,255],[255,255,255,255]]);
+ await info.attach('whiteboard-print',{body:image,contentType:'image/png'});
+ await page.getByRole('button',{name:'Salva lavagna',exact:true}).click();await expect(page.locator('.wb-feedback')).toContainText('Lavagna salvata');
+ const saved=await page.evaluate(()=>fixtureData.tactical_boards[0].document);
+ expect(saved).toMatchObject({background:'pitch',pitchLayout:'half-portrait',whitePitch:true,marks:[{kind:'home',label:''}]});
+ await page.locator('.wb-close').getByRole('button',{name:'Chiudi lavagna',exact:true}).click();
+ await page.locator('.wb-library .sc-list-row').first().click();
+ await expect(layout).toHaveValue('half-portrait');await expect(paper).toHaveValue('white');
+ await expect(svg.getByRole('img',{name:'1. Eburum',exact:true})).toBeVisible();
+ await paper.selectOption('green');await page.getByRole('button',{name:'Annulla ultima modifica'}).click();await expect(paper).toHaveValue('white');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+ await info.attach('whiteboard-field-settings',{body:await page.screenshot({fullPage:true}),contentType:'image/png'});
 });
 
 test('whiteboard equipment size previews new tools and persists one undo step per resize gesture',async({page},info)=>{

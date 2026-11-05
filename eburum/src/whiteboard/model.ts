@@ -30,7 +30,13 @@ export const fingerprint = (
   doc: BoardDocument,
 ) => ({
   background: doc.background,
-  content: JSON.stringify([title.trim(), activity, doc.marks]),
+  content: JSON.stringify([
+    title.trim(),
+    activity,
+    doc.pitchLayout ?? "auto",
+    doc.whitePitch ?? false,
+    doc.marks,
+  ]),
 });
 export const markLabel = (mark: Mark, index: number) =>
   `${index + 1}. ${isEquipmentKind(mark.kind) ? boardEquipment[mark.kind].label : mark.kind === "home" ? "Eburum" : mark.kind === "away" ? "Avversario" : tools.find((tool) => tool.kind === mark.kind)?.label}${

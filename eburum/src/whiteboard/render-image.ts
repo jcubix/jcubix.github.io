@@ -1,7 +1,7 @@
 export async function renderWhiteboardImage(
   svg: SVGSVGElement,
   title: string,
-  portrait: boolean,
+  white: boolean,
 ): Promise<Blob> {
   await document.fonts?.load('700 32px "Figtree"').catch(() => []);
   const copy = svg.cloneNode(true) as SVGSVGElement;
@@ -9,8 +9,8 @@ export async function renderWhiteboardImage(
     .querySelectorAll("[data-selection], [data-hit]")
     .forEach((node) => node.remove());
   copy.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-  const width = portrait ? 1280 : 2000,
-    height = portrait ? 2000 : 1280;
+  const width = svg.viewBox.baseVal.width * 2,
+    height = svg.viewBox.baseVal.height * 2;
   copy.setAttribute("width", String(width));
   copy.setAttribute("height", String(height));
   const url = URL.createObjectURL(
@@ -28,9 +28,9 @@ export async function renderWhiteboardImage(
     const context = canvas.getContext("2d");
     if (!context)
       throw Error("Esportazione non disponibile su questo browser.");
-    context.fillStyle = "#0b1220";
+    context.fillStyle = white ? "#ffffff" : "#0b1220";
     context.fillRect(0, 0, width, height + 100);
-    context.fillStyle = "#ffffff";
+    context.fillStyle = white ? "#14213b" : "#ffffff";
     context.font = '700 32px "Figtree", system-ui, sans-serif';
     context.fillText(title || "Lavagna Eburum", 32, 60, width - 64);
     context.drawImage(image, 0, 100, width, height);
