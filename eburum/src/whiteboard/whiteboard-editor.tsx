@@ -16,7 +16,6 @@ import {
   boardEquipment,
   boardPhoto,
   isEquipmentKind,
-  moveMark,
   pitchLayouts,
   type PitchLayout,
 } from "../whiteboard-model";
@@ -81,6 +80,7 @@ export function WhiteboardEditor({
     title,
     tool,
     undo,
+    view,
   } = model;
   if (!board) return null;
   const selectedMark = doc.marks.find((m) => m.id === selected);
@@ -154,6 +154,18 @@ export function WhiteboardEditor({
             >
               <option value="green">Verde</option>
               <option value="white">Bianco</option>
+            </select>
+          </label>
+          <label>
+            Vista del campo
+            <select
+              value={doc.raisedPitch ? "raised" : "flat"}
+              onChange={(e) =>
+                commit({ ...doc, raisedPitch: e.target.value === "raised" })
+              }
+            >
+              <option value="flat">Dall’alto</option>
+              <option value="raised">Rialzata</option>
             </select>
           </label>
         </fieldset>
@@ -301,7 +313,7 @@ export function WhiteboardEditor({
         <div className="wb-stage" data-portrait={portrait}>
           <svg
             ref={svg}
-            viewBox={portrait ? "0 0 640 1000" : "0 0 1000 640"}
+            viewBox={`0 0 ${view.width} ${view.height}`}
             data-tool={tool}
             role="application"
             aria-label="Lavagna interattiva: usa gli strumenti per disegnare o seleziona un elemento dall’elenco sottostante"
@@ -346,12 +358,8 @@ export function WhiteboardEditor({
                     : e.key === "ArrowDown"
                       ? step
                       : 0;
-                const next = moveMark(
-                  m,
-                  portrait ? dy : dx,
-                  portrait ? -dx : dy,
-                  portrait,
-                );
+                const delta = view.nudge(m.points[0], dx, dy);
+                const next = view.move(m, delta.x, delta.y);
                 commit({
                   ...doc,
                   marks: doc.marks.map((v) => (v.id === selected ? next : v)),
@@ -380,22 +388,32 @@ export function WhiteboardEditor({
                 </marker>
               ))}
             </defs>
-            <g transform={portrait ? "translate(640 0) rotate(90)" : undefined}>
+            <rect
+              width={view.width}
+              height={view.height}
+              fill={
+                doc.background === "pitch"
+                  ? whitePitch
+                    ? "#ffffff"
+                    : "#17483e"
+                  : "#0b1220"
+              }
+              aria-hidden="true"
+            />
+            <g
+              transform={
+                view.rotated ? "translate(640 0) rotate(90)" : undefined
+              }
+            >
               {doc.background === "pitch" ? (
-                <Pitch
-                  white={whitePitch}
-                  half={doc.pitchLayout?.startsWith("half-") ?? false}
-                />
+                <Pitch white={whitePitch} view={view} />
               ) : (
-                <>
-                  <rect width="1000" height="640" fill="#0b1220" />
-                  <image
-                    href={doc.background}
-                    width="1000"
-                    height="640"
-                    preserveAspectRatio="xMidYMid meet"
-                  />
-                </>
+                <image
+                  href={doc.background}
+                  width="1000"
+                  height="640"
+                  preserveAspectRatio="xMidYMid meet"
+                />
               )}
               {shown.map((m, i) => (
                 <g
@@ -416,7 +434,7 @@ export function WhiteboardEditor({
                       fill="transparent"
                     />
                   ) : null}
-                  <Ink mark={m} markerId={markerId} portrait={portrait} />
+                  <Ink mark={m} markerId={markerId} portrait={view.rotated} />
                   {selected === m.id ? (
                     <circle
                       data-selection="true"

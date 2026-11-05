@@ -894,7 +894,7 @@ test('Whiteboard validates untrusted documents and keeps moved marks in bounds',
  const {w}=await app(t);const model=w.EburumTests;
  model.validateBoard(model.emptyBoard());
  model.validateBoard({...model.emptyBoard(),pitchLayout:'half-portrait',whitePitch:true});
- for(const settings of [{pitchLayout:'square'},{pitchLayout:null},{whitePitch:'true'},{whitePitch:null}])
+ for(const settings of [{pitchLayout:'square'},{pitchLayout:null},{whitePitch:'true'},{whitePitch:null},{raisedPitch:'true'}])
   assert.throws(()=>model.validateBoard({...model.emptyBoard(),...settings}));
  const mark={id:'one',kind:'arrow',color:'#ff7b8b',label:'',points:[{x:10,y:20},{x:980,y:620}]};
  const moved=model.moveMark(mark,1000,-1000);assert.equal(moved.points[1].x,1000);assert.equal(moved.points[0].y,0);assert.equal(moved.points[1].x-moved.points[0].x,970);
@@ -946,10 +946,17 @@ test('Photo board previews and commits never stringify the background and undo r
 
 test('Portrait whiteboard maps touch coordinates and keeps upright notes inside the field',async t=>{
  const {w}=await app(t);const model=w.EburumTests;
+ const portrait=model.pitchView(false,true,false),landscape=model.pitchView(false,false,false);
  for(const [x,y] of [[0,0],[1,0],[0,1],[1,1],[.25,.2]]){
-  const p=model.boardViewPoint(x,y,true);assert.equal(p.x,y*1000);assert.equal(p.y,(1-x)*640);
+  const p=portrait.unproject(x*640,y*1000);assert.equal(p.x,y*1000);assert.equal(p.y,(1-x)*640);
  }
- assert.equal(model.boardViewPoint(.25,.2).x,250);assert.equal(model.boardViewPoint(.25,.2).y,128);
+ assert.equal(landscape.unproject(250,128).x,250);assert.equal(landscape.unproject(250,128).y,128);
+ for(const half of [false,true])for(const vertical of [false,true])for(const raised of [false,true]){
+  const view=model.pitchView(half,vertical,raised);
+  const saved={x:222.5,y:453.8},drawn=view.projectMark(saved);
+  const point=view.rotated?view.unproject(640-drawn.y,drawn.x):view.unproject(drawn.x,drawn.y);
+  assert.equal(point.x,saved.x);assert.equal(point.y,saved.y);
+ }
  const text='Chiudere la linea di passaggio senza lasciare spazio alle spalle della difesa';
  const note=model.boardNoteLayout(text,true);assert.ok(note.lines.length>1);assert.ok(note.width<640);assert.equal(note.lines.join(' '),text);
  const mark={id:'note',kind:'text',label:text,color:'#ffffff',points:[{x:0,y:0}]};

@@ -48,7 +48,7 @@
     margin: 16px 0 0;
   }
   .wb-pitch-settings {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
   }
   .wb-workspace {
@@ -228,13 +228,9 @@
     display: block;
     width: 100%;
     height: auto;
-    aspect-ratio: 1000/640;
     touch-action: none;
     user-select: none;
     -webkit-user-select: none;
-  }
-  .wb-stage[data-portrait="true"] svg {
-    aspect-ratio: 640/1000;
   }
   .wb-stage svg[data-tool="pan"] {
     touch-action: pan-y pinch-zoom;
@@ -325,9 +321,12 @@
       gap: 16px;
     }
     .wb-pitch-settings {
-      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 8px;
       margin-bottom: 12px;
+    }
+    .wb-pitch-settings > label:first-child {
+      grid-column: 1 / -1;
     }
     .wb-toolbar,
     .wb-placement,

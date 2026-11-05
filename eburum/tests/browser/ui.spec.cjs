@@ -316,25 +316,38 @@ test('whiteboard distinguishes teams and places, reopens, edits and exports ever
 test('whiteboard saves print settings and exports the chosen field and silhouettes',async({page},info)=>{
  await open(page,'whiteboard');await page.getByRole('button',{name:'Nuova lavagna',exact:true}).click();
  const svg=page.getByRole('application',{name:/Lavagna interattiva/}),layout=page.getByLabel('Formato campo'),paper=page.getByLabel('Sfondo del campo');
- const field=svg.locator('g[aria-hidden=true]').first(),center=field.locator('circle[cx="500"]');
+ const field=svg.locator('[data-pitch]'),view=page.getByLabel('Vista del campo');
+ const outline=field.locator('path');
+ const background=svg.locator('rect').first();
  const png=async()=>{
   const downloaded=page.waitForEvent('download');await page.getByRole('button',{name:'Esporta immagine',exact:true}).click();
   return fs.readFileSync(await (await downloaded).path());
  };
- for(const [value,portrait,half] of [['full-landscape',false,false],['full-portrait',true,false],['half-landscape',false,true],['half-portrait',true,true]]){
-  await layout.selectOption(value);await expect(svg).toHaveAttribute('viewBox',portrait?'0 0 640 1000':'0 0 1000 640');
-  await expect(center).toHaveCount(half?0:2);await expect(field.locator('path[d^="M968 242"]')).toHaveCount(half?1:0);
-  if(half&&!portrait){
+ for(const [value,viewBox,half] of [['full-landscape','0 0 1000 640',false],['full-portrait','0 0 640 1000',false],['half-landscape','0 0 640 532',true],['half-portrait','0 0 640 700',true]]){
+  await layout.selectOption(value);await expect(svg).toHaveAttribute('viewBox',viewBox);
+  await expect(field).toHaveAttribute('data-pitch',half?'half':'full');
+  await expect(outline).toHaveAttribute('d',half?/^M32\.00 32\.00L500\.00 32\.00L500\.00 608\.00/:/^M32\.00 32\.00L968\.00 32\.00L968\.00 608\.00/);
+  await expect(outline).toHaveAttribute('d',/M32\.00 165\.00L190\.00 165\.00L190\.00 475\.00/);
+  if(value==='half-landscape'){
    await paper.selectOption('white');
-   const image=await png();expect(image.readUInt32BE(16)).toBe(2000);expect(image.readUInt32BE(20)).toBe(1380);
+   const image=await png();expect(image.readUInt32BE(16)).toBe(1280);expect(image.readUInt32BE(20)).toBe(1164);
   }
  }
+ await view.selectOption('raised');
+ await expect(svg).toHaveAttribute('viewBox','0 0 640 628');
+ const corners=(await outline.getAttribute('d')).match(/^[ML]([0-9.]+) ([0-9.]+)L([0-9.]+) ([0-9.]+)L([0-9.]+) ([0-9.]+)L([0-9.]+) ([0-9.]+)/).slice(1).map(Number);
+ expect(corners[5]-corners[3]).toBeGreaterThan(corners[7]-corners[1]);
+
  await page.getByRole('button',{name:'Eburum',exact:true}).click();
  await svg.scrollIntoViewIfNeeded();const box=await svg.boundingBox(),controls=await page.locator('.wb-controls').boundingBox();
- await page.mouse.click(box.x+box.width/2,Math.max(box.y+box.height*.4,controls.y+controls.height+30));
- await expect(svg.getByRole('img',{name:'1. Eburum',exact:true})).toBeVisible();
- await expect(field.locator('rect').first()).toHaveAttribute('fill','#ffffff');
- const image=await png();expect(image.readUInt32BE(16)).toBe(1280);expect(image.readUInt32BE(20)).toBe(2100);
+ const tap={x:box.x+box.width*.64,y:Math.max(box.y+box.height*.4,controls.y+controls.height+30)};
+ await page.mouse.click(tap.x,tap.y);
+ const mark=svg.getByRole('img',{name:'1. Eburum',exact:true});await expect(mark).toBeVisible();
+ const markBox=await mark.boundingBox();
+ expect(Math.abs(markBox.x+markBox.width/2-tap.x)).toBeLessThan(2);
+ expect(Math.abs(markBox.y+markBox.height/2-tap.y)).toBeLessThan(4);
+ await expect(background).toHaveAttribute('fill','#ffffff');
+ const image=await png();expect(image.readUInt32BE(16)).toBe(1280);expect(image.readUInt32BE(20)).toBe(1356);
  const pixels=await page.evaluate(async(base64)=>{
   const img=new Image();img.src='data:image/png;base64,'+base64;await img.decode();
   const canvas=document.createElement('canvas');canvas.width=img.width;canvas.height=img.height;
@@ -345,10 +358,10 @@ test('whiteboard saves print settings and exports the chosen field and silhouett
  await info.attach('whiteboard-print',{body:image,contentType:'image/png'});
  await page.getByRole('button',{name:'Salva lavagna',exact:true}).click();await expect(page.locator('.wb-feedback')).toContainText('Lavagna salvata');
  const saved=await page.evaluate(()=>fixtureData.tactical_boards[0].document);
- expect(saved).toMatchObject({background:'pitch',pitchLayout:'half-portrait',whitePitch:true,marks:[{kind:'home',label:''}]});
+ expect(saved).toMatchObject({background:'pitch',pitchLayout:'half-portrait',whitePitch:true,raisedPitch:true,marks:[{kind:'home',label:''}]});
  await page.locator('.wb-close').getByRole('button',{name:'Chiudi lavagna',exact:true}).click();
  await page.locator('.wb-library .sc-list-row').first().click();
- await expect(layout).toHaveValue('half-portrait');await expect(paper).toHaveValue('white');
+ await expect(layout).toHaveValue('half-portrait');await expect(paper).toHaveValue('white');await expect(view).toHaveValue('raised');
  await expect(svg.getByRole('img',{name:'1. Eburum',exact:true})).toBeVisible();
  await paper.selectOption('green');await page.getByRole('button',{name:'Annulla ultima modifica'}).click();await expect(paper).toHaveValue('white');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
