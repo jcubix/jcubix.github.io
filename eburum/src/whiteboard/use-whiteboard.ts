@@ -19,6 +19,7 @@ import {
   boardColors,
   emptyBoard,
   isEquipmentKind,
+  isPlayerKind,
   isPointMark,
   type Board,
   type BoardDocument,
@@ -56,6 +57,7 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
   const [selected, setSelected] = useState(""),
     [preview, setPreview] = useState<Mark | null>(null);
   const [equipmentScale, setEquipmentScale] = useState(0.6);
+  const [playerScale, setPlayerScale] = useState(1);
   const [busy, setBusy] = useState(false),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(""),
@@ -360,11 +362,15 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
     commit({ ...doc, marks: doc.marks.filter((m) => m.id !== selected) });
     setSelected("");
   };
-  const resizeEquipment = (scale: number, coalesce = false) => {
+  const resizeElement = (scale: number, coalesce = false) => {
     if (busy || !Number.isFinite(scale) || scale < 0.25 || scale > 2) return;
-    setEquipmentScale(scale);
     const mark = doc.marks.find((m) => m.id === selected);
-    if (!mark || !isEquipmentKind(mark.kind)) return;
+    const kind = mark?.kind ?? tool;
+    if (isEquipmentKind(kind)) setEquipmentScale(scale);
+    else if (half && isPlayerKind(kind)) {
+      if (!mark) setPlayerScale(scale);
+    } else return;
+    if (!mark) return;
     const resized = view.move({ ...mark, scale }, 0, 0);
     commit(
       { ...doc, marks: doc.marks.map((m) => (m.id === mark.id ? resized : m)) },
@@ -411,11 +417,15 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
         kind: tool,
         color,
         points: [p],
-        ...(isEquipmentKind(tool) ? { scale: equipmentScale } : {}),
+        ...(isEquipmentKind(tool)
+          ? { scale: equipmentScale }
+          : half && isPlayerKind(tool) && playerScale !== 1
+            ? { scale: playerScale }
+            : {}),
         label:
           tool === "text"
             ? label.trim()
-            : tool === "home" || tool === "away"
+            : isPlayerKind(tool)
               ? label.trim().slice(0, 4)
               : "",
       };
@@ -541,11 +551,12 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
     params,
     pending,
     photo,
+    playerScale,
     pointerDown,
     pointerMove,
     portrait,
     removeSelected,
-    resizeEquipment,
+    resizeElement,
     role,
     run,
     save,

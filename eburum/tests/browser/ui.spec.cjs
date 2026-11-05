@@ -368,6 +368,44 @@ test('whiteboard saves print settings and exports the chosen field and silhouett
  await info.attach('whiteboard-field-settings',{body:await page.screenshot({fullPage:true}),contentType:'image/png'});
 });
 
+test('whiteboard resizes new and selected players on a half pitch',async({page},info)=>{
+ await open(page,'whiteboard');await page.getByRole('button',{name:'Nuova lavagna',exact:true}).click();
+ const svg=page.getByRole('application',{name:/Lavagna interattiva/}),layout=page.getByLabel('Formato campo');
+ const slider=page.getByRole('slider'),placement=page.getByRole('group',{name:'Giocatori e attrezzi'});
+ await placement.getByRole('button',{name:'Eburum',exact:true}).click();
+ await expect(slider).toHaveCount(0);
+ await layout.selectOption('half-portrait');await page.getByLabel('Vista del campo').selectOption('raised');
+ await expect(slider).toHaveAccessibleName('Dimensione nuove sagome');await expect(slider).toHaveValue('100');
+ await slider.focus();for(let i=0;i<6;i++)await page.keyboard.press('ArrowLeft');await expect(slider).toHaveValue('70');
+ const place=async(x)=>{
+  await svg.scrollIntoViewIfNeeded();const field=await svg.boundingBox(),controls=await page.locator('.wb-controls').boundingBox();
+  const y=Math.max(field.y+field.height*.37,controls.y+controls.height+30);
+  expect(y).toBeLessThan(field.y+field.height*.7);await page.mouse.click(field.x+field.width*x,y);
+ };
+ await place(.32);
+ await placement.getByRole('button',{name:'Avversario',exact:true}).click();await place(.66);
+ const home=svg.getByRole('img',{name:'1. Eburum',exact:true}),away=svg.getByRole('img',{name:'2. Avversario',exact:true});
+ await expect(home).toBeVisible();await expect(away).toBeVisible();
+ await page.getByRole('button',{name:'Sposta',exact:true}).click();
+ await page.locator('.wb-elements > summary').click();
+ await page.getByRole('button',{name:'2. Avversario',exact:true}).click();
+ await expect(slider).toHaveAccessibleName('Dimensione · Avversario');await expect(slider).toHaveValue('70');
+ await slider.focus();await page.keyboard.press('End');await expect(slider).toHaveValue('200');
+ await expect(away.locator('g[transform*="scale"]')).toHaveAttribute('transform',/scale\(2\.545/);
+ await expect(page.getByRole('button',{name:'Annulla ultima modifica'})).toBeEnabled();
+ await page.getByRole('button',{name:'Annulla ultima modifica'}).click();
+ await expect(away.locator('g[transform*="scale"]')).toHaveAttribute('transform',/scale\(0\.890/);
+ await page.getByRole('button',{name:'Ripristina modifica'}).click();
+ await page.getByRole('button',{name:'Salva lavagna',exact:true}).click();await expect(page.locator('.wb-feedback')).toContainText('Lavagna salvata');
+ expect(await page.evaluate(()=>fixtureData.tactical_boards[0].document.marks.map(({kind,scale})=>[kind,scale]))).toEqual([['home',.7],['away',2]]);
+ await page.locator('.wb-close').getByRole('button',{name:'Chiudi lavagna',exact:true}).click();
+ await page.locator('.wb-library .sc-list-row').first().click();
+ await expect(away.locator('g[transform*="scale"]')).toHaveAttribute('transform',/scale\(2\.545/);
+ const image=page.waitForEvent('download');await page.getByRole('button',{name:'Esporta immagine',exact:true}).click();
+ expect(fs.readFileSync(await (await image).path()).subarray(0,8).toString('hex')).toBe('89504e470d0a1a0a');
+ await info.attach('half-pitch-sagome',{body:await page.screenshot(),contentType:'image/png'});
+});
+
 test('whiteboard equipment size previews new tools and persists one undo step per resize gesture',async({page},info)=>{
  await open(page,'whiteboard');await page.getByRole('button',{name:'Nuova lavagna',exact:true}).click();
  await page.getByRole('button',{name:/^Attrezzi:/}).click();await page.getByRole('dialog').getByRole('button',{name:'Cinesina',exact:true}).click();

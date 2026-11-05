@@ -2,6 +2,8 @@ import {
   boardColors,
   boardNoteLayout,
   isEquipmentKind,
+  isPlayerKind,
+  playerRadius,
   type Mark,
 } from "../whiteboard-model";
 import { EquipmentSymbol, PlayerSymbol } from "./symbols";
@@ -27,28 +29,26 @@ export function Ink({
         <EquipmentSymbol kind={m.kind} color={m.color} />
       </g>
     );
-  if (m.kind === "home" || m.kind === "away")
+  if (isPlayerKind(m.kind))
     return (
       <g transform={upright}>
         <g
-          transform={`translate(${p.x} ${p.y}) scale(${portrait ? 28 / 22 : 1})`}
+          transform={`translate(${p.x} ${p.y}) scale(${playerRadius(m, portrait) / 22})`}
         >
           <PlayerSymbol away={m.kind === "away"} numbered={!!m.label} />
+          {m.label ? (
+            <text
+              textAnchor="middle"
+              dominantBaseline="central"
+              fill="#14213b"
+              fontSize="18"
+              fontWeight="700"
+              fontFamily="Arial, sans-serif"
+            >
+              {m.label.slice(0, 4)}
+            </text>
+          ) : null}
         </g>
-        {m.label ? (
-          <text
-            x={p.x}
-            y={p.y}
-            textAnchor="middle"
-            dominantBaseline="central"
-            fill="#14213b"
-            fontSize={portrait ? 22 : 18}
-            fontWeight="700"
-            fontFamily="Arial, sans-serif"
-          >
-            {m.label.slice(0, 4)}
-          </text>
-        ) : null}
       </g>
     );
   if (m.kind === "text") {

@@ -16,12 +16,14 @@ import {
   boardEquipment,
   boardPhoto,
   isEquipmentKind,
+  isPlayerKind,
+  playerRadius,
   pitchLayouts,
   type PitchLayout,
 } from "../whiteboard-model";
 import "../whiteboard.css";
 import { Ink } from "./ink";
-import { EquipmentSize } from "./equipment-size";
+import { ElementSize } from "./element-size";
 import { colorNames, date, markLabel, tools } from "./model";
 import { Pitch } from "./pitch";
 import { PlacementTools } from "./placement-tools";
@@ -53,11 +55,12 @@ export function WhiteboardEditor({
     markerId,
     pending,
     photo,
+    playerScale,
     pointerDown,
     pointerMove,
     portrait,
     removeSelected,
-    resizeEquipment,
+    resizeElement,
     run,
     save,
     selected,
@@ -84,8 +87,10 @@ export function WhiteboardEditor({
   } = model;
   if (!board) return null;
   const selectedMark = doc.marks.find((m) => m.id === selected);
-  const equipment =
-    selectedMark && isEquipmentKind(selectedMark.kind) ? selectedMark : null;
+  const sizeKind = selectedMark?.kind ?? tool;
+  const sizeEquipment = isEquipmentKind(sizeKind);
+  const sizePlayer = view.half && isPlayerKind(sizeKind);
+  const playerTool = isPlayerKind(tool);
   const whitePitch = doc.background === "pitch" && doc.whitePitch === true;
   return (
     <section className="wb-editor" aria-label="Editor lavagna">
@@ -244,7 +249,7 @@ export function WhiteboardEditor({
             className="wb-options"
             data-sizing={tool === "select" || isEquipmentKind(tool)}
           >
-            {tool !== "home" && tool !== "away" ? (
+            {!playerTool ? (
               <div
                 className="wb-colors"
                 role="group"
@@ -264,19 +269,28 @@ export function WhiteboardEditor({
                 ))}
               </div>
             ) : null}
-            {equipment || isEquipmentKind(tool) ? (
-              <EquipmentSize
-                key={equipment?.id || tool}
-                value={equipment?.scale ?? (equipment ? 1 : equipmentScale)}
+            {sizeEquipment || sizePlayer ? (
+              <ElementSize
+                key={selectedMark?.id ?? tool}
+                value={
+                  selectedMark
+                    ? (selectedMark.scale ?? 1)
+                    : sizeEquipment
+                      ? equipmentScale
+                      : playerScale
+                }
                 label={
-                  equipment
-                    ? `Dimensione · ${boardEquipment[equipment.kind as keyof typeof boardEquipment].label}`
-                    : "Dimensione nuovi attrezzi"
+                  selectedMark
+                    ? `Dimensione · ${sizeEquipment ? boardEquipment[sizeKind].label : sizeKind === "home" ? "Eburum" : "Avversario"}`
+                    : sizeEquipment
+                      ? "Dimensione nuovi attrezzi"
+                      : "Dimensione nuove sagome"
                 }
                 busy={busy}
-                onChange={resizeEquipment}
+                onChange={resizeElement}
               />
-            ) : ["text", "home", "away"].includes(tool) ? (
+            ) : null}
+            {tool === "text" || playerTool ? (
               <label className="wb-label">
                 {tool === "text"
                   ? "Testo della nota"
@@ -293,7 +307,7 @@ export function WhiteboardEditor({
                   }
                 />
               </label>
-            ) : (
+            ) : !sizeEquipment && !sizePlayer ? (
               <p className="sc-helper">
                 {compact
                   ? tool === "pan"
@@ -307,7 +321,7 @@ export function WhiteboardEditor({
                       ? "Trascina pedine e annotazioni. Per muoverti nella pagina scegli Scorri."
                       : "Trascina sul campo per disegnare. Il rosso aiuta a evidenziare gli errori."}
               </p>
-            )}
+            ) : null}
           </div>
         </div>
         <div className="wb-stage" data-portrait={portrait}>
@@ -430,7 +444,18 @@ export function WhiteboardEditor({
                       data-hit="true"
                       cx={m.points[0].x}
                       cy={m.points[0].y}
-                      r={compact ? (portrait ? 56 : 80) : 48}
+                      r={
+                        view.half && isPlayerKind(m.kind)
+                          ? Math.max(
+                              compact ? 40 : 22,
+                              playerRadius(m, view.rotated) + 4,
+                            )
+                          : compact
+                            ? portrait
+                              ? 56
+                              : 80
+                            : 48
+                      }
                       fill="transparent"
                     />
                   ) : null}
@@ -440,7 +465,11 @@ export function WhiteboardEditor({
                       data-selection="true"
                       cx={m.points[0].x}
                       cy={m.points[0].y}
-                      r="30"
+                      r={
+                        isPlayerKind(m.kind) && m.scale !== undefined
+                          ? playerRadius(m, view.rotated) + 5
+                          : 30
+                      }
                       fill="none"
                       stroke={whitePitch ? "#14213b" : "#ffffff"}
                       strokeDasharray="5 5"

@@ -1,6 +1,6 @@
 import { useId, useRef } from "react";
 
-export function EquipmentSize({
+export function ElementSize({
   value,
   label,
   busy,
