@@ -35,6 +35,7 @@ export const fingerprint = (
     activity,
     doc.pitchLayout ?? "auto",
     doc.whitePitch ?? false,
+    doc.raisedPitch ?? false,
     doc.marks,
   ]),
 });

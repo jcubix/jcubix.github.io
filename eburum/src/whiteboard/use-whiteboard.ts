@@ -17,11 +17,9 @@ import type { Runtime } from "../types";
 import { whiteboardApi } from "../whiteboard-api";
 import {
   boardColors,
-  boardViewPoint,
   emptyBoard,
   isEquipmentKind,
   isPointMark,
-  moveMark,
   type Board,
   type BoardDocument,
   type BoardSummary,
@@ -30,6 +28,7 @@ import {
 } from "../whiteboard-model";
 import "../whiteboard.css";
 import { date, fingerprint, Tool } from "./model";
+import { pitchView } from "./pitch-view";
 import { renderWhiteboardImage } from "./render-image";
 export function useWhiteboard({ runtime }: { runtime: Runtime }) {
   const [params, setParams] = useSearchParams(),
@@ -79,9 +78,15 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
   );
   const [settingsOpen, setSettingsOpen] = useState(!compact);
   const layout = doc.pitchLayout ?? "auto";
+  const isPitch = doc.background === "pitch";
+  const half = isPitch && layout.startsWith("half-");
+  const raised = isPitch && doc.raisedPitch === true;
   const portrait =
-    doc.background === "pitch" &&
-    (layout === "auto" ? compact : layout.endsWith("-portrait"));
+    isPitch && (layout === "auto" ? compact : layout.endsWith("-portrait"));
+  const view = useMemo(
+    () => pitchView(half, portrait, raised),
+    [half, portrait, raised],
+  );
   useEffect(() => {
     const media = window.matchMedia("(max-width: 640px)");
     const resize = () => {
@@ -360,7 +365,7 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
     setEquipmentScale(scale);
     const mark = doc.marks.find((m) => m.id === selected);
     if (!mark || !isEquipmentKind(mark.kind)) return;
-    const resized = moveMark({ ...mark, scale }, 0, 0, portrait);
+    const resized = view.move({ ...mark, scale }, 0, 0);
     commit(
       { ...doc, marks: doc.marks.map((m) => (m.id === mark.id ? resized : m)) },
       coalesce,
@@ -368,15 +373,16 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
   };
   const point = (e: PointerEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    return boardViewPoint(
-      (e.clientX - rect.left) / rect.width,
-      (e.clientY - rect.top) / rect.height,
-      portrait,
-    );
+    return {
+      x: ((e.clientX - rect.left) / rect.width) * view.width,
+      y: ((e.clientY - rect.top) / rect.height) * view.height,
+    };
   };
   const pointerDown = (e: PointerEvent<SVGSVGElement>) => {
     if (busy || tool === "pan" || e.button > 0 || drag.current) return;
-    const p = point(e);
+    const screen = point(e);
+    if (screen.y > view.drawingHeight) return;
+    const p = view.unproject(screen.x, screen.y);
     if (tool === "select") {
       const id =
         (e.target as Element)
@@ -384,7 +390,7 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
           ?.getAttribute("data-mark") || "";
       setSelected(id);
       const stored = doc.marks.find((m) => m.id === id);
-      const mark = stored && moveMark(stored, 0, 0, portrait);
+      const mark = stored && view.move(stored, 0, 0);
       if (mark)
         drag.current = { pointer: e.pointerId, start: p, mark, moving: true };
     } else {
@@ -414,7 +420,7 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
               : "",
       };
       if (["arrow", "circle"].includes(tool)) mark.points.push(p);
-      if (isPointMark(tool)) mark = moveMark(mark, 0, 0, portrait);
+      if (isPointMark(tool)) mark = view.move(mark, 0, 0);
       drag.current = { pointer: e.pointerId, start: p, mark, moving: false };
       setSelected("");
       setPreview(mark);
@@ -428,15 +434,11 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
   const pointerMove = (e: PointerEvent<SVGSVGElement>) => {
     const gesture = drag.current;
     if (!gesture || gesture.pointer !== e.pointerId) return;
-    const p = point(e);
+    const { x, y } = point(e);
+    const p = view.unproject(x, y);
     if (gesture.moving)
       setPreview(
-        moveMark(
-          gesture.mark,
-          p.x - gesture.start.x,
-          p.y - gesture.start.y,
-          portrait,
-        ),
+        view.move(gesture.mark, p.x - gesture.start.x, p.y - gesture.start.y),
       );
     else {
       if (gesture.mark.kind === "pen" && gesture.mark.points.length < 600)
@@ -450,14 +452,10 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
     const gesture = drag.current;
     if (!gesture || gesture.pointer !== e.pointerId) return;
     if (!cancelled) {
-      const p = point(e);
+      const { x, y } = point(e);
+      const p = view.unproject(x, y);
       const mark = gesture.moving
-        ? moveMark(
-            gesture.mark,
-            p.x - gesture.start.x,
-            p.y - gesture.start.y,
-            portrait,
-          )
+        ? view.move(gesture.mark, p.x - gesture.start.x, p.y - gesture.start.y)
         : ["arrow", "circle"].includes(gesture.mark.kind)
           ? { ...gesture.mark, points: [gesture.start, p] }
           : gesture.mark;
@@ -503,7 +501,10 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
     preview
       ? [...doc.marks.filter((m) => m.id !== preview.id), preview]
       : doc.marks
-  ).map((m) => moveMark(m, 0, 0, portrait));
+  ).map((m) => {
+    const positioned = view.move(m, 0, 0);
+    return { ...positioned, points: positioned.points.map(view.projectMark) };
+  });
 
   return {
     activity,
@@ -568,5 +569,6 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
     title,
     tool,
     undo,
+    view,
   };
 }

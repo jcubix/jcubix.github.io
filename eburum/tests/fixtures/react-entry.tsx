@@ -23,7 +23,8 @@ export { renderLogin } from "../../app-part1.js";
 
 export { ensureJsPdf } from "../../app-pdf-loader.js";
 export { playerDismissals, dismissalState, dismissalAlert } from "../../app-dismissals.js";
-export { validateBoard, moveMark, emptyBoard, boardViewPoint, boardNoteLayout } from "../../src/whiteboard-model";
+export { pitchView } from "../../src/whiteboard/pitch-view";
+export { validateBoard, moveMark, emptyBoard, boardNoteLayout } from "../../src/whiteboard-model";
 
 export { setConfirmationPresenter } from "../../app-confirm.js";
 

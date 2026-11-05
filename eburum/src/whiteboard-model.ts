@@ -43,6 +43,7 @@ export type BoardDocument = {
   background: string;
   pitchLayout?: PitchLayout;
   whitePitch?: boolean;
+  raisedPitch?: boolean;
   marks: Mark[];
 };
 export type BoardSummary = {
@@ -62,13 +63,6 @@ export function boardPoint(x: number, y: number): Point {
     x: Math.round(Math.max(0, Math.min(1000, x)) * 10) / 10,
     y: Math.round(Math.max(0, Math.min(640, y)) * 10) / 10,
   };
-}
-// Keep saved coordinates unchanged when the field turns vertically on phones.
-export function boardViewPoint(x: number, y: number, portrait = false): Point {
-  return boardPoint(
-    portrait ? y * 1000 : x * 1000,
-    portrait ? (1 - x) * 640 : y * 640,
-  );
 }
 export function boardNoteLayout(label: string, portrait = false) {
   const lines: string[] = [];
@@ -101,6 +95,7 @@ export function moveMark(
   dx: number,
   dy: number,
   portrait = false,
+  lengthScale = 1,
 ): Mark {
   const xs = mark.points.map((p) => p.x),
     ys = mark.points.map((p) => p.y);
@@ -126,8 +121,8 @@ export function moveMark(
   if (portrait && (mark.kind === "text" || equipment))
     [left, right, top, bottom] = [top, bottom, right, left];
   dx = Math.max(
-    left - Math.min(...xs),
-    Math.min(1000 - right - Math.max(...xs), dx),
+    left / lengthScale - Math.min(...xs),
+    Math.min(1000 - right / lengthScale - Math.max(...xs), dx),
   );
   dy = Math.max(
     top - Math.min(...ys),
@@ -150,6 +145,7 @@ export function validateBoard(value: unknown): asserts value is BoardDocument {
       (typeof doc.pitchLayout !== "string" ||
         !Object.hasOwn(pitchLayouts, doc.pitchLayout))) ||
     (doc.whitePitch !== undefined && typeof doc.whitePitch !== "boolean") ||
+    (doc.raisedPitch !== undefined && typeof doc.raisedPitch !== "boolean") ||
     !Array.isArray(doc.marks) ||
     doc.marks.length > 200
   )
