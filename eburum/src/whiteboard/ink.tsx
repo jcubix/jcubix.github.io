@@ -33,20 +33,22 @@ export function Ink({
         <g
           transform={`translate(${p.x} ${p.y}) scale(${portrait ? 28 / 22 : 1})`}
         >
-          <PlayerSymbol away={m.kind === "away"} />
+          <PlayerSymbol away={m.kind === "away"} numbered={!!m.label} />
         </g>
-        <text
-          x={p.x}
-          y={p.y}
-          textAnchor="middle"
-          dominantBaseline="central"
-          fill="#14213b"
-          fontSize={portrait ? 22 : 18}
-          fontWeight="700"
-          fontFamily="Arial, sans-serif"
-        >
-          {m.label.slice(0, 4)}
-        </text>
+        {m.label ? (
+          <text
+            x={p.x}
+            y={p.y}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fill="#14213b"
+            fontSize={portrait ? 22 : 18}
+            fontWeight="700"
+            fontFamily="Arial, sans-serif"
+          >
+            {m.label.slice(0, 4)}
+          </text>
+        ) : null}
       </g>
     );
   if (m.kind === "text") {

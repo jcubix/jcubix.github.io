@@ -78,7 +78,10 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
     () => window.matchMedia("(max-width: 640px)").matches,
   );
   const [settingsOpen, setSettingsOpen] = useState(!compact);
-  const portrait = compact && doc.background === "pitch";
+  const layout = doc.pitchLayout ?? "auto";
+  const portrait =
+    doc.background === "pitch" &&
+    (layout === "auto" ? compact : layout.endsWith("-portrait"));
   useEffect(() => {
     const media = window.matchMedia("(max-width: 640px)");
     const resize = () => {
@@ -403,12 +406,12 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
         color,
         points: [p],
         ...(isEquipmentKind(tool) ? { scale: equipmentScale } : {}),
-        label: isEquipmentKind(tool)
-          ? ""
-          : tool === "text"
+        label:
+          tool === "text"
             ? label.trim()
-            : label.trim().slice(0, 4) ||
-              String(doc.marks.filter((m) => m.kind === tool).length + 1),
+            : tool === "home" || tool === "away"
+              ? label.trim().slice(0, 4)
+              : "",
       };
       if (["arrow", "circle"].includes(tool)) mark.points.push(p);
       if (isPointMark(tool)) mark = moveMark(mark, 0, 0, portrait);
@@ -477,7 +480,11 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
   const exportPng = () =>
     void run(async () => {
       if (!svg.current) return;
-      const blob = await renderWhiteboardImage(svg.current, title, portrait);
+      const blob = await renderWhiteboardImage(
+        svg.current,
+        title,
+        doc.background === "pitch" && doc.whitePitch === true,
+      );
       if (!current()) return;
       saveDownload(
         blob,

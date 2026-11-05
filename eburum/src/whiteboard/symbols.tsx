@@ -1,7 +1,25 @@
 import type { EquipmentKind } from "../whiteboard-model";
 
 // The palette and the field share the same silhouettes, including PNG exports.
-export function PlayerSymbol({ away = false }: { away?: boolean }) {
+export function PlayerSymbol({
+  away = false,
+  numbered = false,
+}: {
+  away?: boolean;
+  numbered?: boolean;
+}) {
+  if (!numbered)
+    return (
+      <g
+        fill={away ? "#f88a99" : "#85b5ef"}
+        stroke={away ? "#7c2638" : "#243f70"}
+        strokeWidth="2"
+        strokeLinejoin="round"
+      >
+        <circle cy="-13" r="7" />
+        <path d="M-13 17V7a13 11 0 0 1 26 0v10Z" />
+      </g>
+    );
   return away ? (
     <path
       d="M0-22 22 0 0 22-22 0Z"

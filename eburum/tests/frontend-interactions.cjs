@@ -893,6 +893,9 @@ async function whiteboard(t,role='admin'){
 test('Whiteboard validates untrusted documents and keeps moved marks in bounds',async t=>{
  const {w}=await app(t);const model=w.EburumTests;
  model.validateBoard(model.emptyBoard());
+ model.validateBoard({...model.emptyBoard(),pitchLayout:'half-portrait',whitePitch:true});
+ for(const settings of [{pitchLayout:'square'},{pitchLayout:null},{whitePitch:'true'},{whitePitch:null}])
+  assert.throws(()=>model.validateBoard({...model.emptyBoard(),...settings}));
  const mark={id:'one',kind:'arrow',color:'#ff7b8b',label:'',points:[{x:10,y:20},{x:980,y:620}]};
  const moved=model.moveMark(mark,1000,-1000);assert.equal(moved.points[1].x,1000);assert.equal(moved.points[0].y,0);assert.equal(moved.points[1].x-moved.points[0].x,970);
  for(const document of [{background:'https://example.test/x',marks:[]},{background:'pitch',marks:[{...mark,points:[]}]},{background:'pitch',marks:[{...mark,points:[{x:Infinity,y:0},{x:1,y:1}]}]},{background:'pitch',marks:[mark,mark]},{background:'pitch',marks:Array.from({length:201},(_,i)=>({...mark,id:String(i)}))}])assert.throws(()=>model.validateBoard(document));
