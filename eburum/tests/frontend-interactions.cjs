@@ -913,7 +913,12 @@ test('Training equipment validates as one-point marks, stays inside both field o
   assert.throws(()=>model.validateBoard({background:'pitch',marks:[{...mark,points:[{x:1,y:2},{x:3,y:4}]}]}));
   for(const scale of [0,.24,2.01,Infinity,NaN,null,'1',{},true])assert.throws(()=>model.validateBoard({background:'pitch',marks:[{...mark,scale}]}));
  }
- assert.throws(()=>model.validateBoard({background:'pitch',marks:[{id:'player',kind:'home',color:'#ffffff',label:'7',scale:.6,points:[{x:1,y:2}]}]}));
+ for(const kind of ['home','away']){
+  const mark={id:'player',kind,color:'#ffffff',label:'7',points:[{x:500,y:320}]};
+  for(const scale of [.25,.6,2])model.validateBoard({background:'pitch',marks:[{...mark,scale}]});
+  for(const scale of [0,2.01,'1',null])assert.throws(()=>model.validateBoard({background:'pitch',marks:[{...mark,scale}]}));
+  assert.throws(()=>model.validateBoard({background:'pitch',marks:[{...mark,kind:'text',scale:.6}]}));
+ }
  assert.throws(()=>model.validateBoard({background:'pitch',marks:[{id:'bad',kind:'unknown',color:'#ffffff',label:'',points:[{x:1,y:2}]}]}));
 });
 

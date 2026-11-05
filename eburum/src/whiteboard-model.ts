@@ -19,8 +19,10 @@ export const boardEquipment = {
 export type EquipmentKind = keyof typeof boardEquipment;
 export const isEquipmentKind = (kind: string): kind is EquipmentKind =>
   Object.hasOwn(boardEquipment, kind);
+export const isPlayerKind = (kind: string) =>
+  kind === "home" || kind === "away";
 export const isPointMark = (kind: string) =>
-  ["text", "home", "away"].includes(kind) || isEquipmentKind(kind);
+  kind === "text" || isPlayerKind(kind) || isEquipmentKind(kind);
 export type MarkKind =
   "pen" | "arrow" | "circle" | "text" | "home" | "away" | EquipmentKind;
 export type Mark = {
@@ -39,6 +41,8 @@ export const pitchLayouts = {
   "half-portrait": "Metà verticale",
 } as const;
 export type PitchLayout = keyof typeof pitchLayouts;
+export const playerRadius = (mark: Mark, portrait: boolean) =>
+  (portrait ? 28 : 22) * (mark.scale ?? 1);
 export type BoardDocument = {
   background: string;
   pitchLayout?: PitchLayout;
@@ -99,9 +103,9 @@ export function moveMark(
 ): Mark {
   const xs = mark.points.map((p) => p.x),
     ys = mark.points.map((p) => p.y);
-  const token = mark.kind === "home" || mark.kind === "away";
+  const token = isPlayerKind(mark.kind);
   const note = boardNoteLayout(mark.label, portrait);
-  const radius = portrait ? 28 : 22;
+  const radius = playerRadius(mark, portrait);
   const equipment = isEquipmentKind(mark.kind)
     ? boardEquipment[mark.kind]
     : null;
@@ -165,7 +169,7 @@ export function validateBoard(value: unknown): asserts value is BoardDocument {
       typeof m.label !== "string" ||
       m.label.length > 80 ||
       (m.scale !== undefined &&
-        (!isEquipmentKind(m.kind) ||
+        ((!isEquipmentKind(m.kind) && !isPlayerKind(m.kind)) ||
           !Number.isFinite(m.scale) ||
           m.scale < 0.25 ||
           m.scale > 2)) ||
