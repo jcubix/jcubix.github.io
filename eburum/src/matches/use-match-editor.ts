@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { confirmDialog } from "../../app-confirm.js";
 import { isAwayMatch } from "../../app-match-display.js";
 import { refreshMatchTimeline } from "../../app-match-minutes.js";
@@ -88,20 +88,8 @@ export function useMatchEditor({
     [search, setSearch] = useState(""),
     [onlyCalled, setOnlyCalled] = useState(false),
     [composer, setComposer] = useState<Composer | null>(null),
-    [selected, setSelected] = useState<{ type: string; team?: string } | null>(
-      null,
-    ),
     [callup, setCallup] = useState<string | null>(null),
     [reloadError, setReloadError] = useState("");
-  const onEventType = useCallback(
-    (type: string, team?: string) =>
-      setSelected((previous) =>
-        previous?.type === type && previous?.team === team
-          ? previous
-          : { type, team },
-      ),
-    [],
-  );
   const canLeave = editor.canLeave;
   const eventGuard = useRef<(() => Promise<boolean>) | null>(null),
     baseOrg = useRef(
@@ -357,12 +345,10 @@ export function useMatchEditor({
     if (reloadError) return;
     if (eventGuard.current && !(await eventGuard.current())) return;
     setComposer(next);
-    setSelected({ type: next.type, team: next.team });
   };
   const chooseTab = async (next: string) => {
     if (eventGuard.current && !(await eventGuard.current())) return;
     setComposer(null);
-    setSelected(null);
     setTab(next);
   };
   const tabs = a.match_id
@@ -395,7 +381,6 @@ export function useMatchEditor({
     eventGuard,
     events,
     m,
-    onEventType,
     onlyCalled,
     openComposer,
     operate,
@@ -409,12 +394,10 @@ export function useMatchEditor({
     saveOrganization,
     saveResult,
     search,
-    selected,
     setCallup,
     setComposer,
     setOnlyCalled,
     setSearch,
-    setSelected,
     starters,
     surface,
     tab,

@@ -1439,16 +1439,6 @@
     font-size: 18px;
     margin: 0;
   }
-  .match-event-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .match-event-actions button {
-    background: white;
-    font-size: 13px;
-    padding: 8px 12px;
-  }
   .match-live-main .event-item {
     background: transparent;
     border: 0;
@@ -1503,14 +1493,6 @@
     }
     .match-live-side .match-minutes {
       margin-top: 16px;
-    }
-    .match-live-main .match-event-actions {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      width: 100%;
-    }
-    .match-live-main .match-event-actions button {
-      font-size: 13px;
     }
     .match-save-row {
       bottom: calc(88px + env(safe-area-inset-bottom));
@@ -1829,23 +1811,6 @@
   }
 
   /* Reviewer corrections: compact commands and coherent operational reading order. */
-  .match-live-main .match-event-actions {
-    flex: none;
-    align-items: start;
-    align-content: start;
-    grid-auto-rows: auto;
-  }
-  .match-live-main .match-event-actions button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    min-height: 48px;
-    align-self: start;
-  }
-  .match-live-main #addMatchEvent {
-    order: 4;
-  }
   .actual-presence-panel .training-phase-tabs {
     margin: 0 0 12px;
   }
@@ -2124,24 +2089,25 @@
   }
   .match-workspace .match-event-actions {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 12px;
-    align-items: stretch;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
   }
   .match-workspace .match-event-actions button {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    min-height: 48px;
-    padding: 12px;
-    align-self: stretch;
+    gap: 6px;
+    min-height: 44px;
+    padding: 8px 4px;
+    font-size: 13px;
+    white-space: normal;
+  }
+  .match-event-actions button svg {
+    flex: none;
   }
   .inline-match-event {
-    padding: 20px;
-    border: 1px solid var(--control-border);
-    border-radius: var(--club-control-radius, 20px);
-    background: var(--panel);
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
     margin-bottom: 24px;
   }
   .inline-event-head,
@@ -2174,8 +2140,7 @@
   .event-types > button {
     padding: 12px;
   }
-  :is(.match-event-actions, .event-types)
-    > button:is([aria-pressed="true"], .selected) {
+  .event-types > button[aria-pressed="true"] {
     background: var(--color-primary);
     border-color: var(--color-primary);
     color: var(--color-primary-foreground);
@@ -2349,9 +2314,6 @@
     .match-workspace .match-event-actions {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-    .match-workspace .match-event-actions #addMatchEvent {
-      grid-column: 1 / -1;
-    }
   }
   @media (max-width: 600px) {
     .event-editor .event-types {
@@ -2372,9 +2334,6 @@
       flex: 1;
       width: 100%;
       min-width: 0;
-    }
-    .inline-match-event {
-      padding: 16px;
     }
   }
 

@@ -228,23 +228,36 @@ export function MatchesPage({ runtime }: { runtime: Runtime }) {
           <div className="sc-section-heading">
             <h2>Risultati</h2>
           </div>
-          {results.length ? (
-            <div className="recent-form" aria-label="Ultime cinque partite">
-              <span>
-                Forma recente <small>Dalla più recente alla più vecchia</small>
-              </span>
-              {results.slice(0, 5).map((m) => (
-                <span
-                  key={m.id}
-                  className={"match-outcome outcome-" + matchOutcome(m)}
-                  title={date(m.match_date) + " · " + m.opponent}
-                >
-                  {matchOutcome(m)}
-                </span>
-              ))}
-            </div>
-          ) : null}
-
+          <div className="recent-form">
+            <span>
+              Forma recente <small>Più recente a sinistra</small>
+            </span>
+            <ul aria-label="Ultime cinque partite">
+              {results.slice(0, 5).map((m) => {
+                const outcome = matchOutcome(m);
+                if (!outcome) return null;
+                const result = { V: "Vittoria", N: "Pareggio", P: "Sconfitta" }[
+                  outcome
+                ];
+                return (
+                  <li
+                    key={m.id}
+                    title={date(m.match_date) + " · " + m.opponent}
+                  >
+                    <span
+                      className={"match-outcome outcome-" + outcome}
+                      aria-hidden="true"
+                    >
+                      {outcome}
+                    </span>
+                    <span className="sr-only">
+                      {result} contro {m.opponent}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
           <div className="sc-match-grid">{results.map(card)}</div>
         </section>
       ) : null}
