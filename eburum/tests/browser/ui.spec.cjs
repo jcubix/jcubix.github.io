@@ -38,12 +38,48 @@ test('audit: empty finance and match calendar show one useful creation action',a
  const order=await page.locator('#activityForm input,#activityForm select').evaluateAll(els=>els.map(el=>el.id));expect(order.indexOf('activityName')).toBeLessThan(order.indexOf('activityVenue'));expect(order.indexOf('activityStart')).toBeLessThan(order.indexOf('activityVenue'));
  await open(page,'communications','admin','empty=1');await expect(page.getByRole('button',{name:'Nuova comunicazione',exact:true})).toHaveCount(1);await expect(page.locator('.page-heading [aria-label="Nuova comunicazione"]')).toBeHidden();
 });
-test('audit: timeline precedes its collapsed event picker and user changes stay grouped',async({page},info)=>{
+test('match event picker shows one choice, then opens the corresponding form',async({page},info)=>{
  await open(page,'matches');await page.locator('.sc-match-preview').filter({hasText:'Squadra ospite'}).first().click();await page.locator('[data-activity-tab=results]').click();
- const picker=page.locator('.match-event-picker');if(await page.locator('#matchEventList article').count())await expect(picker).not.toHaveAttribute('open','');
+ const picker=page.locator('.match-event-picker'),summary=picker.locator('summary'),choices=picker.getByRole('group',{name:'Tipo di evento'});
+ if(await page.locator('#matchEventList article').count())await expect(picker).not.toHaveAttribute('open','');
  expect(await page.locator('#matchEventList').evaluate(el=>!!(el.compareDocumentPosition(document.querySelector('.match-event-picker'))&Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
- if((await picker.getAttribute('open'))===null)await picker.locator('summary').click();await page.locator('#addYellow').click();await expect(page.locator('button[data-event-type=Ammonizione]')).toHaveAttribute('aria-pressed','true');await page.locator('#close').click();
- await open(page,'users');const edit=page.locator('.user-edit-menu').last();await expect(edit.locator('[data-user-email]')).toBeHidden();await edit.locator('summary').click();await expect(edit.locator('[data-user-email]')).toBeVisible();await expect(edit.locator('.user-danger-actions [data-user-delete]')).toBeVisible();await info.attach('user-actions',{body:await page.screenshot(),contentType:'image/png'});
+ if((await picker.getAttribute('open'))===null)await summary.click();
+ await expect(choices.getByRole('button')).toHaveCount(6);
+ const yellow=choices.getByRole('button',{name:'Ammonizione',exact:true});
+ await yellow.click();
+ const heading=page.getByRole('heading',{name:'Ammonizione',exact:true});
+ await expect(heading).toBeFocused();await expect(picker).toBeHidden();
+ await expect(page.locator('.inline-match-event .event-types')).toHaveCount(0);
+ await expect(page.locator('#eventMinute')).toBeVisible();await expect(page.locator('#saveMatchResult')).toHaveCount(0);
+ await info.attach('match-event-form',{body:await page.screenshot(),contentType:'image/png'});
+ await page.getByRole('button',{name:'Chiudi evento',exact:true}).click();await expect(yellow).toBeFocused();
+ await choices.getByRole('button',{name:'Espulsione',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Espulsione',exact:true})).toBeFocused();await page.getByRole('button',{name:'Chiudi evento',exact:true}).click();
+ await choices.getByRole('button',{name:'Nota',exact:true}).click();
+ await expect(page.getByRole('textbox',{name:'Testo della nota'})).toBeVisible();
+ await page.getByRole('textbox',{name:'Testo della nota'}).fill('Cambio di modulo nel secondo tempo');
+ await page.getByRole('button',{name:'Salva evento',exact:true}).click();
+ const note=page.locator('#matchEventList article').filter({hasText:'Cambio di modulo nel secondo tempo'});
+ await expect(note).toBeVisible();await expect(note).not.toContainText('Giocatore storico');
+ await expect(page.locator('#saveMatchResult')).toBeVisible();
+});
+test('match results keep the five form badges on one line',async({page},info)=>{
+ await open(page,'matches');
+ await page.evaluate(()=>{
+  fixtureMount.runtime.state.matches=[
+   {id:'form-3',match_date:'2026-10-22',opponent:'Squadra C',goals_for:0,goals_against:0},
+   {id:'form-5',match_date:'2026-10-20',opponent:'Squadra E',goals_for:2,goals_against:0},
+   {id:'form-1',match_date:'2026-10-24',opponent:'Squadra A',goals_for:3,goals_against:0},
+   {id:'form-4',match_date:'2026-10-21',opponent:'Squadra D',goals_for:1,goals_against:2},
+   {id:'form-2',match_date:'2026-10-23',opponent:'Squadra B',goals_for:1,goals_against:1},
+  ];fixtureMount.runtime.render();
+ });
+ const form=page.locator('.recent-form'),badges=form.locator('.match-outcome');
+ await expect(badges).toHaveText(['V','N','N','P','V']);
+ const bounds=await badges.evaluateAll(items=>items.map(el=>{const b=el.getBoundingClientRect();return [b.top,b.left,b.right]}));
+ expect(new Set(bounds.map(b=>b[0])).size).toBe(1);
+ for(const [,left,right] of bounds){expect(left).toBeGreaterThanOrEqual(0);expect(right).toBeLessThanOrEqual(page.viewportSize().width);}
+ await info.attach('five-match-form',{body:await form.screenshot(),contentType:'image/png'});
 });
 test('audit: reports export after results, finance filters scroll and register returns to today',async({page})=>{
  await open(page,'reports');await page.locator('#rp').selectOption('player-1');await expect(page.locator('#reportContent')).toBeVisible();expect(await page.locator('#reportContent').evaluate(el=>!!(el.compareDocumentPosition(document.querySelector('.report-export-actions'))&Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
@@ -615,7 +651,7 @@ test('complete analysis: neutral expectations, reversible absence, compact roste
  const folder=path.resolve('output/complete-audit-nov02',info.project.name);fs.mkdirSync(folder,{recursive:true});await page.evaluate(()=>{document.activeElement?.blur();document.getElementById('workspaceEditor').scrollTop=0});await page.screenshot({path:path.join(folder,'training-editor.png'),fullPage:true});await info.attach('neutral-training-expectations',{body:await page.screenshot({fullPage:true}),contentType:'image/png'});
  await open(page,'communications');await page.evaluate(()=>{fixtureMount.runtime.state.communicationRealtimeStatus='SUBSCRIBED';fixtureMount.runtime.render()});await expect(page.locator('.communication-refresh')).toHaveCount(0);await page.evaluate(()=>{fixtureMount.runtime.state.communicationRealtimeStatus='CHANNEL_ERROR';fixtureMount.runtime.render()});await expect(page.locator('.communication-refresh')).toBeVisible();
  await open(page,'dashboard');await expect(page.locator('.match-outcome-word')).toHaveText('Pareggio');await expect(page.locator('.home-signal-caption')).not.toContainText('disponibili');
- await open(page,'matches');const forms=await page.locator('.recent-form .match-outcome').allTextContents();expect(forms).toEqual(['N','P','V']);await expect(page.locator('.recent-form small')).toHaveText('Dalla più recente alla più vecchia');
+ await open(page,'matches');const forms=await page.locator('.recent-form .match-outcome').allTextContents();expect(forms).toEqual(['N','P','V']);await expect(page.locator('.recent-form small')).toHaveText('Più recente a sinistra');
  await open(page,'more');for(const heading of await page.locator('.tool-group > h2').all())expect(await heading.evaluate(el=>parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(13);await page.screenshot({path:path.join(folder,'more.png'),fullPage:true});await expect(page.locator('.app-header .desktop-context')).toHaveCount(0);await page.locator('.header-settings > summary').click();await expect(page.locator('.header-settings-panel .app-season select')).toBeVisible();await page.locator('.header-settings > summary').click();const guide=page.getByRole('button',{name:'Guida all’app',exact:true});await guide.focus();await expect(page.getByRole('tooltip')).toContainText('Guida all’app');await page.keyboard.press('Escape');
  await open(page,'players');if(page.viewportSize().width>=1024){await expect(page.locator('.roster-table[data-grouped=true]').first().locator('th')).toHaveCount(1);const table=page.locator('.roster-table').first();const heights=await table.locator('tbody tr').evaluateAll(es=>es.map(e=>e.getBoundingClientRect().height));for(const height of heights){expect(height).toBeGreaterThanOrEqual(48);expect(height).toBeLessThanOrEqual(52)}await expect(table.locator('button > svg').first()).toBeVisible();await page.getByRole('combobox',{name:'Ordina rosa'}).selectOption('surname');await expect(page.locator('.roster-table th')).toHaveText(['Giocatore','Ruolo']);}
 });

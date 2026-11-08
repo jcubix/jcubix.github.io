@@ -2,10 +2,10 @@ import {
   ArrowLeftRight,
   CircleDot,
   Pencil,
-  Plus,
+  NotebookPen,
   RectangleVertical,
 } from "lucide-react";
-import { Fragment } from "react";
+import { Fragment, useLayoutEffect, useRef } from "react";
 import { confirmDialog } from "../../app-confirm.js";
 import { teamOwner } from "../../app-part1.js";
 import { eventTone } from "../../app-part4.js";
@@ -28,7 +28,6 @@ export function MatchResults({
     eventGuard,
     events,
     m,
-    onEventType,
     openComposer,
     plan,
     players,
@@ -38,12 +37,23 @@ export function MatchResults({
     role,
     runtime,
     saveResult,
-    selected,
     setComposer,
-    setSelected,
     tab,
     v,
   } = model;
+  const eventTrigger = useRef<HTMLButtonElement | null>(null);
+  const addEvent = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    if (composer || !eventTrigger.current) return;
+    if (tab === "results") {
+      const trigger = eventTrigger.current;
+      (trigger.isConnected && !trigger.closest("details:not([open])")
+        ? trigger
+        : addEvent.current
+      )?.focus();
+    }
+    eventTrigger.current = null;
+  }, [composer, tab]);
 
   return (
     <section
@@ -109,11 +119,13 @@ export function MatchResults({
                       ? "Gol avversario"
                       : e.event_type}
                   </span>
-                  <b>
-                    {e.event_type === "Gol" && !e.player_id
-                      ? "Squadra avversaria"
-                      : `${e.event_type === "Sostituzione" ? "Entra " : ""}${runtime.state.players.find((p) => p.id === e.player_id)?.surname || "Giocatore storico"} ${runtime.state.players.find((p) => p.id === e.player_id)?.name || ""}`}
-                  </b>
+                  {e.event_type !== "Nota" || e.player_id ? (
+                    <b>
+                      {e.event_type === "Gol" && !e.player_id
+                        ? "Squadra avversaria"
+                        : `${e.event_type === "Sostituzione" ? "Entra " : ""}${runtime.state.players.find((p) => p.id === e.player_id)?.surname || "Giocatore storico"} ${runtime.state.players.find((p) => p.id === e.player_id)?.name || ""}`}
+                    </b>
+                  ) : null}
                   {e.outgoing_player_id ? (
                     <small>
                       Esce{" "}
@@ -135,8 +147,9 @@ export function MatchResults({
                   className="ghost event-edit"
                   data-unified-event={e.id}
                   aria-label={`Modifica ${e.event_type}${e.minute == null ? "" : ` al ${e.minute}° minuto`}`}
-                  disabled={editor.busy || !!reloadError}
-                  onClick={() =>
+                  disabled={editor.busy || !!reloadError || !!composer}
+                  onClick={(event) => {
+                    eventTrigger.current = event.currentTarget;
                     void openComposer({
                       type: e.event_type,
                       event: e,
@@ -146,8 +159,8 @@ export function MatchResults({
                             ? "own"
                             : "opponent"
                           : undefined,
-                    })
-                  }
+                    });
+                  }}
                 >
                   <Pencil size={18} />
                 </button>
@@ -156,10 +169,15 @@ export function MatchResults({
           </div>
           <details
             className="match-event-picker"
-            open={!!composer || !events.length}
+            open={!events.length}
+            hidden={!!composer}
           >
-            <summary>Aggiungi evento</summary>
-            <div className="match-event-actions">
+            <summary ref={addEvent}>Aggiungi evento</summary>
+            <div
+              className="match-event-actions"
+              role="group"
+              aria-label="Tipo di evento"
+            >
               {(
                 [
                   {
@@ -189,10 +207,16 @@ export function MatchResults({
                     Icon: ArrowLeftRight,
                   },
                   {
+                    id: "addRed",
+                    type: "Espulsione",
+                    label: "Espulsione",
+                    Icon: RectangleVertical,
+                  },
+                  {
                     id: "addMatchEvent",
                     type: "Nota",
-                    label: "Altro evento",
-                    Icon: Plus,
+                    label: "Nota",
+                    Icon: NotebookPen,
                   },
                 ] as const
               ).map((item) => (
@@ -200,19 +224,13 @@ export function MatchResults({
                   key={item.id}
                   id={item.id}
                   disabled={editor.busy || !!reloadError}
-                  aria-pressed={
-                    !!selected &&
-                    selected.type === item.type &&
-                    (item.type !== "Gol" ||
-                      selected.team ===
-                        ("team" in item ? item.team : undefined))
-                  }
-                  onClick={() =>
+                  onClick={(event) => {
+                    eventTrigger.current = event.currentTarget;
                     void openComposer({
                       type: item.type,
                       team: "team" in item ? item.team : undefined,
-                    })
-                  }
+                    });
+                  }}
                 >
                   <item.Icon size={18} />
                   {item.label}
@@ -220,38 +238,32 @@ export function MatchResults({
               ))}
             </div>
           </details>
-          <div className="match-event-composer">
-            {composer ? (
-              <EventEditor
-                key={
-                  (composer.event?.id || "new") +
-                  composer.type +
-                  (composer.team || "")
-                }
-                inline
-                runtime={runtime}
-                surface={{
-                  id: -2,
-                  kind: "event",
-                  data: {
-                    matchId: a.match_id,
-                    type: composer.type,
-                    event: composer.event,
-                    context: { team: composer.team },
-                  },
-                }}
-                onGuard={(guard) => {
-                  eventGuard.current = guard;
-                }}
-                onType={onEventType}
-                onClose={() => {
-                  setComposer(null);
-                  setSelected(null);
-                }}
-                onSaved={reload}
-              />
-            ) : null}
-          </div>
+          {composer ? (
+            <EventEditor
+              key={
+                (composer.event?.id || "new") +
+                composer.type +
+                (composer.team || "")
+              }
+              inline
+              runtime={runtime}
+              surface={{
+                id: -2,
+                kind: "event",
+                data: {
+                  matchId: a.match_id,
+                  type: composer.type,
+                  event: composer.event,
+                  context: { team: composer.team },
+                },
+              }}
+              onGuard={(guard) => {
+                eventGuard.current = guard;
+              }}
+              onClose={() => setComposer(null)}
+              onSaved={reload}
+            />
+          ) : null}
           <div className="match-game-notes">
             <Field id="matchNote" label="Note della partita">
               <textarea
@@ -415,11 +427,11 @@ export function MatchResults({
       ) : null}
       <ActionBar
         className="match-save-row workspace-save"
-        hidden={tab !== "results"}
+        hidden={tab !== "results" || !!composer}
       >
         <Button
           id="saveMatchResult"
-          disabled={editor.busy || !!composer || !!reloadError}
+          disabled={editor.busy || !!reloadError}
           onClick={() => void saveResult()}
         >
           Salva partita

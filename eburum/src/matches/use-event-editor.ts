@@ -15,7 +15,6 @@ export function useEventEditor({
   onClose,
   onSaved,
   onGuard,
-  onType,
 }: {
   runtime: Runtime;
   surface: Surface;
@@ -23,7 +22,6 @@ export function useEventEditor({
   onClose?: () => void;
   onSaved?: () => Promise<void>;
   onGuard?: (guard: (() => Promise<boolean>) | null) => void;
-  onType?: (type: string, team?: string) => void;
 }) {
   const input = surface.data as {
       matchId: string;
@@ -66,7 +64,6 @@ export function useEventEditor({
     onGuard?.(editor.canLeave);
     return () => onGuard?.(null);
   }, [onGuard, editor.canLeave]);
-  useLayoutEffect(() => onType?.(v.type, v.team), [v.type, v.team, onType]);
   const finish = async () => {
     if (onClose) onClose();
     else await editor.close();

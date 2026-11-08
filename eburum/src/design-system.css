@@ -3117,9 +3117,7 @@
   html[data-theme="dark"] .match-live-side {
     background: var(--surface);
   }
-  html[data-theme="dark"]
-    .match-event-actions
-    button:not([aria-pressed="true"]) {
+  html[data-theme="dark"] .match-event-actions button {
     background: var(--surface);
   }
   html[data-theme="dark"] .match-save-row {
@@ -4965,14 +4963,20 @@
   .recent-form {
     display: flex;
     align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
+    gap: 12px;
     margin-block: 20px;
   }
-  .recent-form > span:first-child {
+  .recent-form > span {
     font-size: 13px;
-    color: var(--ink-3);
-    margin-right: 4px;
+    color: var(--ink);
+  }
+  .recent-form > ul {
+    display: flex;
+    flex: none;
+    gap: clamp(4px, 1.4vw, 8px);
+    list-style: none;
+    margin: 0;
+    padding: 0;
   }
   .sc-match-upcoming {
     margin-bottom: 32px;
@@ -6539,12 +6543,9 @@
     }
     .match-workspace
       .match-live-main
-      > :is(.match-events-heading, .match-event-picker, .match-event-composer) {
+      > :is(.match-events-heading, .match-event-picker, .inline-match-event) {
       grid-column: 1 / -1;
       margin: 0;
-    }
-    .match-workspace .match-event-composer:empty {
-      display: none;
     }
     .match-workspace .match-game-notes {
       margin: 0;
@@ -6736,7 +6737,7 @@
     width: auto;
     min-height: 44px;
   }
-  .recent-form > span:first-child small {
+  .recent-form > span small {
     display: block;
     color: var(--ink-2);
     font-size: 12px;
@@ -7063,12 +7064,7 @@
   #app .sc-search:focus-within {
     outline-color: var(--focus);
   }
-  #app
-    :is(
-      .recent-form > span:first-child small,
-      .match-outcome,
-      .tool-group > h2
-    ) {
+  #app :is(.recent-form > span small, .match-outcome, .tool-group > h2) {
     font-size: 13px;
   }
   #app .tool-group > h2 {

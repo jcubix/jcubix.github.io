@@ -1,3 +1,5 @@
+import { X } from "lucide-react";
+import { useLayoutEffect, useRef } from "react";
 import { confirmDialog } from "../../app-confirm.js";
 import { teamOwner } from "../../app-part1.js";
 import { EVENT_TYPES } from "../../app-part4.js";
@@ -27,10 +29,33 @@ export function EventEditor(props: Parameters<typeof useEventEditor>[0]) {
     used,
     v,
   } = model;
+  const heading = useRef<HTMLHeadingElement>(null);
+  useLayoutEffect(() => {
+    heading.current?.focus();
+  }, []);
+  const eventName =
+    v.type === "Gol"
+      ? v.team === "opponent"
+        ? "Gol avversari"
+        : "Gol Eburum"
+      : v.type;
+  const detail = (
+    <Field
+      id="eventDetail"
+      label={v.type === "Nota" ? "Testo della nota" : "Dettagli"}
+    >
+      <textarea
+        id="eventDetail"
+        maxLength={10000}
+        value={v.detail}
+        onChange={(e) => editor.setValue({ ...v, detail: e.target.value })}
+      />
+    </Field>
+  );
   const content = (
     <>
-      <div className="event-types" hidden={!!input.context?.team}>
-        <div role="group" aria-label="Tipo evento">
+      {!inline && !input.context?.team ? (
+        <div className="event-types" role="group" aria-label="Tipo evento">
           {EVENT_TYPES.map((type) => (
             <button
               key={type}
@@ -53,7 +78,7 @@ export function EventEditor(props: Parameters<typeof useEventEditor>[0]) {
             </button>
           ))}
         </div>
-      </div>
+      ) : null}
       <form
         id="eventForm"
         onSubmit={(e) => {
@@ -169,7 +194,7 @@ export function EventEditor(props: Parameters<typeof useEventEditor>[0]) {
                 </Field>
               </div>
             }
-            {v.type === "Gol" && v.team === "opponent" ? (
+            {!inline && v.type === "Gol" && v.team === "opponent" ? (
               <p className="badge b-red">Gol Squadra avversaria</p>
             ) : null}
           </div>
@@ -204,22 +229,14 @@ export function EventEditor(props: Parameters<typeof useEventEditor>[0]) {
           >
             {minutesPreview}
           </p>
-          <details
-            className="event-notes field-space"
-            open={v.type === "Nota" || undefined}
-          >
-            <summary>Dettagli facoltativi</summary>
-            <Field id="eventDetail" label="Dettagli">
-              <textarea
-                id="eventDetail"
-                maxLength={10000}
-                value={v.detail}
-                onChange={(e) =>
-                  editor.setValue({ ...v, detail: e.target.value })
-                }
-              />
-            </Field>
-          </details>
+          {v.type === "Nota" ? (
+            detail
+          ) : (
+            <details className="event-notes field-space">
+              <summary>Dettagli facoltativi</summary>
+              {detail}
+            </details>
+          )}
           <p id="eventHint" className="row-sub">
             {v.type === "Gol"
               ? "Il gol aggiorna anche il risultato."
@@ -291,27 +308,26 @@ export function EventEditor(props: Parameters<typeof useEventEditor>[0]) {
     </>
   );
   return inline ? (
-    <section className="inline-match-event event-editor">
+    <section
+      className="inline-match-event event-editor"
+      aria-labelledby="inlineEventTitle"
+    >
       <div className="inline-event-head">
-        <h2>
-          {event.id
-            ? "Modifica evento"
-            : v.type === "Gol"
-              ? v.team === "opponent"
-                ? "Gol Squadra avversaria"
-                : "Gol Eburum"
-              : "Nuovo evento"}
+        <h2 id="inlineEventTitle" ref={heading} tabIndex={-1}>
+          {event.id ? `Modifica · ${eventName}` : eventName}
         </h2>
         <Button
-          variant="secondary"
+          variant="ghost"
+          size="icon"
           id="close"
           aria-label="Chiudi evento"
+          title="Annulla"
           disabled={editor.busy}
           onClick={async () => {
             if (await editor.canLeave()) await finish();
           }}
         >
-          Annulla
+          <X />
         </Button>
       </div>
       {content}

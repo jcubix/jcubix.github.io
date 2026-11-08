@@ -558,7 +558,7 @@ test("Workspace editors protect unsaved replies and preserve the React navigatio
 test("Contextual yellow action edits inline and protects unsaved event navigation",async t=>{
  const {w,runtime,$,clickText}=await app(t);$(".sc-match-preview").click();await until(()=>$("#addYellow"));
  assert.ok($("#workspaceEditor #activityForm"));$("[data-activity-tab=results]").click();$("#addYellow").click();await until(()=>$("#eventForm"));
- assert.equal($("button[data-event-type=Ammonizione]").getAttribute("aria-pressed"),"true");assert.ok($("#workspaceEditor .inline-match-event"));assert.equal($("#app").hasAttribute("inert"),false);eventValue(w,$("#eventMinute"),"71");w.confirm=()=>false;assert.equal(await runtime.navigate("players"),false);w.confirm=()=>true;
+ assert.equal($("#inlineEventTitle").textContent,"Ammonizione");assert.ok($("#workspaceEditor .inline-match-event"));assert.equal($("#app").hasAttribute("inert"),false);eventValue(w,$("#eventMinute"),"71");w.confirm=()=>false;assert.equal(await runtime.navigate("players"),false);w.confirm=()=>true;
  $("#close").click();await until(()=>!$("#eventForm"));assert.equal($("#app").hasAttribute("inert"),false);assert.ok($("#workspaceEditor #activityForm"));assert.equal($(".match-workspace").dataset.dirty,"false");assert.equal($("#matchGoalsFor").matches(":disabled"),false);
 });
 
@@ -823,16 +823,16 @@ test('Flat match tabs and quick lineup selection preserve a single draft',async 
  $('#activityForm').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await until(()=>$('#activityFeedback')?.textContent.includes('Partita e convocazioni salvate'));assert.ok($('#activityForm'));assert.equal(w.fixtureTeamCalls[0].p_roster.find(r=>r.player_id==='player-1').lineup,'Titolare');
 });
 
-test('Match event actions highlight only the open editor and follow type and team changes',async t=>{
+test('Match event choices open only the requested form and return after a retry',async t=>{
  const {w,$}=await app(t);$('.sc-match-preview').click();await until(()=>$('#addGoal'));
- const active=()=>[...w.document.querySelectorAll('.match-event-actions [aria-pressed="true"]')].map(b=>b.id);
- assert.deepEqual(active(),[]);$('#addSubstitution').click();assert.deepEqual(active(),['addSubstitution']);
- $('.inline-match-event #close').click();await until(()=>active().length===0);assert.deepEqual(active(),[]);
- $('#addOpponentGoal').click();assert.deepEqual(active(),['addOpponentGoal']);$('.inline-match-event #close').click();await until(()=>active().length===0);
- $('#addMatchEvent').click();assert.deepEqual(active(),['addMatchEvent']);$('[data-event-type="Gol"]').click();assert.deepEqual(active(),['addOpponentGoal']);
- eventValue(w,$('#eventPlayer'),'player-1');assert.deepEqual(active(),['addGoal']);
- w.fixtureEventError={message:'Rete interrotta'};$('[data-save-event]').click();await until(()=>$('#eventFeedback').textContent.includes('Rete interrotta'));assert.deepEqual(active(),['addGoal']);
- w.fixtureEventError=null;$('[data-save-event]').click();await until(()=>!$('#eventForm'));assert.deepEqual(active(),[]);
+ assert.equal($('.match-event-actions').children.length,6);
+ $('#addSubstitution').click();assert.equal($('#inlineEventTitle').textContent,'Sostituzione');assert.ok($('#eventOutgoing'));
+ assert.equal($('.match-event-picker').hidden,true);assert.equal($('.inline-match-event .event-types'),null);assert.equal($('#saveMatchResult'),null);
+ $('.inline-match-event #close').click();await until(()=>!$('#eventForm'));assert.equal($('.match-event-picker').hidden,false);
+ $('#addGoal').click();assert.equal($('#inlineEventTitle').textContent,'Gol Eburum');eventValue(w,$('#eventPlayer'),'player-1');
+ w.fixtureEventError={message:'Rete interrotta'};$('[data-save-event]').click();await until(()=>$('#eventFeedback').textContent.includes('Rete interrotta'));
+ assert.equal($('#inlineEventTitle').textContent,'Gol Eburum');assert.equal($('.match-event-picker').hidden,true);
+ w.fixtureEventError=null;$('[data-save-event]').click();await until(()=>!$('#eventForm'));assert.ok($('#saveMatchResult'));
  const own=[...w.document.querySelectorAll('#matchEventList .event-item')].find(e=>e.textContent.includes('Gol')&&!e.textContent.includes('avversaria'));assert.ok(own.querySelector('.b-green'));
 });
 
