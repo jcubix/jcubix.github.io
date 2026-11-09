@@ -44,12 +44,14 @@ export function WhiteboardEditor({
     commit,
     compact,
     current,
+    dashedArrow,
     dirty,
     doc,
     drag,
     exportPng,
     equipmentScale,
     finishPointer,
+    freeArrow,
     history,
     label,
     markerId,
@@ -68,6 +70,8 @@ export function WhiteboardEditor({
     setBoard,
     setBoards,
     setColor,
+    setDashedArrow,
+    setFreeArrow,
     setError,
     setLabel,
     setNotice,
@@ -290,7 +294,30 @@ export function WhiteboardEditor({
                 onChange={resizeElement}
               />
             ) : null}
-            {tool === "text" || playerTool ? (
+            {tool === "arrow" ? (
+              <div
+                className="wb-arrow-options"
+                role="group"
+                aria-label="Opzioni freccia"
+              >
+                <Button
+                  variant="secondary"
+                  aria-pressed={freeArrow}
+                  disabled={busy}
+                  onClick={() => setFreeArrow(!freeArrow)}
+                >
+                  Linea libera
+                </Button>
+                <Button
+                  variant="secondary"
+                  aria-pressed={dashedArrow}
+                  disabled={busy}
+                  onClick={() => setDashedArrow(!dashedArrow)}
+                >
+                  Tratteggiata
+                </Button>
+              </div>
+            ) : tool === "text" || playerTool ? (
               <label className="wb-label">
                 {tool === "text"
                   ? "Testo della nota"

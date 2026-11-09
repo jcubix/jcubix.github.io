@@ -32,6 +32,7 @@ export type Mark = {
   points: Point[];
   label: string;
   scale?: number;
+  dashed?: boolean;
 };
 export const pitchLayouts = {
   auto: "Automatico",
@@ -173,10 +174,13 @@ export function validateBoard(value: unknown): asserts value is BoardDocument {
           !Number.isFinite(m.scale) ||
           m.scale < 0.25 ||
           m.scale > 2)) ||
+      (m.dashed !== undefined &&
+        (m.kind !== "arrow" || typeof m.dashed !== "boolean")) ||
       !Array.isArray(m.points) ||
       m.points.length < 1 ||
       m.points.length > 600 ||
-      (["arrow", "circle"].includes(m.kind) && m.points.length !== 2) ||
+      (m.kind === "arrow" && m.points.length < 2) ||
+      (m.kind === "circle" && m.points.length !== 2) ||
       (isPointMark(m.kind) && m.points.length !== 1) ||
       m.points.some(
         (p) =>

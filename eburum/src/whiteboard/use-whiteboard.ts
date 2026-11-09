@@ -31,6 +31,16 @@ import "../whiteboard.css";
 import { date, fingerprint, Tool } from "./model";
 import { pitchView } from "./pitch-view";
 import { renderWhiteboardImage } from "./render-image";
+function extendArrow(mark: Mark, point: Point): Mark {
+  const last = mark.points.at(-1)!;
+  if (Math.hypot(point.x - last.x, point.y - last.y) < 1) return mark;
+  // Thin older samples at the cap so the tip can still follow the gesture.
+  const points =
+    mark.points.length < 600
+      ? mark.points
+      : mark.points.filter((_, i) => i % 2 === 0);
+  return { ...mark, points: [...points, point] };
+}
 export function useWhiteboard({ runtime }: { runtime: Runtime }) {
   const [params, setParams] = useSearchParams(),
     navigate = useNavigate(),
@@ -54,6 +64,8 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
     ),
     [color, setColor] = useState<string>(boardColors[1]),
     [label, setLabel] = useState("");
+  const [freeArrow, setFreeArrow] = useState(false);
+  const [dashedArrow, setDashedArrow] = useState(false);
   const [selected, setSelected] = useState(""),
     [preview, setPreview] = useState<Mark | null>(null);
   const [equipmentScale, setEquipmentScale] = useState(0.6);
@@ -72,6 +84,7 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
     start: Point;
     mark: Mark;
     moving: boolean;
+    freeArrow?: boolean;
   } | null>(null);
   const markerId = useId().replace(/:/g, "");
   const { doc } = history;
@@ -412,11 +425,13 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
         );
         return;
       }
+      const free = tool === "arrow" && freeArrow;
       let mark: Mark = {
         id: crypto.randomUUID(),
         kind: tool,
         color,
         points: [p],
+        ...(tool === "arrow" && dashedArrow ? { dashed: true } : {}),
         ...(isEquipmentKind(tool)
           ? { scale: equipmentScale }
           : half && isPlayerKind(tool) && playerScale !== 1
@@ -429,9 +444,15 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
               ? label.trim().slice(0, 4)
               : "",
       };
-      if (["arrow", "circle"].includes(tool)) mark.points.push(p);
+      if (tool === "circle" || (tool === "arrow" && !free)) mark.points.push(p);
       if (isPointMark(tool)) mark = view.move(mark, 0, 0);
-      drag.current = { pointer: e.pointerId, start: p, mark, moving: false };
+      drag.current = {
+        pointer: e.pointerId,
+        start: p,
+        mark,
+        moving: false,
+        freeArrow: free,
+      };
       setSelected("");
       setPreview(mark);
     }
@@ -451,7 +472,8 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
         view.move(gesture.mark, p.x - gesture.start.x, p.y - gesture.start.y),
       );
     else {
-      if (gesture.mark.kind === "pen" && gesture.mark.points.length < 600)
+      if (gesture.freeArrow) gesture.mark = extendArrow(gesture.mark, p);
+      else if (gesture.mark.kind === "pen" && gesture.mark.points.length < 600)
         gesture.mark = { ...gesture.mark, points: [...gesture.mark.points, p] };
       else if (["arrow", "circle"].includes(gesture.mark.kind))
         gesture.mark = { ...gesture.mark, points: [gesture.start, p] };
@@ -466,12 +488,19 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
       const p = view.unproject(x, y);
       const mark = gesture.moving
         ? view.move(gesture.mark, p.x - gesture.start.x, p.y - gesture.start.y)
-        : ["arrow", "circle"].includes(gesture.mark.kind)
-          ? { ...gesture.mark, points: [gesture.start, p] }
-          : gesture.mark;
+        : gesture.freeArrow
+          ? extendArrow(gesture.mark, p)
+          : ["arrow", "circle"].includes(gesture.mark.kind)
+            ? { ...gesture.mark, points: [gesture.start, p] }
+            : gesture.mark;
       if (
+        gesture.moving ||
         !["arrow", "circle"].includes(mark.kind) ||
-        Math.hypot(p.x - gesture.start.x, p.y - gesture.start.y) > 5
+        mark.points.some(
+          (point) =>
+            Math.hypot(point.x - gesture.start.x, point.y - gesture.start.y) >
+            5,
+        )
       )
         commit({
           ...doc,
@@ -531,6 +560,7 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
     compact,
     create,
     current,
+    dashedArrow,
     dirty,
     doc,
     drag,
@@ -538,6 +568,7 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
     exportPng,
     equipmentScale,
     finishPointer,
+    freeArrow,
     hasMore,
     history,
     label,
@@ -565,6 +596,8 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
     setBoard,
     setBoards,
     setColor,
+    setDashedArrow,
+    setFreeArrow,
     setError,
     setLabel,
     setNotice,

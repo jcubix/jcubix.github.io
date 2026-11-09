@@ -94,6 +94,7 @@
     flex: 1 1 auto;
   }
   .wb-toolbar button[aria-pressed="true"],
+  .wb-arrow-options button[aria-pressed="true"],
   .wb-placement button[aria-pressed="true"],
   .wb-equipment-picker button[aria-pressed="true"],
   .wb-elements button[aria-pressed="true"] {
@@ -111,6 +112,17 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: 64px 68px;
+  }
+  .wb-arrow-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+    max-width: 360px;
+  }
+  .wb-arrow-options > button {
+    min-height: 44px;
+    padding-inline: 8px;
   }
   .wb-placement {
     display: grid;

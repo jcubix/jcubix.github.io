@@ -326,6 +326,35 @@ test('whiteboard tools stay compact and the field can draw, undo, save and expor
 });
 
 
+test('whiteboard draws and saves a dashed freehand arrow',async({page},info)=>{
+ await open(page,'whiteboard');await page.getByRole('button',{name:'Nuova lavagna',exact:true}).click();
+ await page.getByRole('button',{name:'Freccia',exact:true}).click();
+ const controls=page.locator('.wb-controls'),options=controls.getByRole('group',{name:'Opzioni freccia'});
+ const free=options.getByRole('button',{name:'Linea libera'}),dash=options.getByRole('button',{name:'Tratteggiata'});
+ await expect(free).toHaveAttribute('aria-pressed','false');await expect(dash).toHaveAttribute('aria-pressed','false');
+ await free.click();await dash.click();
+ const svg=page.getByRole('application',{name:/Lavagna interattiva/});await svg.scrollIntoViewIfNeeded();
+ const field=await svg.boundingBox(),tools=await controls.boundingBox();
+ const x=field.x+field.width*.3,y=Math.max(field.y+24,tools.y+tools.height+24);
+ expect(y+80).toBeLessThan(Math.min(field.y+field.height,page.viewportSize().height));
+ await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x+75,y+15,{steps:5});
+ await page.mouse.move(x+25,y+75,{steps:5});await page.mouse.move(x,y,{steps:5});await page.mouse.up();
+ const mark=svg.getByRole('img',{name:'1. Freccia',exact:true});
+ await expect(mark.locator('path[stroke-dasharray]')).toHaveCount(2);
+ await expect(mark.locator('path[marker-end]')).toHaveAttribute('d',/L.+L.+L/);
+ await page.getByRole('button',{name:'Annulla ultima modifica'}).click();await expect(mark).toHaveCount(0);
+ await page.getByRole('button',{name:'Ripristina modifica'}).click();await expect(mark).toBeVisible();
+ await page.getByRole('button',{name:'Salva lavagna',exact:true}).click();await expect(page.locator('.wb-feedback')).toContainText('Lavagna salvata');
+ const saved=await page.evaluate(()=>fixtureData.tactical_boards[0].document.marks[0]);
+ expect(saved.dashed).toBe(true);expect(saved.points.length).toBeGreaterThan(3);expect(saved.points.at(-1)).toEqual(saved.points[0]);
+ await page.locator('.wb-close').getByRole('button',{name:'Chiudi lavagna',exact:true}).click();
+ await page.locator('.wb-library .sc-list-row').first().click();
+ await expect(mark.locator('path[stroke-dasharray][marker-end]')).toBeVisible();
+ const exportFile=page.waitForEvent('download');await page.getByRole('button',{name:'Esporta immagine',exact:true}).click();
+ const png=fs.readFileSync(await (await exportFile).path());expect(png.subarray(0,8).toString('hex')).toBe('89504e470d0a1a0a');
+ await info.attach('dashed-freehand-arrow',{body:png,contentType:'image/png'});
+});
+
 test('whiteboard distinguishes teams and places, reopens, edits and exports every training tool',async({page},info)=>{
  await open(page,'whiteboard');await page.getByRole('button',{name:'Nuova lavagna',exact:true}).click();
  const placement=page.getByRole('group',{name:'Giocatori e attrezzi'}),svg=page.getByRole('application',{name:/Lavagna interattiva/});
