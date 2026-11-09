@@ -110,13 +110,15 @@ export function Ink({
       : m.points
           .map((point, i) => `${i ? "L" : "M"}${point.x},${point.y}`)
           .join(" ");
+  const dash = m.dashed ? "12 12" : undefined;
   return (
     <g fill="none" strokeLinecap="round" strokeLinejoin="round">
-      <path d={d} stroke="#0b1220" strokeWidth="8" />
+      <path d={d} stroke="#0b1220" strokeWidth="8" strokeDasharray={dash} />
       <path
         d={d}
         stroke={m.color}
         strokeWidth="4"
+        strokeDasharray={dash}
         markerEnd={
           m.kind === "arrow"
             ? `url(#${markerId}-${boardColors.indexOf(m.color as (typeof boardColors)[number])})`

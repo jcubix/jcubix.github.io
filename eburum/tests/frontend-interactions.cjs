@@ -949,6 +949,15 @@ test('Photo board previews and commits never stringify the background and undo r
  assert.equal(w.fixtureBoardCalls.length,0);
 });
 
+test('Whiteboard validates freehand arrow points and only accepts boolean dashes on arrows',async t=>{
+ const {w}=await app(t);const {validateBoard}=w.EburumTests;
+ const arrow={id:'arrow',kind:'arrow',color:'#ff7b8b',label:'',points:[{x:10,y:10},{x:100,y:50},{x:20,y:150}]};
+ const validate=mark=>validateBoard({background:'pitch',marks:[mark]});
+ validate(arrow);validate({...arrow,dashed:true});
+ for(const bad of [{dashed:'true'},{dashed:null},{kind:'pen',dashed:true},{kind:'circle'},{points:[arrow.points[0]]},{points:Array(601).fill(arrow.points[0])}])
+  assert.throws(()=>validate({...arrow,...bad}));
+});
+
 test('Portrait whiteboard maps touch coordinates and keeps upright notes inside the field',async t=>{
  const {w}=await app(t);const model=w.EburumTests;
  const portrait=model.pitchView(false,true,false),landscape=model.pitchView(false,false,false);
