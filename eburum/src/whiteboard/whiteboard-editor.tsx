@@ -413,18 +413,19 @@ export function WhiteboardEditor({
                 <marker
                   key={c}
                   id={`${markerId}-${i}`}
-                  markerWidth="12"
-                  markerHeight="12"
-                  refX="8"
-                  refY="5"
+                  markerWidth="28"
+                  markerHeight="26"
+                  refX="24"
+                  refY="13"
                   orient="auto"
                   markerUnits="userSpaceOnUse"
                 >
                   <path
-                    d="M1 1L9 5L1 9"
-                    fill="none"
-                    stroke={c}
-                    strokeWidth="3"
+                    d="M4 3L24 13L4 23Z"
+                    fill={c}
+                    stroke="#0b1220"
+                    strokeWidth="2"
+                    strokeLinejoin="round"
                   />
                 </marker>
               ))}
