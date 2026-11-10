@@ -360,6 +360,8 @@ test('whiteboard sequences move players, persist each position and round-trip an
  await page.emulateMedia({media:'print'});
  await expect(page.locator('.wb-print-title')).toBeVisible();
  await expect(svg).toBeVisible();await expect(sequence).toBeHidden();
+ await expect(page.locator('.app-mobile-nav')).toBeHidden();
+ await expect(page.locator('.workspace-content')).toHaveCSS('padding-bottom','0px');
  await page.emulateMedia({media:'screen'});
  const downloaded=page.waitForEvent('download');
  await page.getByRole('button',{name:'Esporta file modificabile'}).click();

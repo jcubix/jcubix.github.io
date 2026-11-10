@@ -488,10 +488,19 @@
     }
   }
   @media print {
-    body:has(.wb-editor) {
+    :is(html, body):has(.wb-editor),
+    .app-layout:has(.wb-editor),
+    .app-layout:has(.wb-editor) :is(.app-workspace, .workspace-content) {
       background: #fff !important;
       color: #14213b;
+      color-scheme: light !important;
+      width: auto;
+      min-height: 0;
+      margin: 0;
+      padding: 0;
     }
+    .app-layout:has(.wb-editor) > :not(.app-workspace),
+    .app-workspace:has(.wb-editor) > :not(.workspace-content),
     .wb-page:has(.wb-editor) > :not(.wb-editor),
     .wb-editor > :not(.wb-print-title, .wb-workspace),
     .wb-workspace > :not(.wb-stage),
@@ -517,9 +526,16 @@
       border-radius: 0;
       background: transparent;
     }
+    .wb-workspace {
+      display: block;
+    }
     .wb-stage svg {
       width: 100%;
-      max-height: 230mm;
+      height: min(72vh, 220mm);
+    }
+    .wb-stage[data-portrait="false"] svg {
+      height: auto;
+      max-height: min(70vh, 150mm);
     }
   }
 }
