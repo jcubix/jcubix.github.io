@@ -50,7 +50,10 @@ export type BoardDocument = {
   whitePitch?: boolean;
   raisedPitch?: boolean;
   marks: Mark[];
+  phases?: Mark[][];
 };
+export const maxBoardPhases = 8;
+export const maxBoardBytes = 2_000_000;
 export type BoardSummary = {
   id: string;
   title: string;
@@ -154,50 +157,58 @@ export function validateBoard(value: unknown): asserts value is BoardDocument {
     (doc.whitePitch !== undefined && typeof doc.whitePitch !== "boolean") ||
     (doc.raisedPitch !== undefined && typeof doc.raisedPitch !== "boolean") ||
     !Array.isArray(doc.marks) ||
-    doc.marks.length > 200
+    (doc.phases !== undefined &&
+      (!Array.isArray(doc.phases) || doc.phases.length >= maxBoardPhases))
   )
     throw Error(
       "Lavagna non valida. Usa al massimo 200 elementi e una foto più piccola.",
     );
-  const ids = new Set<string>();
-  for (const m of doc.marks) {
-    if (
-      !m ||
-      typeof m.id !== "string" ||
-      !m.id ||
-      m.id.length > 64 ||
-      ids.has(m.id) ||
-      (!["pen", "arrow", "circle"].includes(m.kind) && !isPointMark(m.kind)) ||
-      !(boardColors as readonly string[]).includes(m.color) ||
-      typeof m.label !== "string" ||
-      m.label.length > 80 ||
-      (m.scale !== undefined &&
-        ((!isEquipmentKind(m.kind) && !isPlayerKind(m.kind)) ||
-          !Number.isFinite(m.scale) ||
-          m.scale < 0.25 ||
-          m.scale > 2)) ||
-      (m.dashed !== undefined &&
-        (m.kind !== "arrow" || typeof m.dashed !== "boolean")) ||
-      !Array.isArray(m.points) ||
-      m.points.length < 1 ||
-      m.points.length > 600 ||
-      (m.kind === "arrow" && m.points.length < 2) ||
-      (m.kind === "circle" && m.points.length !== 2) ||
-      (isPointMark(m.kind) && m.points.length !== 1) ||
-      m.points.some(
-        (p) =>
-          !p ||
-          !Number.isFinite(p.x) ||
-          !Number.isFinite(p.y) ||
-          p.x < 0 ||
-          p.x > 1000 ||
-          p.y < 0 ||
-          p.y > 640,
+  for (const marks of [doc.marks, ...(doc.phases ?? [])]) {
+    if (!Array.isArray(marks) || marks.length > 200)
+      throw Error("Usa al massimo 200 elementi per fase.");
+    const ids = new Set<string>();
+    for (const m of marks) {
+      if (
+        !m ||
+        typeof m.id !== "string" ||
+        !m.id ||
+        m.id.length > 64 ||
+        ids.has(m.id) ||
+        (!["pen", "arrow", "circle"].includes(m.kind) &&
+          !isPointMark(m.kind)) ||
+        !(boardColors as readonly string[]).includes(m.color) ||
+        typeof m.label !== "string" ||
+        m.label.length > 80 ||
+        (m.scale !== undefined &&
+          ((!isEquipmentKind(m.kind) && !isPlayerKind(m.kind)) ||
+            !Number.isFinite(m.scale) ||
+            m.scale < 0.25 ||
+            m.scale > 2)) ||
+        (m.dashed !== undefined &&
+          (m.kind !== "arrow" || typeof m.dashed !== "boolean")) ||
+        !Array.isArray(m.points) ||
+        m.points.length < 1 ||
+        m.points.length > 600 ||
+        (m.kind === "arrow" && m.points.length < 2) ||
+        (m.kind === "circle" && m.points.length !== 2) ||
+        (isPointMark(m.kind) && m.points.length !== 1) ||
+        m.points.some(
+          (p) =>
+            !p ||
+            !Number.isFinite(p.x) ||
+            !Number.isFinite(p.y) ||
+            p.x < 0 ||
+            p.x > 1000 ||
+            p.y < 0 ||
+            p.y > 640,
+        )
       )
-    )
-      throw Error("La lavagna contiene un elemento non valido.");
-    ids.add(m.id);
+        throw Error("La lavagna contiene un elemento non valido.");
+      ids.add(m.id);
+    }
   }
+  if (new TextEncoder().encode(JSON.stringify(doc)).length > maxBoardBytes)
+    throw Error("Lavagna troppo grande. Riduci le fasi o la foto di sfondo.");
 }
 
 export async function boardPhoto(file: File): Promise<string> {

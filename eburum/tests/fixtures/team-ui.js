@@ -3,6 +3,7 @@ const fixtureUser={id:'demo-user',email:'demo@example.test',app_metadata:{role:'
 let fixtureNext=0;
 class FixtureQuery {
  constructor(table){this.table=table;this.filters=[];this.action='select';this.rows=null;this.orders=[]}
+ ilike(key,pattern){const title=pattern.slice(1,-1).replace(/\\([\\%_])/g,'$1').toLocaleLowerCase('it-IT');this.filters.push(row=>String(row[key]).toLocaleLowerCase('it-IT').includes(title));return this}
  select(){return this} gt(key,value){this.filters.push(row=>row[key]>value);return this} gte(key,value){this.filters.push(row=>row[key]>=value);return this} lte(key,value){this.filters.push(row=>row[key]<=value);return this} in(key,values){this.filters.push(row=>values.includes(row[key]));return this} limit(n){this.bounds=[0,n-1];return this} eq(key,value){this.filters.push(row=>row[key]===value);return this} order(key,options={}){this.orders.push({key,ascending:options.ascending!==false});return this}
  insert(rows){this.action='insert';this.rows=Array.isArray(rows)?rows:[rows];return this}
  upsert(row,options={}){this.action='upsert';this.rows=row;this.conflict=options.onConflict;return this} update(row){this.action='update';this.rows=row;return this} delete(){this.action='delete';return this}

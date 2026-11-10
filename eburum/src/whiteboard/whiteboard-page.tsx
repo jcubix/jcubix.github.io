@@ -1,5 +1,14 @@
-import { ArrowUpRight, Plus, Presentation, X } from "lucide-react";
+import {
+  ArrowUpRight,
+  FileUp,
+  Plus,
+  Presentation,
+  Search,
+  X,
+} from "lucide-react";
+import { useRef, useState } from "react";
 import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
 import { LoadingState } from "../components/ui/loading-state";
 import { PageHeading } from "../pages";
 import "../whiteboard.css";
@@ -8,6 +17,8 @@ import { useWhiteboard } from "./use-whiteboard";
 import { WhiteboardEditor } from "./whiteboard-editor";
 export function WhiteboardPage(props: Parameters<typeof useWhiteboard>[0]) {
   const model = useWhiteboard(props);
+  const [search, setSearch] = useState("");
+  const fileInput = useRef<HTMLInputElement>(null);
   const {
     allowed,
 
@@ -19,8 +30,10 @@ export function WhiteboardPage(props: Parameters<typeof useWhiteboard>[0]) {
     create,
 
     error,
+    filter,
 
     hasMore,
+    importFile,
 
     loadList,
     loading,
@@ -51,7 +64,7 @@ export function WhiteboardPage(props: Parameters<typeof useWhiteboard>[0]) {
             <X />
             <span className="page-add-label">Chiudi</span>
           </Button>
-        ) : boards.length ? (
+        ) : boards.length || filter ? (
           <Button
             onClick={() => create()}
             disabled={busy}
@@ -70,16 +83,70 @@ export function WhiteboardPage(props: Parameters<typeof useWhiteboard>[0]) {
         <section className="wb-library" aria-labelledby="boardLibrary">
           <div className="sc-section-heading">
             <h3 id="boardLibrary">Lavagne dello staff</h3>
-            <Button
-              variant="ghost"
-              disabled={loading || busy}
-              onClick={() => void loadList()}
-            >
-              Aggiorna elenco
-            </Button>
+            <div className="wb-library-actions">
+              <Button
+                variant="ghost"
+                disabled={busy}
+                onClick={() => fileInput.current?.click()}
+              >
+                <FileUp /> Importa file
+              </Button>
+              <Button
+                variant="ghost"
+                disabled={loading || busy}
+                onClick={() => void loadList()}
+              >
+                Aggiorna elenco
+              </Button>
+            </div>
           </div>
-          {loading && !boards.length ? (
+          <input
+            ref={fileInput}
+            type="file"
+            accept=".json,application/json"
+            hidden
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (file) importFile(file);
+            }}
+          />
+          {boards.length || filter ? (
+            <form
+              className="wb-library-search"
+              role="search"
+              aria-label="Cerca nelle lavagne"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void loadList(0, search.trim());
+              }}
+            >
+              <Input
+                type="search"
+                aria-label="Titolo della lavagna"
+                placeholder="Cerca per titolo"
+                value={search}
+                maxLength={120}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  if (!e.target.value && filter) void loadList(0, "");
+                }}
+              />
+              <Button
+                type="submit"
+                variant="secondary"
+                size="icon"
+                aria-label="Cerca lavagne"
+                disabled={busy || loading}
+              >
+                <Search />
+              </Button>
+            </form>
+          ) : null}
+          {loading && (!boards.length || filter) ? (
             <LoadingState label="Caricamento lavagne…" />
+          ) : filter && !boards.length ? (
+            <p role="status">Nessuna lavagna corrisponde al titolo cercato.</p>
           ) : !boards.length ? (
             <div className="sc-empty-state">
               <Presentation />
