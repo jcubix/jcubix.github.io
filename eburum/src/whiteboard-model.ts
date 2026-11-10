@@ -71,19 +71,19 @@ export function boardPoint(x: number, y: number): Point {
 }
 export function boardNoteLayout(label: string, portrait = false) {
   const lines: string[] = [];
-  if (portrait) {
-    for (let rest = label.trim(); rest;) {
-      let end = Math.min(22, rest.length);
-      if (end < rest.length) {
-        const space = rest.lastIndexOf(" ", end);
-        if (space > 0) end = space;
-      }
+  const limit = portrait ? 22 : 32;
+  for (const paragraph of label.trim().split(/\r\n?|\n/)) {
+    let rest = paragraph.trim();
+    while (rest.length > limit) {
+      const space = rest.lastIndexOf(" ", limit);
+      const end = space > 0 ? space : limit;
       lines.push(rest.slice(0, end));
       rest = rest.slice(end).trimStart();
     }
-  } else lines.push(label);
-  if (!lines.length) lines.push("");
-  const lineHeight = portrait ? 32 : 26;
+    lines.push(rest);
+  }
+  const lineHeight = Math.min(portrait ? 32 : 26, 320 / lines.length);
+  const fontSize = Math.min(portrait ? 24 : 19, lineHeight * 0.75);
   return {
     lines,
     width: Math.max(
@@ -91,8 +91,9 @@ export function boardNoteLayout(label: string, portrait = false) {
       Math.max(...lines.map((line) => line.length)) * (portrait ? 14 : 11) + 16,
     ),
     height: lines.length * lineHeight + 6,
-    top: portrait ? 26 : 22,
+    top: Math.min(portrait ? 26 : 22, lineHeight),
     lineHeight,
+    fontSize,
   };
 }
 export function moveMark(
@@ -101,6 +102,7 @@ export function moveMark(
   dy: number,
   portrait = false,
   lengthScale = 1,
+  widthScale = 1,
 ): Mark {
   const xs = mark.points.map((p) => p.x),
     ys = mark.points.map((p) => p.y);
@@ -130,8 +132,8 @@ export function moveMark(
     Math.min(1000 - right / lengthScale - Math.max(...xs), dx),
   );
   dy = Math.max(
-    top - Math.min(...ys),
-    Math.min(640 - bottom - Math.max(...ys), dy),
+    top / widthScale - Math.min(...ys),
+    Math.min(640 - bottom / widthScale - Math.max(...ys), dy),
   );
   return {
     ...mark,

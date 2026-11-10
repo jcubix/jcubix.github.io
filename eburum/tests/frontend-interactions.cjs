@@ -973,11 +973,22 @@ test('Portrait whiteboard maps touch coordinates and keeps upright notes inside 
  }
  const text='Chiudere la linea di passaggio senza lasciare spazio alle spalle della difesa';
  const note=model.boardNoteLayout(text,true);assert.ok(note.lines.length>1);assert.ok(note.width<640);assert.equal(note.lines.join(' '),text);
+ for(const portrait of [false,true]){
+  const layout=model.boardNoteLayout('Pressa il centrale\r\n\r\nCopri il passaggio',portrait);
+  assert.deepEqual(Array.from(layout.lines),['Pressa il centrale','','Copri il passaggio']);
+  assert.ok(model.boardNoteLayout(text,portrait).lines.length>1);
+ }
  const mark={id:'note',kind:'text',label:text,color:'#ffffff',points:[{x:0,y:0}]};
  for(const delta of [-10000,10000]){
   const p=model.moveMark(mark,delta,delta,true).points[0];
   assert.ok(p.x-note.top>=0);assert.ok(p.x+note.height-note.top<=1000);
   assert.ok(p.y-(note.width-8)>=0);assert.ok(p.y+8<=640);
+ }
+ const multiline={...mark,label:Array(15).fill('Vai').join('\n')};
+ for(const [half,vertical] of [[false,false],[true,false],[true,true]]){
+  const view=model.pitchView(half,vertical,true),layout=model.boardNoteLayout(multiline.label,view.rotated);
+  const point=view.projectMark(view.move(multiline,10000,10000).points[0]),y=view.rotated?point.x:point.y;
+  assert.ok(y+layout.height-layout.top<=view.height);
  }
 });
 

@@ -69,11 +69,11 @@ export function Ink({
           x={p.x}
           y={p.y}
           fill="#ffffff"
-          fontSize={portrait ? 24 : 19}
+          fontSize={note.fontSize}
           fontFamily="Arial, sans-serif"
         >
           {note.lines.map((line, i) => (
-            <tspan key={i} x={p.x} dy={i ? note.lineHeight : 0}>
+            <tspan key={i} x={p.x} y={p.y + i * note.lineHeight}>
               {line}
             </tspan>
           ))}
