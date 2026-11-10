@@ -497,7 +497,7 @@
       width: auto;
       min-height: 0;
       margin: 0;
-      padding: 0;
+      padding: 0 !important;
     }
     .app-layout:has(.wb-editor) > :not(.app-workspace),
     .app-workspace:has(.wb-editor) > :not(.workspace-content),
