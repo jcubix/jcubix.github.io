@@ -326,6 +326,71 @@ test('whiteboard tools stay compact and the field can draw, undo, save and expor
 });
 
 
+test('whiteboard sequences move players, persist each position and round-trip an editable file',async({page},info)=>{
+ await open(page,'whiteboard');
+ await page.getByRole('button',{name:'Nuova lavagna',exact:true}).click();
+ await page.getByLabel('Inserisci formazione').selectOption('4-3-3');
+ const svg=page.locator('.wb-stage > svg'), sequence=page.getByRole('group',{name:'Sequenza tattica'});
+ await expect(svg.locator('[data-mark]')).toHaveCount(11);
+ const first=svg.locator('[data-mark]').first(), id=await first.getAttribute('data-mark');
+ const hit=first.locator('[data-hit]'), start=Number(await hit.getAttribute('cx'));
+ await sequence.getByRole('button',{name:'Aggiungi fase'}).click();
+ const phase=sequence.getByRole('combobox');
+ await expect(phase).toHaveValue('1');
+ await page.locator('.wb-elements summary').click();
+ await page.locator('.wb-elements').getByRole('button',{name:'1. Eburum',exact:true}).click();
+ await svg.press(page.viewportSize().width<=640?'Shift+ArrowDown':'Shift+ArrowRight');
+ const moved=Number(await hit.getAttribute('cx'));
+ expect(moved).toBeGreaterThan(start);
+ await phase.selectOption('0');
+ await expect(hit).toHaveAttribute('cx',String(start));
+ await page.emulateMedia({reducedMotion:'no-preference'});
+ await sequence.getByRole('button',{name:'Riproduci sequenza'}).click();
+ await expect.poll(async()=>{const x=Number(await hit.getAttribute('cx'));return x>start&&x<moved}).toBe(true);
+ await expect(phase).toHaveValue('1');
+ await expect(hit).toHaveAttribute('cx',String(moved));
+ await page.getByRole('button',{name:'Salva lavagna',exact:true}).click();
+ await expect(page.locator('.wb-feedback')).toContainText('Lavagna salvata');
+ const saved=await page.evaluate(()=>fixtureData.tactical_boards[0].document);
+ expect(saved.marks[0].id).toBe(id);expect(saved.phases[0][0].id).toBe(id);
+ expect(saved.phases[0][0].points).not.toEqual(saved.marks[0].points);
+ await sequence.scrollIntoViewIfNeeded();
+ await info.attach('lavagna-sequenza',{body:await page.screenshot(),contentType:'image/png'});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+ await page.emulateMedia({media:'print'});
+ await expect(page.locator('.wb-print-title')).toBeVisible();
+ await expect(svg).toBeVisible();await expect(sequence).toBeHidden();
+ await expect(page.locator('.app-mobile-nav')).toBeHidden();
+ await expect(page.locator('.workspace-content')).toHaveCSS('padding-bottom','0px');
+ await page.emulateMedia({media:'screen'});
+ const downloaded=page.waitForEvent('download');
+ await page.getByRole('button',{name:'Esporta file modificabile'}).click();
+ const file=await downloaded;
+ expect(file.suggestedFilename()).toBe('Nuova lavagna.json');
+ const buffer=fs.readFileSync(await file.path());
+ await page.locator('.wb-close').getByRole('button',{name:'Chiudi lavagna',exact:true}).click();
+ const search=page.getByRole('searchbox',{name:'Titolo della lavagna'});
+ await search.fill('inesistente');await search.press('Enter');
+ await expect(page.getByText('Nessuna lavagna corrisponde al titolo cercato.')).toBeVisible();
+ await search.fill('nuova');await search.press('Enter');
+ await page.locator('.wb-library .sc-list-row').getByText('Nuova lavagna').click();
+ await expect(phase).toHaveValue('0');
+ await phase.selectOption('1');await expect(hit).toHaveAttribute('cx',String(moved));
+ await page.getByRole('button',{name:'Duplica lavagna',exact:true}).click();
+ await expect(page.getByLabel('Titolo',{exact:true})).toHaveValue('Copia · Nuova lavagna');
+ await page.getByRole('button',{name:'Salva lavagna',exact:true}).click();
+ await expect(page.locator('.wb-feedback')).toContainText('Lavagna salvata');
+ expect(await page.evaluate(()=>new Set(fixtureData.tactical_boards.map(b=>b.id)).size)).toBe(2);
+ await page.locator('.wb-close').getByRole('button',{name:'Chiudi lavagna',exact:true}).click();
+ const input=page.locator('.wb-library input[type=file]');
+ await input.setInputFiles({name:'invalida.json',mimeType:'application/json',buffer:Buffer.from('{"format":"eburum-whiteboard-1","title":"test","document":{"background":"https://example.test/photo","marks":[]}}')});
+ await expect(page.locator('.wb-feedback [role=alert]')).toContainText('Lavagna non valida');
+ await input.setInputFiles({name:'lavagna.json',mimeType:'application/json',buffer});
+ await expect(page.locator('.wb-feedback')).toContainText('Lavagna importata come bozza');
+ await phase.selectOption('1');await expect(hit).toHaveAttribute('cx',String(moved));
+ expect(await page.evaluate(()=>fixtureData.tactical_boards.length)).toBe(2);
+});
+
 test('whiteboard draws and saves a dashed freehand arrow',async({page},info)=>{
  await open(page,'whiteboard');await page.getByRole('button',{name:'Nuova lavagna',exact:true}).click();
  await page.getByRole('button',{name:'Freccia',exact:true}).click();
@@ -375,6 +440,15 @@ test('whiteboard keeps a multiline note as one saved element',async({page},info)
  const downloaded=page.waitForEvent('download');await page.getByRole('button',{name:'Esporta immagine',exact:true}).click();
  const png=fs.readFileSync(await (await downloaded).path());expect(png.subarray(0,8).toString('hex')).toBe('89504e470d0a1a0a');
  await info.attach('multiline-note',{body:png,contentType:'image/png'});
+ await page.locator('.wb-elements summary').click();
+ await page.locator('.wb-elements').getByRole('button',{name:/Pressa il centrale/}).click();
+ await page.getByLabel('Modifica testo della nota').fill('Chiudi il centro\nEsci sul terzino');
+ await expect(lines).toHaveText(['Chiudi il centro','Esci sul terzino']);
+ await page.getByRole('button',{name:'Duplica elemento'}).click();await expect(marks).toHaveCount(2);
+ await page.getByRole('button',{name:'Annulla ultima modifica'}).click();await expect(marks).toHaveCount(1);
+ await page.getByRole('button',{name:'Salva lavagna',exact:true}).click();
+ await expect(page.locator('.wb-feedback')).toContainText('Lavagna salvata');
+ expect(await page.evaluate(()=>fixtureData.tactical_boards[0].document.marks.map(m=>m.label))).toEqual(['Chiudi il centro\nEsci sul terzino']);
 });
 
 test('whiteboard distinguishes teams and places, reopens, edits and exports every training tool',async({page},info)=>{

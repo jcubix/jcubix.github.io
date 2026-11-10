@@ -21,6 +21,9 @@ import {
   isEquipmentKind,
   isPlayerKind,
   isPointMark,
+  maxBoardBytes,
+  maxBoardPhases,
+  validateBoard,
   type Board,
   type BoardDocument,
   type BoardSummary,
@@ -28,7 +31,14 @@ import {
   type Point,
 } from "../whiteboard-model";
 import "../whiteboard.css";
-import { date, fingerprint, Tool } from "./model";
+import {
+  date,
+  fingerprint,
+  formationMarks,
+  formations,
+  tweenMarks,
+  Tool,
+} from "./model";
 import { pitchView } from "./pitch-view";
 import { renderWhiteboardImage } from "./render-image";
 function extendArrow(mark: Mark, point: Point): Mark {
@@ -51,6 +61,9 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
   const api = useMemo(() => whiteboardApi(runtime), [runtime]);
   const [boards, setBoards] = useState<BoardSummary[]>([]),
     [hasMore, setHasMore] = useState(false);
+  const listFilter = useRef("");
+  const listRequest = useRef(0);
+  const [filter, setFilter] = useState("");
   const [board, setBoard] = useState<Board | null>(null),
     [title, setTitle] = useState(""),
     [activity, setActivity] = useState("");
@@ -88,6 +101,15 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
   } | null>(null);
   const markerId = useId().replace(/:/g, "");
   const { doc } = history;
+  const [phaseIndex, setPhaseIndex] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [animated, setAnimated] = useState<Mark[] | null>(null);
+  const phases = useMemo(
+    () => [doc.marks, ...(doc.phases ?? [])],
+    [doc.marks, doc.phases],
+  );
+  const phase = Math.min(phaseIndex, phases.length - 1);
+  const marks = phases[phase];
   const [compact, setCompact] = useState(
     () => window.matchMedia("(max-width: 640px)").matches,
   );
@@ -135,6 +157,86 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
     }));
     setNotice("");
   };
+  const commitMarks = (next: Mark[], coalesce = false) => {
+    commit(
+      phase === 0
+        ? { ...doc, marks: next }
+        : {
+            ...doc,
+            phases: doc.phases!.map((m, i) => (i + 1 === phase ? next : m)),
+          },
+      coalesce,
+    );
+  };
+  const goToPhase = (next: number) => {
+    setPhaseIndex(next);
+    setSelected("");
+    setPreview(null);
+    drag.current = null;
+  };
+  const addPhase = () => {
+    if (phases.length >= maxBoardPhases || !marks.length) return;
+    const next = [...phases];
+    next.splice(phase + 1, 0, marks);
+    const updated = { ...doc, phases: next.slice(1) };
+    try {
+      validateBoard(updated);
+    } catch (e) {
+      setError((e as Error).message);
+      return;
+    }
+    commit(updated);
+    setError("");
+    goToPhase(phase + 1);
+    setTool("select");
+  };
+  const removePhase = () => {
+    if (phases.length < 2) return;
+    const next = phases.filter((_, i) => i !== phase);
+    const { phases: _, ...base } = doc;
+    commit({
+      ...base,
+      marks: next[0],
+      ...(next.length > 1 ? { phases: next.slice(1) } : {}),
+    });
+    goToPhase(Math.max(phase - 1, 0));
+  };
+  useEffect(() => {
+    if (!playing) return;
+    const reduced = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    const duration = 1400;
+    let start: number | undefined;
+    let request = 0;
+    const tick = (now: number) => {
+      start ??= now;
+      const elapsed = (now - start) / duration;
+      const index = Math.floor(elapsed);
+      setPhaseIndex(Math.min(index, phases.length - 1));
+      if (index >= phases.length - 1) {
+        setAnimated(null);
+        setPlaying(false);
+        return;
+      }
+      if (!reduced)
+        setAnimated(
+          tweenMarks(phases[index], phases[index + 1], elapsed - index),
+        );
+      request = requestAnimationFrame(tick);
+    };
+    request = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(request);
+  }, [playing, phases]);
+  const togglePlayback = () => {
+    if (playing) {
+      setPlaying(false);
+      setAnimated(null);
+    } else {
+      goToPhase(0);
+      setPlaying(true);
+    }
+  };
   const canLeave = useCallback(async () => {
     if (pending.current) return false;
     if (!dirty) return true;
@@ -157,44 +259,68 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
       value.activity_id || "",
       value.document,
     );
-    setSelected("");
-    setPreview(null);
-    drag.current = null;
+    goToPhase(0);
+    setPlaying(false);
+    setAnimated(null);
     setError("");
     setNotice("");
   };
+  const draft = (
+    title: string,
+    document = emptyBoard(),
+    activityId: string | null = null,
+  ) =>
+    restore({
+      id: crypto.randomUUID(),
+      title,
+      activity_id: activityId,
+      revision: 0,
+      updated_at: "",
+      document,
+    });
   const create = async (linked = "") => {
     if (!(await canLeave())) return;
     const a = runtime.state.activities.find((a) => a.id === linked);
-    restore({
-      id: crypto.randomUUID(),
-      title: a
+    draft(
+      a
         ? `${a.title} · ${date(a.activity_date + "T12:00:00")}`
         : "Nuova lavagna",
-      activity_id: a?.id || null,
-      revision: 0,
-      updated_at: "",
-      document: emptyBoard(),
-    });
+      emptyBoard(),
+      a?.id || null,
+    );
+  };
+  const duplicateBoard = () => {
+    if (!board?.revision || dirty || busy || playing) return;
+    draft(("Copia · " + title).slice(0, 120), doc);
+    baseline.current = null;
+    setSettingsOpen(true);
+    setNotice(
+      "Copia pronta. Salvala per aggiungerla alle lavagne dello staff.",
+    );
   };
   const loadList = useCallback(
-    async (offset = 0) => {
+    async (offset = 0, search = listFilter.current) => {
       if (!allowed) {
         setLoading(false);
         return;
       }
+      const request = ++listRequest.current;
+      listFilter.current = search;
+      setFilter(search);
       setLoading(true);
+      setError("");
+      if (!offset) setHasMore(false);
       try {
-        const rows = await api.list(offset);
-        if (current()) {
+        const rows = await api.list(offset, search);
+        if (current() && request === listRequest.current) {
           setBoards((old) => (offset ? [...old, ...rows] : rows));
           setHasMore(rows.length === 50);
         }
       } catch (e) {
-        if (current())
+        if (current() && request === listRequest.current)
           setError((e as Error).message || "Lavagne non caricate. Riprova.");
       } finally {
-        if (current()) setLoading(false);
+        if (current() && request === listRequest.current) setLoading(false);
       }
     },
     [allowed, api, current],
@@ -244,6 +370,35 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
       if (current()) setBusy(false);
     }
   };
+  const importFile = (file: File) =>
+    void run(async () => {
+      if (file.size > maxBoardBytes + 1024)
+        throw Error(
+          "Il file è troppo grande. Scegli un file di lavagna Eburum.",
+        );
+      let value: { format?: unknown; title?: unknown; document?: unknown };
+      try {
+        value = JSON.parse(await file.text());
+      } catch {
+        throw Error(
+          "Il file non è leggibile. Scegli un file di lavagna Eburum.",
+        );
+      }
+      if (
+        value?.format !== "eburum-whiteboard-1" ||
+        typeof value.title !== "string" ||
+        !value.title.trim() ||
+        value.title.length > 120
+      )
+        throw Error("Il file non è una lavagna Eburum.");
+      validateBoard(value.document);
+      if (!current()) return;
+      draft(value.title.trim(), value.document);
+      baseline.current = null;
+      setNotice(
+        "Lavagna importata come bozza. Salvala per renderla disponibile allo staff.",
+      );
+    });
   const open = async (id: string) => {
     if (!(await canLeave())) return;
     libraryScroll.current = window.scrollY;
@@ -259,6 +414,8 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
   const close = async () => {
     if (!(await canLeave())) return;
     setBoard(null);
+    setPlaying(false);
+    setAnimated(null);
     setError("");
     if (params.get("board") && location.state?.boardEntry) navigate(-1);
     else if (params.get("board") || params.get("activity"))
@@ -306,6 +463,8 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
       }
       if (cancelled()) return;
       setBoard(null);
+      setPlaying(false);
+      setAnimated(null);
       requestAnimationFrame(() =>
         window.scrollTo({ top: libraryScroll.current, behavior: "instant" }),
       );
@@ -343,16 +502,32 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
             p.delete("activity");
             return p;
           },
-          { state: { boardEntry: true } },
+          {
+            replace: params.has("board"),
+            state: {
+              boardEntry: params.has("board")
+                ? location.state?.boardEntry
+                : true,
+            },
+          },
         );
       setNotice("Lavagna salvata e disponibile allo staff tecnico.");
-      setBoards((rows) => [value, ...rows.filter((b) => b.id !== value.id)]);
+      setBoards((rows) => [
+        ...(value.title
+          .toLocaleLowerCase("it-IT")
+          .includes(listFilter.current.toLocaleLowerCase("it-IT"))
+          ? [value]
+          : []),
+        ...rows.filter((b) => b.id !== value.id),
+      ]);
     });
   };
   const undo = (redo = false) => {
     setSelected("");
     setPreview(null);
     drag.current = null;
+    const next = redo ? history.future[0] : history.past.at(-1);
+    if (next) setPhaseIndex(Math.min(phase, next.phases?.length ?? 0));
     setHistory((h) =>
       redo
         ? h.future.length
@@ -372,23 +547,46 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
     );
   };
   const removeSelected = () => {
-    commit({ ...doc, marks: doc.marks.filter((m) => m.id !== selected) });
+    commitMarks(marks.filter((m) => m.id !== selected));
     setSelected("");
+  };
+  const updateSelected = (
+    patch: Partial<Pick<Mark, "label" | "color" | "dashed" | "scale">>,
+    coalesce = false,
+  ) =>
+    commitMarks(
+      marks.map((m) =>
+        m.id === selected ? view.move({ ...m, ...patch }, 0, 0) : m,
+      ),
+      coalesce,
+    );
+  const duplicateSelected = () => {
+    const mark = marks.find((m) => m.id === selected);
+    if (!mark || marks.length >= 200) return;
+    const delta = view.nudge(mark.points[0], 32, 24);
+    const copy = {
+      ...view.move(mark, delta.x, delta.y),
+      id: crypto.randomUUID(),
+    };
+    commitMarks([...marks, copy]);
+    setSelected(copy.id);
+  };
+  const insertFormation = (formation: keyof typeof formations) => {
+    if (view.half || doc.background !== "pitch" || marks.length > 189) return;
+    commitMarks([...marks, ...formationMarks(formation)]);
+    setSelected("");
+    setTool("select");
   };
   const resizeElement = (scale: number, coalesce = false) => {
     if (busy || !Number.isFinite(scale) || scale < 0.25 || scale > 2) return;
-    const mark = doc.marks.find((m) => m.id === selected);
+    const mark = marks.find((m) => m.id === selected);
     const kind = mark?.kind ?? tool;
     if (isEquipmentKind(kind)) setEquipmentScale(scale);
     else if (half && isPlayerKind(kind)) {
       if (!mark) setPlayerScale(scale);
     } else return;
     if (!mark) return;
-    const resized = view.move({ ...mark, scale }, 0, 0);
-    commit(
-      { ...doc, marks: doc.marks.map((m) => (m.id === mark.id ? resized : m)) },
-      coalesce,
-    );
+    updateSelected({ scale }, coalesce);
   };
   const point = (e: PointerEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -398,7 +596,8 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
     };
   };
   const pointerDown = (e: PointerEvent<SVGSVGElement>) => {
-    if (busy || tool === "pan" || e.button > 0 || drag.current) return;
+    if (busy || playing || tool === "pan" || e.button > 0 || drag.current)
+      return;
     const screen = point(e);
     if (screen.y > view.drawingHeight) return;
     const p = view.unproject(screen.x, screen.y);
@@ -408,12 +607,12 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
           .closest("[data-mark]")
           ?.getAttribute("data-mark") || "";
       setSelected(id);
-      const stored = doc.marks.find((m) => m.id === id);
+      const stored = marks.find((m) => m.id === id);
       const mark = stored && view.move(stored, 0, 0);
       if (mark)
         drag.current = { pointer: e.pointerId, start: p, mark, moving: true };
     } else {
-      if (doc.marks.length >= 200) {
+      if (marks.length >= 200) {
         setError(
           "Limite di 200 elementi raggiunto. Elimina quelli che non servono.",
         );
@@ -502,18 +701,54 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
             5,
         )
       )
-        commit({
-          ...doc,
-          marks: gesture.moving
-            ? doc.marks.map((m) => (m.id === mark.id ? mark : m))
-            : [...doc.marks, mark],
-        });
+        commitMarks(
+          gesture.moving
+            ? marks.map((m) => (m.id === mark.id ? mark : m))
+            : [...marks, mark],
+        );
     }
     drag.current = null;
     setPreview(null);
     if (e.currentTarget.hasPointerCapture(e.pointerId))
       e.currentTarget.releasePointerCapture(e.pointerId);
   };
+  const fileName =
+    title
+      .replace(/[^\p{L}\p{N} -]/gu, "")
+      .slice(0, 80)
+      .trim() || "lavagna-eburum";
+  const exportFile = () =>
+    void run(async () => {
+      validateBoard(doc);
+      if (!current()) return;
+      saveDownload(
+        new Blob(
+          [
+            JSON.stringify({
+              format: "eburum-whiteboard-1",
+              title: title.trim() || "Lavagna tattica",
+              document: doc,
+            }),
+          ],
+          { type: "application/json" },
+        ),
+        fileName + ".json",
+      );
+      setNotice("File modificabile esportato.");
+    });
+  const copyLink = () =>
+    void run(async () => {
+      if (!board?.revision || dirty || !current()) return;
+      if (!navigator.clipboard?.writeText)
+        throw Error("Copia l’indirizzo della lavagna dalla barra del browser.");
+      const url = new URL(window.location.pathname, window.location.origin);
+      url.hash = `/whiteboard?board=${encodeURIComponent(board.id)}`;
+      await navigator.clipboard.writeText(url.href);
+      if (current())
+        setNotice(
+          "Link copiato. Lo può aprire lo staff tecnico della squadra.",
+        );
+    });
   const exportPng = () =>
     void run(async () => {
       if (!svg.current) return;
@@ -523,11 +758,7 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
         doc.background === "pitch" && doc.whitePitch === true,
       );
       if (!current()) return;
-      saveDownload(
-        blob,
-        (title.replace(/[^\p{L}\p{N} -]/gu, "").slice(0, 80) ||
-          "lavagna-eburum") + ".png",
-      );
+      saveDownload(blob, fileName + ".png");
       setNotice(
         "Immagine esportata. Contiene anche le modifiche non ancora salvate.",
       );
@@ -537,15 +768,15 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
     (a) => a.activity_type !== "Riunione",
   );
   const shown = (
-    preview
-      ? [...doc.marks.filter((m) => m.id !== preview.id), preview]
-      : doc.marks
+    animated ??
+    (preview ? [...marks.filter((m) => m.id !== preview.id), preview] : marks)
   ).map((m) => {
     const positioned = view.move(m, 0, 0);
     return { ...positioned, points: positioned.points.map(view.projectMark) };
   });
 
   return {
+    addPhase,
     activity,
     activityRows,
     allowed,
@@ -557,36 +788,50 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
     close,
     color,
     commit,
+    commitMarks,
     compact,
+    copyLink,
     create,
     current,
     dashedArrow,
     dirty,
     doc,
     drag,
+    duplicateBoard,
+    duplicateSelected,
     error,
+    exportFile,
     exportPng,
     equipmentScale,
     finishPointer,
+    filter,
     freeArrow,
+    goToPhase,
     hasMore,
     history,
+    importFile,
+    insertFormation,
     label,
     loadList,
     loading,
     location,
     markerId,
+    marks,
     navigate,
     notice,
     open,
     params,
     pending,
+    phase,
+    phaseCount: phases.length,
     photo,
     playerScale,
+    playing,
     pointerDown,
     pointerMove,
     portrait,
     removeSelected,
+    removePhase,
     resizeElement,
     role,
     run,
@@ -611,8 +856,10 @@ export function useWhiteboard({ runtime }: { runtime: Runtime }) {
     shown,
     svg,
     title,
+    togglePlayback,
     tool,
     undo,
+    updateSelected,
     view,
   };
 }

@@ -1,13 +1,20 @@
 import {
+  Copy,
   Download,
   ImagePlus,
+  Link2,
+  Play,
+  Plus,
   Presentation,
+  Printer,
   Redo2,
   Save,
+  Square,
   Trash2,
   Undo2,
   X,
 } from "lucide-react";
+import { useRef } from "react";
 import { confirmDialog } from "../../app-confirm.js";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -17,6 +24,7 @@ import {
   boardPhoto,
   isEquipmentKind,
   isPlayerKind,
+  maxBoardPhases,
   playerRadius,
   pitchLayouts,
   type PitchLayout,
@@ -24,7 +32,7 @@ import {
 import "../whiteboard.css";
 import { Ink } from "./ink";
 import { ElementSize } from "./element-size";
-import { colorNames, date, markLabel, tools } from "./model";
+import { colorNames, date, formations, markLabel, tools } from "./model";
 import { Pitch } from "./pitch";
 import { PlacementTools } from "./placement-tools";
 import { useWhiteboard } from "./use-whiteboard";
@@ -34,34 +42,47 @@ export function WhiteboardEditor({
   model: ReturnType<typeof useWhiteboard>;
 }) {
   const {
+    addPhase,
     activity,
     activityRows,
     api,
     board,
-    busy,
+    busy: saving,
     close,
     color,
     commit,
+    commitMarks,
+    copyLink,
     compact,
     current,
     dashedArrow,
     dirty,
     doc,
     drag,
+    duplicateBoard,
+    duplicateSelected,
+    exportFile,
     exportPng,
     equipmentScale,
     finishPointer,
     freeArrow,
+    goToPhase,
     history,
+    insertFormation,
     label,
     markerId,
+    marks,
     pending,
+    phase,
+    phaseCount,
     photo,
     playerScale,
+    playing,
     pointerDown,
     pointerMove,
     portrait,
     removeSelected,
+    removePhase,
     resizeElement,
     run,
     save,
@@ -85,19 +106,25 @@ export function WhiteboardEditor({
     shown,
     svg,
     title,
+    togglePlayback,
     tool,
     undo,
+    updateSelected,
     view,
   } = model;
+  const editingNote = useRef(false);
   if (!board) return null;
-  const selectedMark = doc.marks.find((m) => m.id === selected);
+  const busy = saving || playing;
+  const selectedMark = marks.find((m) => m.id === selected);
   const sizeKind = selectedMark?.kind ?? tool;
   const sizeEquipment = isEquipmentKind(sizeKind);
   const sizePlayer = view.half && isPlayerKind(sizeKind);
   const playerTool = isPlayerKind(tool);
+  const selectedPlayer = !!selectedMark && isPlayerKind(selectedMark.kind);
   const whitePitch = doc.background === "pitch" && doc.whitePitch === true;
   return (
     <section className="wb-editor" aria-label="Editor lavagna">
+      <h2 className="wb-print-title">{title}</h2>
       <details
         className="wb-settings"
         open={settingsOpen}
@@ -177,19 +204,42 @@ export function WhiteboardEditor({
               <option value="raised">Rialzata</option>
             </select>
           </label>
+          {!view.half ? (
+            <label>
+              Inserisci formazione
+              <select
+                value=""
+                disabled={marks.length > 189}
+                onChange={(e) => {
+                  const name = e.target.value;
+                  if (Object.hasOwn(formations, name))
+                    insertFormation(name as keyof typeof formations);
+                }}
+              >
+                <option value="" disabled>
+                  Modulo
+                </option>
+                {Object.keys(formations).map((name) => (
+                  <option key={name}>{name}</option>
+                ))}
+              </select>
+            </label>
+          ) : null}
         </fieldset>
       ) : null}
       <div className="wb-workspace">
         <div className="wb-controls">
           <div className="wb-save">
             <p role="status">
-              {busy
-                ? "Operazione in corso…"
-                : dirty
-                  ? "Modifiche da salvare"
-                  : board.updated_at
-                    ? "Tutte le modifiche sono salvate"
-                    : "Bozza vuota · non ancora salvata"}
+              {playing
+                ? "Riproduzione in corso…"
+                : saving
+                  ? "Operazione in corso…"
+                  : dirty
+                    ? "Modifiche da salvare"
+                    : board.updated_at
+                      ? "Tutte le modifiche sono salvate"
+                      : "Bozza vuota · non ancora salvata"}
             </p>
             <div>
               <Button
@@ -264,9 +314,11 @@ export function WhiteboardEditor({
                     key={c}
                     style={{ "--swatch": c } as React.CSSProperties}
                     aria-label={colorNames[i]}
-                    aria-pressed={color === c}
-                    disabled={busy}
-                    onClick={() => setColor(c)}
+                    aria-pressed={(selectedMark?.color ?? color) === c}
+                    disabled={busy || selectedPlayer}
+                    onClick={() =>
+                      selectedMark ? updateSelected({ color: c }) : setColor(c)
+                    }
                   >
                     <span />
                   </button>
@@ -357,11 +409,65 @@ export function WhiteboardEditor({
             ) : null}
           </div>
         </div>
+        <div className="wb-sequence" role="group" aria-label="Sequenza tattica">
+          {phaseCount > 1 ? (
+            <>
+              <select
+                aria-label="Fase della sequenza"
+                value={phase}
+                disabled={busy}
+                onChange={(e) => goToPhase(Number(e.target.value))}
+              >
+                {Array.from({ length: phaseCount }, (_, i) => (
+                  <option key={i} value={i}>
+                    {i === 0 ? "1 · Posizione iniziale" : `${i + 1} · Fase`}
+                  </option>
+                ))}
+              </select>
+              <Button
+                variant="secondary"
+                size="icon"
+                aria-label={playing ? "Ferma sequenza" : "Riproduci sequenza"}
+                title={playing ? "Ferma sequenza" : "Riproduci sequenza"}
+                disabled={saving}
+                onClick={togglePlayback}
+              >
+                {playing ? <Square /> : <Play />}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Elimina fase corrente"
+                title="Elimina fase corrente"
+                disabled={busy}
+                onClick={removePhase}
+              >
+                <Trash2 />
+              </Button>
+            </>
+          ) : null}
+          <Button
+            variant="secondary"
+            size={phaseCount > 1 ? "icon" : "sm"}
+            aria-label="Aggiungi fase"
+            title="Aggiungi fase dalla posizione corrente"
+            disabled={busy || !marks.length || phaseCount >= maxBoardPhases}
+            onClick={addPhase}
+          >
+            <Plus />
+            {phaseCount === 1 ? "Aggiungi fase" : null}
+          </Button>
+          {phaseCount === 1 ? (
+            <p className="sc-helper">
+              Duplica la posizione per mostrare il movimento.
+            </p>
+          ) : null}
+        </div>
         <div className="wb-stage" data-portrait={portrait}>
           <svg
             ref={svg}
             viewBox={`0 0 ${view.width} ${view.height}`}
-            data-tool={tool}
+            data-tool={playing ? "pan" : tool}
             role="application"
             aria-label="Lavagna interattiva: usa gli strumenti per disegnare o seleziona un elemento dall’elenco sottostante"
             aria-describedby={`${markerId}-help`}
@@ -384,7 +490,7 @@ export function WhiteboardEditor({
                 e.preventDefault();
                 removeSelected();
               }
-              const m = doc.marks.find((m) => m.id === selected),
+              const m = marks.find((m) => m.id === selected),
                 step = e.shiftKey ? 10 : 2;
               if (
                 m &&
@@ -407,10 +513,7 @@ export function WhiteboardEditor({
                       : 0;
                 const delta = view.nudge(m.points[0], dx, dy);
                 const next = view.move(m, delta.x, delta.y);
-                commit({
-                  ...doc,
-                  marks: doc.marks.map((v) => (v.id === selected ? next : v)),
-                });
+                commitMarks(marks.map((v) => (v.id === selected ? next : v)));
               }
             }}
           >
@@ -517,8 +620,62 @@ export function WhiteboardEditor({
           </svg>
         </div>
       </div>
+      {selectedMark ? (
+        <div
+          className="wb-selection"
+          role="group"
+          aria-label="Elemento selezionato"
+        >
+          {selectedMark.kind === "text" ? (
+            <label className="wb-label">
+              Modifica testo della nota
+              <textarea
+                key={selectedMark.id}
+                rows={2}
+                maxLength={80}
+                value={selectedMark.label}
+                disabled={busy}
+                onFocus={() => {
+                  editingNote.current = false;
+                }}
+                onChange={(e) => {
+                  updateSelected(
+                    { label: e.target.value },
+                    editingNote.current,
+                  );
+                  editingNote.current = true;
+                }}
+              />
+            </label>
+          ) : null}
+          {selectedMark.kind === "arrow" ? (
+            <Button
+              variant="secondary"
+              aria-pressed={!!selectedMark.dashed}
+              disabled={busy}
+              onClick={() => updateSelected({ dashed: !selectedMark.dashed })}
+            >
+              Freccia tratteggiata
+            </Button>
+          ) : null}
+          <Button
+            variant="secondary"
+            disabled={busy || marks.length >= 200}
+            onClick={duplicateSelected}
+          >
+            <Copy /> Duplica elemento
+          </Button>
+        </div>
+      ) : null}
       <div className="wb-secondary-actions">
         <div>
+          <Button
+            variant="secondary"
+            disabled={busy}
+            onClick={() => window.print()}
+          >
+            <Printer /> Stampa
+          </Button>
           <Button
             variant="secondary"
             size="icon"
@@ -587,13 +744,13 @@ export function WhiteboardEditor({
         sfondo e i disegni si possono annullare separatamente.
       </p>
       <details className="wb-elements">
-        <summary>Elementi sulla lavagna ({doc.marks.length}/200)</summary>
+        <summary>Elementi sulla lavagna ({marks.length}/200)</summary>
         <p id={`${markerId}-help`} className="sc-helper">
           Seleziona un elemento, poi usa Sposta e le frecce della tastiera. Canc
           elimina l’elemento.
         </p>
         <div>
-          {doc.marks.map((m, i) => (
+          {marks.map((m, i) => (
             <Button
               key={m.id}
               variant="secondary"
@@ -615,6 +772,28 @@ export function WhiteboardEditor({
           <X />
           Chiudi lavagna
         </Button>
+        <Button variant="secondary" disabled={busy} onClick={exportFile}>
+          <Download />
+          Esporta file modificabile
+        </Button>
+        {board.revision > 0 ? (
+          <>
+            <Button
+              variant="secondary"
+              disabled={busy || dirty}
+              onClick={copyLink}
+            >
+              <Link2 /> Copia link per lo staff
+            </Button>
+            <Button
+              variant="secondary"
+              disabled={busy || dirty}
+              onClick={duplicateBoard}
+            >
+              <Copy /> Duplica lavagna
+            </Button>
+          </>
+        ) : null}
         {board.revision > 0 ? (
           <Button
             variant="destructive"

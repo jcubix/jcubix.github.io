@@ -1,4 +1,5 @@
 begin;
+-- An animation reuses an element's identity across phases, never twice in one phase.
 do $$declare owner uuid; outsider uuid:=gen_random_uuid(); actor uuid; r text;begin
  select claimed_by into owner from private_import.bootstrap_state where singleton;
  perform set_config('test.board_owner',owner::text,true);
@@ -23,12 +24,21 @@ do $$declare b public.tactical_boards; d jsonb:='{"background":"pitch","marks":[
  if b.revision<>1 then raise exception 'Retry duplicated revision';end if;
  b:=public.save_tactical_board(board_id,'Test modificata',null,'{"background":"pitch","marks":[{"id":"x","kind":"arrow","label":"","color":"#ff7b8b","points":[{"x":20,"y":40},{"x":500,"y":300}]}]}'::jsonb,1);
  if b.revision<>2 then raise exception 'Update failed';end if;
- begin perform public.save_tactical_board(board_id,'Old writer',null,d,1);raise exception 'Stale write allowed';exception when serialization_failure then null;end;
- begin update public.tactical_boards set title='Direct stale',revision=1 where id=b.id;raise exception 'Direct stale update allowed';exception when serialization_failure then null;end;
+ begin perform public.save_tactical_board(board_id,'Old writer',null,d,1);raise exception 'Stale write allowed';exception when sqlstate 'PT409' then null;end;
+ begin update public.tactical_boards set title='Direct stale',revision=1 where id=b.id;raise exception 'Direct stale update allowed';exception when sqlstate 'PT409' then null;end;
  begin perform public.save_tactical_board(gen_random_uuid(),'Invalid',null,'{"background":"https://attacker.test/photo","marks":[]}',0);raise exception 'External photo allowed';exception when invalid_parameter_value then null;end;
  begin perform public.save_tactical_board(gen_random_uuid(),'Invalid',null,'{"background":"data:image/svg+xml;base64,abc","marks":[]}',0);raise exception 'SVG allowed';exception when invalid_parameter_value then null;end;
  begin perform public.save_tactical_board(gen_random_uuid(),'Invalid',null,'{"background":"pitch","marks":[{"id":"x","kind":"text","color":"#ffffff","label":"test","points":[{"x":1001,"y":0}]}]}',0);raise exception 'Out of bounds allowed';exception when invalid_parameter_value then null;end;
  begin perform public.save_tactical_board(gen_random_uuid(),'Invalid',null,'{"background":"pitch","marks":[{"id":"x","kind":"arrow","color":"#ffffff","label":"","points":[]}]}',0);raise exception 'Empty geometry allowed';exception when invalid_parameter_value then null;end;
+ declare m jsonb:='{"id":"player","kind":"home","color":"#80caff","label":"","points":[{"x":100,"y":120}]}'::jsonb; animated jsonb;
+ begin
+   animated:=jsonb_build_object('background','pitch','marks',jsonb_build_array(m),'phases',jsonb_build_array(jsonb_build_array(jsonb_set(m,'{points,0,x}','230'))));
+   b:=public.save_tactical_board(gen_random_uuid(),'Test sequenza',null,animated,0);
+   if b.document is distinct from animated then raise exception 'Animation round-trip failed';end if;
+   begin perform public.save_tactical_board(gen_random_uuid(),'Invalid',null,jsonb_set(animated,'{phases,0}',jsonb_build_array(m,m)),0);raise exception 'Duplicate id within a phase allowed';exception when invalid_parameter_value then null;end;
+   begin perform public.save_tactical_board(gen_random_uuid(),'Invalid',null,jsonb_set(animated,'{phases,0,0,points,0,x}','1001'),0);raise exception 'Invalid position within a phase allowed';exception when invalid_parameter_value then null;end;
+   begin perform public.save_tactical_board(gen_random_uuid(),'Invalid',null,jsonb_set(animated,'{phases}','[[],[],[],[],[],[],[],[]]'),0);raise exception 'More than eight total phases allowed';exception when invalid_parameter_value then null;end;
+ end;
  begin perform public.save_tactical_board(board_id,'Invalid link',gen_random_uuid(),d,2);raise exception 'Cross-team link allowed';exception when invalid_parameter_value then null;end;
  insert into public.activities(user_id,activity_type,title,activity_date,status) values(auth.uid(),'Allenamento','Synthetic board activity',current_date,'Programmato') returning id into a;
  b:=public.save_tactical_board(gen_random_uuid(),'Keep drawing',a,d,0);

@@ -37,6 +37,7 @@ export const fingerprint = (
     doc.whitePitch ?? false,
     doc.raisedPitch ?? false,
     doc.marks,
+    doc.phases ?? [],
   ]),
 });
 export const markLabel = (mark: Mark, index: number) =>
@@ -47,3 +48,48 @@ export const markLabel = (mark: Mark, index: number) =>
   }`;
 export const date = (value: string) =>
   new Date(value).toLocaleDateString("it-IT");
+
+export const formations = {
+  "4-3-3": [4, 3, 3],
+  "4-4-2": [4, 4, 2],
+  "3-5-2": [3, 5, 2],
+  "4-2-3-1": [4, 2, 3, 1],
+} as const;
+
+export function formationMarks(formation: keyof typeof formations): Mark[] {
+  const lines = [1, ...formations[formation]];
+  return lines.flatMap((count, line) =>
+    Array.from({ length: count }, (_, i) => ({
+      id: crypto.randomUUID(),
+      kind: "home",
+      color: "#80caff",
+      label: "",
+      points: [
+        {
+          x: 100 + (line * 670) / (lines.length - 1),
+          y: ((i + 1) * 640) / (count + 1),
+        },
+      ],
+    })),
+  );
+}
+
+export function tweenMarks(from: Mark[], to: Mark[], progress: number) {
+  const targets = new Map(to.map((mark) => [mark.id, mark]));
+  return from.map((mark) => {
+    const next = targets.get(mark.id);
+    if (
+      next?.kind !== mark.kind ||
+      !["home", "away", "ball"].includes(mark.kind)
+    )
+      return mark;
+    const a = mark.points[0],
+      b = next.points[0];
+    return {
+      ...mark,
+      points: [
+        { x: a.x + (b.x - a.x) * progress, y: a.y + (b.y - a.y) * progress },
+      ],
+    };
+  });
+}

@@ -48,12 +48,44 @@
     margin: 16px 0 0;
   }
   .wb-pitch-settings {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px;
   }
   .wb-workspace {
     display: flex;
     flex-direction: column;
+  }
+  .wb-print-title {
+    display: none;
+  }
+  .wb-sequence,
+  .wb-selection {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .wb-sequence select {
+    flex: 1;
+    width: 0;
+    min-width: 0;
+    min-height: 44px;
+    max-width: 260px;
+  }
+  .wb-sequence p {
+    flex: 1 1 130px;
+    margin: 0;
+  }
+  .wb-selection {
+    align-items: flex-end;
+    padding: 12px;
+    margin: 12px 0 0;
+    border-radius: var(--radius-card);
+    background: var(--surface-muted);
+  }
+  .wb-selection .wb-label {
+    flex: 1 1 220px;
   }
   .wb-fields label,
   .wb-label {
@@ -67,6 +99,9 @@
   .wb-fields input {
     width: 100%;
     min-width: 0;
+  }
+  .wb-pitch-settings select {
+    text-overflow: ellipsis;
   }
   .wb-toolbar,
   .wb-options,
@@ -95,6 +130,7 @@
   }
   .wb-toolbar button[aria-pressed="true"],
   .wb-arrow-options button[aria-pressed="true"],
+  .wb-selection button[aria-pressed="true"],
   .wb-placement button[aria-pressed="true"],
   .wb-equipment-picker button[aria-pressed="true"],
   .wb-elements button[aria-pressed="true"] {
@@ -291,6 +327,21 @@
   .wb-library {
     margin-top: 32px;
   }
+  .wb-library-search {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    max-width: 480px;
+  }
+  .wb-library-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .wb-library-search input {
+    flex: 1;
+    min-width: 0;
+  }
   .wb-library .sc-list-row {
     width: 100%;
     text-align: left;
@@ -337,8 +388,11 @@
       gap: 8px;
       margin-bottom: 12px;
     }
-    .wb-pitch-settings > label:first-child {
+    .wb-pitch-settings:not(:has(> :nth-child(4))) > label:first-child {
       grid-column: 1 / -1;
+    }
+    #mainContent .wb-pitch-settings select {
+      padding-inline: 10px;
     }
     .wb-toolbar,
     .wb-placement,
@@ -434,6 +488,66 @@
   @media (max-width: 1023px) and (max-height: 600px) {
     .wb-controls {
       position: static;
+    }
+  }
+  @media (max-width: 360px) {
+    .wb-placement > button {
+      font-size: 12px;
+    }
+    .wb-placement button svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+  @media print {
+    :is(html, body):has(.wb-editor),
+    .app-layout:has(.wb-editor),
+    .app-layout:has(.wb-editor) :is(.app-workspace, .workspace-content) {
+      background: #fff !important;
+      color: #14213b;
+      color-scheme: light !important;
+      width: auto;
+      min-height: 0;
+      margin: 0;
+      padding: 0 !important;
+    }
+    .app-layout:has(.wb-editor) > :not(.app-workspace),
+    .app-workspace:has(.wb-editor) > :not(.workspace-content),
+    .wb-page:has(.wb-editor) > :not(.wb-editor),
+    .wb-editor > :not(.wb-print-title, .wb-workspace),
+    .wb-workspace > :not(.wb-stage),
+    .wb-stage [data-hit],
+    .wb-stage [data-selection] {
+      display: none !important;
+    }
+    .wb-page,
+    .wb-editor,
+    .wb-stage {
+      margin: 0;
+      padding: 0;
+    }
+    .wb-editor .wb-print-title {
+      display: block;
+      color: #14213b;
+      margin-bottom: 12px;
+      overflow-wrap: anywhere;
+    }
+    .wb-stage {
+      break-inside: avoid;
+      print-color-adjust: exact;
+      border-radius: 0;
+      background: transparent;
+    }
+    .wb-workspace {
+      display: block;
+    }
+    .wb-stage svg {
+      width: 100%;
+      height: min(72vh, 220mm);
+    }
+    .wb-stage[data-portrait="false"] svg {
+      height: auto;
+      max-height: min(70vh, 150mm);
     }
   }
 }

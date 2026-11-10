@@ -22,12 +22,15 @@ export function whiteboardApi(runtime: Runtime) {
   };
   return {
     current,
-    async list(offset: number) {
+    async list(offset: number, title: string) {
       guard();
-      const { data, error } = await runtime.db
+      let query = runtime.db
         .from("tactical_boards")
         .select("id,title,activity_id,revision,updated_at")
-        .eq("user_id", owner!)
+        .eq("user_id", owner!);
+      if (title)
+        query = query.ilike("title", `%${title.replace(/[\\%_]/g, "\\$&")}%`);
+      const { data, error } = await query
         .order("updated_at", { ascending: false })
         .order("id")
         .range(offset, offset + 49);
