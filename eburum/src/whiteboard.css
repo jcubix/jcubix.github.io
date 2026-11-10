@@ -391,6 +391,9 @@
     .wb-pitch-settings:not(:has(> :nth-child(4))) > label:first-child {
       grid-column: 1 / -1;
     }
+    #mainContent .wb-pitch-settings select {
+      padding-inline: 10px;
+    }
     .wb-toolbar,
     .wb-placement,
     .wb-colors {
@@ -485,6 +488,15 @@
   @media (max-width: 1023px) and (max-height: 600px) {
     .wb-controls {
       position: static;
+    }
+  }
+  @media (max-width: 360px) {
+    .wb-placement > button {
+      font-size: 12px;
+    }
+    .wb-placement button svg {
+      width: 20px;
+      height: 20px;
     }
   }
   @media print {

@@ -217,7 +217,7 @@ export function WhiteboardEditor({
                 }}
               >
                 <option value="" disabled>
-                  Scegli modulo
+                  Modulo
                 </option>
                 {Object.keys(formations).map((name) => (
                   <option key={name}>{name}</option>
