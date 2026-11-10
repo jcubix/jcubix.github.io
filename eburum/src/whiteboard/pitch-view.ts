@@ -52,8 +52,17 @@ export function pitchView(half: boolean, portrait: boolean, raised: boolean) {
     projectMark,
     unproject,
     nudge,
-    move: (mark: Mark, dx: number, dy: number) =>
-      moveMark(mark, dx, dy, rotated, half ? 0.5 : 1),
+    move: (mark: Mark, dx: number, dy: number) => {
+      const noteTilt = mark.kind === "text" ? tilt : 1;
+      return moveMark(
+        mark,
+        dx,
+        dy,
+        rotated,
+        (half ? 0.5 : 1) * (rotated ? noteTilt : 1),
+        rotated ? 1 : noteTilt,
+      );
+    },
     drawingHeight: half && portrait ? inset + 532 * tilt : height,
   };
 }

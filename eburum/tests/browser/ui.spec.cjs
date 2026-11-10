@@ -355,6 +355,28 @@ test('whiteboard draws and saves a dashed freehand arrow',async({page},info)=>{
  await info.attach('dashed-freehand-arrow',{body:png,contentType:'image/png'});
 });
 
+test('whiteboard keeps a multiline note as one saved element',async({page},info)=>{
+ await open(page,'whiteboard');await page.getByRole('button',{name:'Nuova lavagna',exact:true}).click();
+ await page.getByRole('button',{name:'Nota',exact:true}).click();
+ const field=page.getByRole('textbox',{name:'Testo della nota'});
+ await field.fill('Pressa il centrale');await field.press('End');await field.press('Enter');await field.press('Enter');await field.pressSequentially('Copri il passaggio');
+ const label='Pressa il centrale\n\nCopri il passaggio';await expect(field).toHaveValue(label);
+ const svg=page.getByRole('application',{name:/Lavagna interattiva/});await svg.scrollIntoViewIfNeeded();
+ const box=await svg.boundingBox(),controls=await page.locator('.wb-controls').boundingBox();
+ await page.mouse.click(box.x+box.width*.4,Math.max(box.y+35,controls.y+controls.height+25));
+ const marks=svg.locator('[data-mark]');await expect(marks).toHaveCount(1);
+ const lines=marks.locator('tspan');await expect(lines).toHaveText(['Pressa il centrale','','Copri il passaggio']);
+ const baselines=await lines.evaluateAll(items=>items.map(item=>Number(item.getAttribute('y'))));
+ expect(baselines[1]-baselines[0]).toBeGreaterThan(0);expect(baselines[2]-baselines[1]).toBeCloseTo(baselines[1]-baselines[0]);
+ await page.getByRole('button',{name:'Salva lavagna',exact:true}).click();await expect(page.locator('.wb-feedback')).toContainText('Lavagna salvata');
+ expect(await page.evaluate(()=>fixtureData.tactical_boards[0].document.marks.map(m=>m.label))).toEqual([label]);
+ await page.locator('.wb-close').getByRole('button',{name:'Chiudi lavagna',exact:true}).click();await page.locator('.wb-library .sc-list-row').first().click();
+ await expect(lines).toHaveText(['Pressa il centrale','','Copri il passaggio']);
+ const downloaded=page.waitForEvent('download');await page.getByRole('button',{name:'Esporta immagine',exact:true}).click();
+ const png=fs.readFileSync(await (await downloaded).path());expect(png.subarray(0,8).toString('hex')).toBe('89504e470d0a1a0a');
+ await info.attach('multiline-note',{body:png,contentType:'image/png'});
+});
+
 test('whiteboard distinguishes teams and places, reopens, edits and exports every training tool',async({page},info)=>{
  await open(page,'whiteboard');await page.getByRole('button',{name:'Nuova lavagna',exact:true}).click();
  const placement=page.getByRole('group',{name:'Giocatori e attrezzi'}),svg=page.getByRole('application',{name:/Lavagna interattiva/});

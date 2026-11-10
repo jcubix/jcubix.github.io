@@ -317,21 +317,27 @@ export function WhiteboardEditor({
                   Tratteggiata
                 </Button>
               </div>
-            ) : tool === "text" || playerTool ? (
+            ) : tool === "text" ? (
               <label className="wb-label">
-                {tool === "text"
-                  ? "Testo della nota"
-                  : "Numero o sigla (facoltativo)"}
-                <Input
+                Testo della nota
+                <textarea
+                  rows={2}
                   value={label}
-                  maxLength={tool === "text" ? 80 : 4}
+                  maxLength={80}
                   onChange={(e) => setLabel(e.target.value)}
                   disabled={busy}
-                  placeholder={
-                    tool === "text"
-                      ? "Es. Chiudere la linea di passaggio"
-                      : "Lascia vuoto per la sagoma"
-                  }
+                  placeholder="Scrivi la nota, poi tocca il campo"
+                />
+              </label>
+            ) : playerTool ? (
+              <label className="wb-label">
+                Numero o sigla (facoltativo)
+                <Input
+                  value={label}
+                  maxLength={4}
+                  onChange={(e) => setLabel(e.target.value)}
+                  disabled={busy}
+                  placeholder="Lascia vuoto per la sagoma"
                 />
               </label>
             ) : !sizeEquipment && !sizePlayer ? (
